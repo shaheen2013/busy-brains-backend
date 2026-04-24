@@ -2,9 +2,12 @@ import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { TypeOrmModuleOptions, TypeOrmOptionsFactory } from "@nestjs/typeorm";
 import { AppConfig } from "./app.config";
-import { User } from "../entities/user.entity";
-import { Payment } from "../entities/payment.entity";
-import { Subscription } from "../entities/subscription.entity";
+import { User } from "../modules/users/entities/user.entity";
+import { Child } from "../modules/children/entities/child.entity";
+import { ChildDataNode } from "../modules/children/entities/child-data-node.entity";
+import { Plan } from "../modules/subscriptions/entities/plan.entity";
+import { UserPlan } from "../modules/subscriptions/entities/user-plan.entity";
+import { PaymentHistory } from "../modules/subscriptions/entities/payment-history.entity";
 
 @Injectable()
 export class DatabaseConfigService implements TypeOrmOptionsFactory {
@@ -24,7 +27,7 @@ export class DatabaseConfigService implements TypeOrmOptionsFactory {
       password: database.password,
       database: database.name,
 
-      entities: [User, Payment, Subscription],
+      entities: [User, Child, ChildDataNode, Plan, UserPlan, PaymentHistory],
       synchronize: isDev,
       logging: isDev,
 
