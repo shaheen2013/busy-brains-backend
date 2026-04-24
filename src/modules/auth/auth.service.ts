@@ -6,6 +6,7 @@ import {
   ClerkClient,
 } from "@clerk/backend";
 import { AppConfig } from "../../config/app.config";
+import { ClerkJwtPayload } from "src/types/clerkJwtPayload";
 
 @Injectable()
 export class AuthService {
@@ -23,7 +24,7 @@ export class AuthService {
     this.clerkClient = createClerkClient({ secretKey });
   }
 
-  async verifyToken(token: string) {
+  async verifyToken(token: string): Promise<ClerkJwtPayload> {
     try {
       const secretKey = this.configService.get("clerk.secretKey", {
         infer: true,
