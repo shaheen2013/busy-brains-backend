@@ -94,7 +94,7 @@ export class PaymentService {
       cancel_url: `${frontendUrl}/payment/cancel`,
     });
 
-    return { sessionId: session.id, url: session.url! };
+    return { sessionId: session.id, url: session.url };
   }
 
   async activatePlanForUser(userId: string, planName: PlanName): Promise<void> {

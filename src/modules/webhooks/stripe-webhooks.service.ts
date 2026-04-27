@@ -1,9 +1,10 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { PlanName } from "../subscriptions/entities/plan.entity";
 import { PaymentService } from "../payment/payment.service";
-import { CheckoutSessionCompletedEvent, InvoicePaymentFailedEvent, InvoicePaymentSucceededEvent } from "../../types/Stripe-events";
-
-
+import {
+  CheckoutSessionCompletedEvent,
+  InvoicePaymentFailedEvent,
+  InvoicePaymentSucceededEvent,
+} from "../../types/Stripe-events";
 
 @Injectable()
 export class StripeWebhooksService {
@@ -16,7 +17,7 @@ export class StripeWebhooksService {
     const session = sessionEvent.data.object;
 
     const userId = session.metadata?.userId;
-    const planName = session.metadata?.planName as PlanName | undefined;
+    const planName = session.metadata?.planName;
 
     if (!userId || !planName) {
       this.logger.warn(

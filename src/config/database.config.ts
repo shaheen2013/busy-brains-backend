@@ -19,7 +19,7 @@ export class DatabaseConfigService implements TypeOrmOptionsFactory {
     const nodeEnv = this.configService.get("nodeEnv", { infer: true });
     const isDev = nodeEnv !== "production";
 
-    const database = this.configService.get("database", { infer: true })!;
+    const database = this.configService.get("database", { infer: true });
 
     return {
       type: "postgres",
@@ -29,7 +29,16 @@ export class DatabaseConfigService implements TypeOrmOptionsFactory {
       password: database.password,
       database: database.name,
 
-      entities: [User, Child, ChildModule, ChildQuest, ChildScreen, Plan, UserPlan, PaymentHistory],
+      entities: [
+        User,
+        Child,
+        ChildModule,
+        ChildQuest,
+        ChildScreen,
+        Plan,
+        UserPlan,
+        PaymentHistory,
+      ],
       synchronize: isDev,
       logging: isDev,
 
