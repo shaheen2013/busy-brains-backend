@@ -7,13 +7,18 @@ import {
 } from "typeorm";
 import { UserPlan } from "./user-plan.entity";
 
+export enum PlanName {
+  SOLO_EXPLORER = "SOLO_EXPLORER",
+  FAMILY_PACK = "FAMILY_PACK",
+}
+
 @Entity("plans")
 export class Plan {
   @PrimaryGeneratedColumn("uuid")
   id: string;
 
-  @Column({ type: "varchar" })
-  name: string;
+  @Column({ type: "enum", enum: PlanName, unique: true })
+  name: PlanName;
 
   @Column({ type: "integer" })
   price: number;
