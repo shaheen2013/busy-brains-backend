@@ -3,12 +3,12 @@ import {
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
+  OneToMany,
   JoinColumn,
   CreateDateColumn,
-  OneToMany,
 } from "typeorm";
 import { User } from "../../users/entities/user.entity";
-import { ChildDataNode } from "./child-data-node.entity";
+import { ChildModule } from "./child-module.entity";
 
 @Entity("children")
 export class Child {
@@ -22,6 +22,9 @@ export class Child {
   @JoinColumn({ name: "userId" })
   user: User;
 
+  @OneToMany(() => ChildModule, (module) => module.child)
+  modules: ChildModule[];
+
   @Column({ type: "varchar" })
   name: string;
 
@@ -33,7 +36,4 @@ export class Child {
 
   @CreateDateColumn()
   createdAt: Date;
-
-  @OneToMany(() => ChildDataNode, (node) => node.child)
-  dataNodes: ChildDataNode[];
 }

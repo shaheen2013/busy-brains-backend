@@ -1,5 +1,5 @@
 Table users {
-  id uuid [pk]
+  id varchar [pk] // Clerk user ID
   name varchar
   email varchar [unique]
   phone varchar [null]
@@ -10,7 +10,7 @@ Table users {
 Table plans {
   id uuid [pk]
 
-  name varchar // Solo Explored | Family Pack
+  name varchar // Solo Explorer | Family Pack
   price int
   max_children int
 
@@ -23,7 +23,7 @@ Table plans {
 Table user_plans {
   id uuid [pk]
 
-  user_id uuid [ref: > users.id]
+  user_id varchar [ref: > users.id]
   plan_id uuid [ref: > plans.id]
 
   is_trial boolean
@@ -39,7 +39,7 @@ Table user_plans {
 Table children {
   id uuid [pk]
 
-  user_id uuid [ref: > users.id]
+  user_id varchar [ref: > users.id]
 
   name varchar
   age int
@@ -51,7 +51,7 @@ Table children {
 Table payment_history {
   id uuid [pk]
 
-  user_id uuid [ref: > users.id]
+  user_id varchar [ref: > users.id]
   payment_id uuid [ref: > user_plans.id]
   plan_id uuid [ref: > plans.id]
 
@@ -66,33 +66,42 @@ Table payment_history {
   created_at timestamp
 }
 
+// Progress tracking: module → quest → screen
 
-/*
-  CORE TABLE (everything per child)
-  module -> quest -> screen structure + specific key valye pair data + progress
-*/
-Table children_data_nodes {
+Table child_modules {
   id uuid [pk]
 
   child_id uuid [ref: > children.id]
-
   module_no int
-  quest_no int [null]
-  screen_no int [null]
-
-  type varchar // module | quest | screen
-  
-  data json // content + configuration (FULL FLEXIBILITY) 
 
   is_completed boolean
-  completed_at timestamp
+  completed_at timestamp [null]
 
   created_at timestamp
+}
 
-  /*
-    RULES:
-    module  => quest_no NULL, screen_no NULL
-    quest   => screen_no NULL
-    screen  => all fields present
-  */
+Table child_quests {
+  id uuid [pk]
+
+  module_id uuid [ref: > child_modules.id]
+  quest_no int
+
+  is_completed boolean
+  completed_at timestamp [null]
+
+  created_at timestamp
+}
+
+Table child_screens {
+  id uuid [pk]
+
+  quest_id uuid [ref: > child_quests.id]
+  screen_no int
+
+  data json [null] // screen content + configuration
+
+  is_completed boolean
+  completed_at timestamp [null]
+
+  created_at timestamp
 }

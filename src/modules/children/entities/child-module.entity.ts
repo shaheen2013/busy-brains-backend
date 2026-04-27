@@ -3,49 +3,36 @@ import {
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
+  OneToMany,
   JoinColumn,
   CreateDateColumn,
 } from "typeorm";
 import { Child } from "./child.entity";
+import { ChildQuest } from "./child-quest.entity";
 
-export enum DataNodeType {
-  MODULE = "module",
-  QUEST = "quest",
-  SCREEN = "screen",
-}
-
-@Entity("child_data_nodes")
-export class ChildDataNode {
+@Entity("child_modules")
+export class ChildModule {
   @PrimaryGeneratedColumn("uuid")
   id: string;
 
   @Column({ type: "uuid" })
   childId: string;
 
-  @ManyToOne(() => Child, (child) => child.dataNodes)
+  @ManyToOne(() => Child, (child) => child.modules)
   @JoinColumn({ name: "childId" })
   child: Child;
 
+  @OneToMany(() => ChildQuest, (quest) => quest.module)
+  quests: ChildQuest[];
+
   @Column({ type: "integer" })
   moduleNo: number;
-
-  @Column({ type: "integer", nullable: true })
-  questNo: number;
-
-  @Column({ type: "integer", nullable: true })
-  screenNo: number;
-
-  @Column({ type: "enum", enum: DataNodeType })
-  type: DataNodeType;
-
-  @Column({ type: "jsonb", nullable: true })
-  data: Record<string, unknown>;
 
   @Column({ type: "boolean", default: false })
   isCompleted: boolean;
 
   @Column({ type: "timestamp", nullable: true })
-  completedAt: Date;
+  completedAt: Date | null;
 
   @CreateDateColumn()
   createdAt: Date;
