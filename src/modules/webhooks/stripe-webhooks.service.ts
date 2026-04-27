@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { PlanName } from "../subscriptions/entities/plan.entity";
 import { PaymentService } from "../payment/payment.service";
-import { CheckoutSessionCompletedEvent, InvoicePaymentFailedEvent, InvoicePaymentSucceededEvent } from "../../types/StripeEvents";
+import { CheckoutSessionCompletedEvent, InvoicePaymentFailedEvent, InvoicePaymentSucceededEvent } from "../../types/Stripe-events";
 
 
 

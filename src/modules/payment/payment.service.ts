@@ -15,7 +15,7 @@ const TRIAL_DAYS = 14;
 
 @Injectable()
 export class PaymentService {
-  private stripe: Stripe;
+  private stripe: Stripe.Stripe;
 
   constructor(
     @InjectRepository(Plan)
@@ -26,7 +26,7 @@ export class PaymentService {
   ) {
     const secretKey = this.configService.get<string>("stripe.secretKey");
     if (!secretKey) throw new Error("STRIPE_SECRET_KEY is not configured");
-    this.stripe = new Stripe(secretKey);
+    this.stripe = new Stripe(secretKey, { apiVersion: "2026-04-22.dahlia" });
   }
 
   async startTrial(user: User, planName: PlanName): Promise<UserPlan> {
