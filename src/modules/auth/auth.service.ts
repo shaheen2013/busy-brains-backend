@@ -6,7 +6,7 @@ import {
   ClerkClient,
 } from "@clerk/backend";
 import { AppConfig } from "../../config/app.config";
-import { ClerkJwtPayload } from "src/types/clerkJwtPayload";
+import { ClerkJwtPayload } from "../../types/clerk-Jwt-Payload";
 
 @Injectable()
 export class AuthService {
