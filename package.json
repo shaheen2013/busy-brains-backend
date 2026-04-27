@@ -13,7 +13,8 @@
     "start:debug": "NODE_OPTIONS=--dns-result-order=ipv4first nest start --debug --watch",
     "start:prod": "NODE_OPTIONS=--dns-result-order=ipv4first node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "plans:seed": "TS_NODE_PROJECT=tsconfig.seed.json node --env-file=.env -r ts-node/register src/database/seeders/plans.seeder.ts"
+    "plans:seed": "TS_NODE_PROJECT=tsconfig.seed.json node --env-file=.env -r ts-node/register src/database/seeders/plans.seeder.ts",
+    "fresh:seed": "TS_NODE_PROJECT=tsconfig.seed.json node --env-file=.env -r ts-node/register src/database/seeders/fresh-seed.ts"
   },
   "dependencies": {
     "@clerk/backend": "^3.2.11",

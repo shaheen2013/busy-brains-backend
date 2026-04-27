@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  Logger,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { ConfigService } from "@nestjs/config";
@@ -104,6 +105,58 @@ export class PaymentService {
     return { sessionId: session.id, url: session.url ?? "" };
   }
 
+  async handlePaymentIntentSucceeded(
+    paymentIntentId: string,
+    amount: number,
+    currency: string,
+  ): Promise<void> {
+    const existing = await this.paymentHistoryRepository.findOneBy({
+      stripePaymentIntentId: paymentIntentId,
+    });
+
+    if (existing) {
+      existing.status = "succeeded";
+      await this.paymentHistoryRepository.save(existing);
+    } else {
+      // checkout.session.completed hasn't arrived yet — create partial record
+      await this.paymentHistoryRepository.save(
+        this.paymentHistoryRepository.create({
+          stripePaymentIntentId: paymentIntentId,
+          status: "succeeded",
+          amount,
+          currency,
+        }),
+      );
+    }
+
+    Logger.log(`payment_intent.succeeded: ${paymentIntentId}`);
+  }
+
+  async handlePaymentIntentFailed(paymentIntentId: string): Promise<void> {
+    const existing = await this.paymentHistoryRepository.findOneBy({
+      stripePaymentIntentId: paymentIntentId,
+    });
+
+    if (existing) {
+      existing.status = "failed";
+      await this.paymentHistoryRepository.save(existing);
+      if (existing.paymentId) {
+        await this.userPlanRepository.update(existing.paymentId, {
+          isActive: false,
+        });
+      }
+    } else {
+      await this.paymentHistoryRepository.save(
+        this.paymentHistoryRepository.create({
+          stripePaymentIntentId: paymentIntentId,
+          status: "failed",
+        }),
+      );
+    }
+
+    Logger.log(`payment_intent.payment_failed: ${paymentIntentId}`);
+  }
+
   async handleCheckoutCompleted(
     userId: string,
     planName: PlanName,
@@ -117,7 +170,16 @@ export class PaymentService {
     const plan = await this.planRepository.findOneBy({ name: planName });
     if (!plan) return;
 
+    if (!session.payment_intent) {
+      Logger.warn(
+        `checkout.session.completed missing payment_intent: ${session.id}`,
+      );
+      return;
+    }
+
     const now = new Date();
+
+    // Activate or create the UserPlan
     let userPlan = await this.userPlanRepository.findOne({
       where: { userId },
     });
@@ -141,41 +203,33 @@ export class PaymentService {
 
     const savedPlan = await this.userPlanRepository.save(userPlan);
 
-    const record = this.paymentHistoryRepository.create({
-      userId,
-      paymentId: savedPlan.id,
-      planId: plan.id,
-      amount: session.amount_total ?? 0,
-      currency: session.currency ?? "usd",
-      stripePaymentIntentId: session.payment_intent ?? "",
-      stripeCheckoutSessionId: session.id,
-      status: "processing",
-      invoicePdfUrl: null,
+    // Fill in the partial record created by payment_intent event, or create fresh
+    const existing = await this.paymentHistoryRepository.findOneBy({
+      stripePaymentIntentId: session.payment_intent,
     });
 
-    await this.paymentHistoryRepository.save(record);
-  }
-
-  async handlePaymentIntentSucceeded(paymentIntentId: string): Promise<void> {
-    const record = await this.paymentHistoryRepository.findOneBy({
-      stripePaymentIntentId: paymentIntentId,
-    });
-    if (!record) return;
-
-    record.status = "succeeded";
-    await this.paymentHistoryRepository.save(record);
-  }
-
-  async handlePaymentIntentFailed(paymentIntentId: string): Promise<void> {
-    const record = await this.paymentHistoryRepository.findOneBy({
-      stripePaymentIntentId: paymentIntentId,
-    });
-    if (!record) return;
-
-    record.status = "failed";
-    await this.paymentHistoryRepository.save(record);
-
-    await this.userPlanRepository.update(record.paymentId, { isActive: false });
+    if (existing) {
+      existing.userId = userId;
+      existing.planId = plan.id;
+      existing.paymentId = savedPlan.id;
+      existing.amount = session.amount_total ?? existing.amount;
+      existing.currency = session.currency ?? existing.currency;
+      existing.stripeCheckoutSessionId = session.id;
+      await this.paymentHistoryRepository.save(existing);
+    } else {
+      await this.paymentHistoryRepository.save(
+        this.paymentHistoryRepository.create({
+          userId,
+          paymentId: savedPlan.id,
+          planId: plan.id,
+          amount: session.amount_total ?? 0,
+          currency: session.currency ?? "usd",
+          stripePaymentIntentId: session.payment_intent,
+          stripeCheckoutSessionId: session.id,
+          status: "processing",
+        }),
+      );
+    }
   }
 
   async handleInvoicePaid(

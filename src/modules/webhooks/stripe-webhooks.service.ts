@@ -39,14 +39,16 @@ export class StripeWebhooksService {
 
   async handlePaymentIntentSucceeded(event: any) {
     const pi = (event as PaymentIntentSucceededEvent).data.object;
-    await this.paymentService.handlePaymentIntentSucceeded(pi.id);
-    this.logger.log(`payment_intent.succeeded: ${pi.id}`);
+    await this.paymentService.handlePaymentIntentSucceeded(
+      pi.id,
+      pi.amount,
+      pi.currency,
+    );
   }
 
   async handlePaymentIntentFailed(event: any) {
     const pi = (event as PaymentIntentPaymentFailedEvent).data.object;
     await this.paymentService.handlePaymentIntentFailed(pi.id);
-    this.logger.log(`payment_intent.payment_failed: ${pi.id}`);
   }
 
   async handleInvoicePaymentSucceeded(event: any) {

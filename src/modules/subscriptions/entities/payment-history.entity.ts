@@ -15,38 +15,38 @@ export class PaymentHistory {
   @PrimaryGeneratedColumn("uuid")
   id: string;
 
-  @Column({ type: "varchar" })
-  userId: string;
+  @Column({ type: "varchar", nullable: true })
+  userId: string | null;
 
-  @ManyToOne(() => User, (user) => user.payments)
+  @ManyToOne(() => User, (user) => user.payments, { nullable: true })
   @JoinColumn({ name: "userId" })
-  user: User;
+  user: User | null;
 
-  @Column({ type: "uuid" })
-  paymentId: string;
+  @Column({ type: "uuid", nullable: true })
+  paymentId: string | null;
 
-  @ManyToOne(() => UserPlan)
+  @ManyToOne(() => UserPlan, { nullable: true })
   @JoinColumn({ name: "paymentId" })
-  userPlan: UserPlan;
+  userPlan: UserPlan | null;
 
-  @Column({ type: "uuid" })
-  planId: string;
+  @Column({ type: "uuid", nullable: true })
+  planId: string | null;
 
-  @ManyToOne(() => Plan)
+  @ManyToOne(() => Plan, { nullable: true })
   @JoinColumn({ name: "planId" })
-  plan: Plan;
+  plan: Plan | null;
 
-  @Column({ type: "integer" })
-  amount: number;
+  @Column({ type: "integer", nullable: true })
+  amount: number | null;
 
-  @Column({ type: "varchar" })
-  currency: string;
+  @Column({ type: "varchar", nullable: true })
+  currency: string | null;
 
-  @Column({ type: "varchar" })
+  @Column({ type: "varchar", unique: true })
   stripePaymentIntentId: string;
 
-  @Column({ type: "varchar" })
-  stripeCheckoutSessionId: string;
+  @Column({ type: "varchar", nullable: true })
+  stripeCheckoutSessionId: string | null;
 
   @Column({ type: "varchar" })
   status: string;
