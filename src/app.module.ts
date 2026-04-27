@@ -13,6 +13,7 @@ import { UsersModule } from "./modules/users/users.module";
 import { WebhooksModule } from "./modules/webhooks/webhooks.module";
 import { HealthModule } from "./modules/health/health.module";
 import { PaymentModule } from "./modules/payment/payment.module";
+import { ModulesModule } from "./modules/modules/modules.module";
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { PaymentModule } from "./modules/payment/payment.module";
     WebhooksModule,
     HealthModule,
     PaymentModule,
+    ModulesModule,
   ],
   providers: [
     {
