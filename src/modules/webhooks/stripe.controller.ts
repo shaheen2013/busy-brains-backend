@@ -11,7 +11,9 @@ import { ConfigService } from "@nestjs/config";
 import type { Request } from "express";
 import Stripe from "stripe";
 import { StripeWebhooksService } from "./stripe-webhooks.service";
+import { Public } from "../auth/decorators/public.decorator";
 
+@Public()
 @ApiTags("Webhooks")
 @Controller("webhooks/stripe")
 export class StripeWebhookController {
@@ -60,7 +62,9 @@ export class StripeWebhookController {
   })
   async handleStripeWebhook(@Req() request: RawBodyRequest<Request>) {
     const signature = request.headers["stripe-signature"] as string;
-    const webhookSecret = this.configService.get<string>("stripe.webhookSecret");
+    const webhookSecret = this.configService.get<string>(
+      "stripe.webhookSecret",
+    );
 
     if (!webhookSecret) {
       throw new BadRequestException("Stripe webhook secret is not configured");
@@ -88,8 +92,7 @@ export class StripeWebhookController {
       case "invoice.payment_failed":
         await this.stripeWebhooksService.handleInvoicePaymentFailed(event);
         break;
-      case "customer.subscription.updated":
-        await this.stripeWebhooksService.handleCustomerSubscriptionUpdated(event);
+      default:
         break;
     }
 

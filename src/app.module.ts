@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { APP_GUARD } from "@nestjs/core";
 import { ConfigModule } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
 
@@ -7,6 +8,8 @@ import appConfig from "./config/app.config";
 import { DatabaseConfigService } from "./config/database.config";
 
 import { AuthModule } from "./modules/auth/auth.module";
+import { ClerkGuard } from "./modules/auth/guards/clerk.guard";
+import { UsersModule } from "./modules/users/users.module";
 import { WebhooksModule } from "./modules/webhooks/webhooks.module";
 import { HealthModule } from "./modules/health/health.module";
 
@@ -22,10 +25,15 @@ import { HealthModule } from "./modules/health/health.module";
       useClass: DatabaseConfigService,
     }),
     AuthModule,
+    UsersModule,
     WebhooksModule,
     HealthModule,
   ],
-  controllers: [],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ClerkGuard,
+    },
+  ],
 })
 export class AppModule {}

@@ -21,10 +21,4 @@ export class StripeWebhooksService {
     this.logger.log(`invoice.payment_failed: ${obj?.id}`);
     // TODO: Handle payment failure
   }
-
-  async handleCustomerSubscriptionUpdated(event: unknown) {
-    const obj = (event as { data?: { object?: { id?: string } } }).data?.object;
-    this.logger.log(`customer.subscription.updated: ${obj?.id}`);
-    // TODO: Update subscription in database
-  }
 }

@@ -11,7 +11,9 @@ import { ConfigService } from "@nestjs/config";
 import type { Request } from "express";
 import { Webhook } from "svix";
 import { ClerkWebhooksService } from "./clerk-webhooks.service";
+import { Public } from "../auth/decorators/public.decorator";
 
+@Public()
 @ApiTags("Webhooks")
 @Controller("webhooks/clerk")
 export class ClerkWebhookController {

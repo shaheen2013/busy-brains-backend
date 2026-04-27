@@ -12,7 +12,7 @@ import { PaymentHistory } from "../../subscriptions/entities/payment-history.ent
 @Entity("users")
 export class User {
   @PrimaryColumn("varchar")
-  clerkId: string;
+  id: string;
 
   @Column({ type: "varchar" })
   name: string;
