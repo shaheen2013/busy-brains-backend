@@ -69,7 +69,7 @@ export class PaymentService {
       where: { userId: user.id, isActive: true },
     });
 
-    if (existing) {
+    if (existing && !existing.isTrial) {
       throw new ConflictException("User already has an active plan");
     }
 
@@ -82,13 +82,16 @@ export class PaymentService {
       this.configService.get<string>("FRONTEND_URL") ?? "http://localhost:3000";
 
     const session = await this.stripe.checkout.sessions.create({
-      mode: "subscription",
+      mode: "payment",
       line_items: [{ price: plan.stripePriceId, quantity: 1 }],
       customer_email: user.email,
       client_reference_id: user.id,
       metadata: {
         userId: user.id,
         planName: plan.name,
+      },
+      invoice_creation: {
+        enabled: true,
       },
       success_url: `${frontendUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${frontendUrl}/payment/cancel`,
