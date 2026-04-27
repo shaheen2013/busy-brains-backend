@@ -1,9 +1,11 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { PaymentService } from "../payment/payment.service";
-import {
+import type {
   CheckoutSessionCompletedEvent,
-  InvoicePaymentFailedEvent,
+  PaymentIntentSucceededEvent,
+  PaymentIntentPaymentFailedEvent,
   InvoicePaymentSucceededEvent,
+  InvoicePaymentFailedEvent,
 } from "../../types/Stripe-events";
 
 @Injectable()
@@ -13,11 +15,8 @@ export class StripeWebhooksService {
   constructor(private readonly paymentService: PaymentService) {}
 
   async handleCheckoutCompleted(event: any) {
-    const sessionEvent: CheckoutSessionCompletedEvent = event;
-    const session = sessionEvent.data.object;
-
-    const userId = session.metadata?.userId;
-    const planName = session.metadata?.planName;
+    const session = (event as CheckoutSessionCompletedEvent).data.object;
+    const { userId, planName } = session.metadata ?? {};
 
     if (!userId || !planName) {
       this.logger.warn(
@@ -26,24 +25,41 @@ export class StripeWebhooksService {
       return;
     }
 
-    await this.paymentService.activatePlanForUser(userId, planName);
+    await this.paymentService.handleCheckoutCompleted(userId, planName, {
+      id: session.id,
+      payment_intent: session.payment_intent,
+      amount_total: session.amount_total,
+      currency: session.currency,
+    });
 
     this.logger.log(
-      `Plan activated for user ${userId}: ${planName} (session ${session.id})`,
+      `Checkout completed for user ${userId}: ${planName} (${session.id})`,
     );
   }
 
-  async handleInvoicePaymentSucceeded(event: any) {
-    const invoiceEvent: InvoicePaymentSucceededEvent = event;
-    const invoice = invoiceEvent.data.object;
+  async handlePaymentIntentSucceeded(event: any) {
+    const pi = (event as PaymentIntentSucceededEvent).data.object;
+    await this.paymentService.handlePaymentIntentSucceeded(pi.id);
+    this.logger.log(`payment_intent.succeeded: ${pi.id}`);
+  }
 
+  async handlePaymentIntentFailed(event: any) {
+    const pi = (event as PaymentIntentPaymentFailedEvent).data.object;
+    await this.paymentService.handlePaymentIntentFailed(pi.id);
+    this.logger.log(`payment_intent.payment_failed: ${pi.id}`);
+  }
+
+  async handleInvoicePaymentSucceeded(event: any) {
+    const invoice = (event as InvoicePaymentSucceededEvent).data.object;
+    await this.paymentService.handleInvoicePaid(
+      invoice.id,
+      invoice.invoice_pdf,
+    );
     this.logger.log(`invoice.payment_succeeded: ${invoice.id}`);
   }
 
   async handleInvoicePaymentFailed(event: any) {
-    const invoiceEvent: InvoicePaymentFailedEvent = event;
-    const invoice = invoiceEvent.data.object;
-
+    const invoice = (event as InvoicePaymentFailedEvent).data.object;
     this.logger.log(`invoice.payment_failed: ${invoice.id}`);
   }
 }

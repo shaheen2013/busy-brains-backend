@@ -1,5 +1,5 @@
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
-import { Body, Controller, Post } from "@nestjs/common";
+import { Body, Controller, Get, Post } from "@nestjs/common";
 import { PaymentService } from "./payment.service";
 import { User } from "../auth/decorators/user.decorator";
 import { User as UserEntity } from "../users/entities/user.entity";
@@ -26,5 +26,11 @@ export class PaymentController {
   })
   startPlan(@User() user: UserEntity, @Body() dto: StartPlanDto) {
     return this.paymentService.startPlan(user, dto.planName);
+  }
+
+  @Get("history")
+  @ApiOperation({ summary: "Get payment history for the authenticated user" })
+  getHistory(@User() user: UserEntity) {
+    return this.paymentService.getPaymentHistory(user.id);
   }
 }

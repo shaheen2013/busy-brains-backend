@@ -1,12 +1,17 @@
 import { PlanName } from "../modules/subscriptions/entities/plan.entity";
+import Stripe from "stripe";
 
-type CheckoutSessionCompletedEvent = {
+type StripeTypes = InstanceType<typeof Stripe>;
+type Event = StripeTypes["webhooks"]["constructEvent"];
+
+export type CheckoutSessionCompletedEvent = Event & {
   type: "checkout.session.completed";
   data: {
     object: {
       id: string;
-      amount_total: number;
-      currency: string;
+      payment_intent: string | null;
+      amount_total: number | null;
+      currency: string | null;
       metadata: {
         userId: string;
         planName: PlanName;
@@ -15,38 +20,48 @@ type CheckoutSessionCompletedEvent = {
   };
 };
 
-type InvoicePaymentSucceededEvent = {
+export type PaymentIntentSucceededEvent = Event & {
+  type: "payment_intent.succeeded";
+  data: {
+    object: {
+      id: string;
+      amount: number;
+      currency: string;
+    };
+  };
+};
+
+export type PaymentIntentPaymentFailedEvent = Event & {
+  type: "payment_intent.payment_failed";
+  data: {
+    object: {
+      id: string;
+    };
+  };
+};
+
+export type InvoicePaymentSucceededEvent = Event & {
   type: "invoice.payment_succeeded";
   data: {
     object: {
       id: string;
+      payment_intent: string | null;
       amount_paid: number;
       currency: string;
-      metadata: {
-        userId: string;
-        planName: PlanName;
-      };
+      invoice_pdf: string | null;
+      hosted_invoice_url: string | null;
     };
   };
 };
 
-type InvoicePaymentFailedEvent = {
+export type InvoicePaymentFailedEvent = Event & {
   type: "invoice.payment_failed";
   data: {
     object: {
       id: string;
-      amount_paid: number;
+      payment_intent: string | null;
+      amount_due: number;
       currency: string;
-      metadata: {
-        userId: string;
-        planName: PlanName;
-      };
     };
   };
-};
-
-export type {
-  CheckoutSessionCompletedEvent,
-  InvoicePaymentSucceededEvent,
-  InvoicePaymentFailedEvent,
 };

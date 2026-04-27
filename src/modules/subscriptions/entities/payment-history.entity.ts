@@ -51,6 +51,9 @@ export class PaymentHistory {
   @Column({ type: "varchar" })
   status: string;
 
+  @Column({ type: "varchar", nullable: true })
+  invoicePdfUrl: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 }

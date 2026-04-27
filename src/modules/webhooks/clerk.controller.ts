@@ -12,6 +12,7 @@ import type { Request } from "express";
 import { Webhook } from "svix";
 import { ClerkWebhooksService } from "./clerk-webhooks.service";
 import { Public } from "../auth/decorators/public.decorator";
+import { AppConfig } from "../../config/app.config";
 
 @Public()
 @ApiTags("Webhooks")
@@ -19,7 +20,7 @@ import { Public } from "../auth/decorators/public.decorator";
 export class ClerkWebhookController {
   constructor(
     private clerkWebhooksService: ClerkWebhooksService,
-    private configService: ConfigService,
+    private configService: ConfigService<AppConfig>,
   ) {}
 
   @Post()
@@ -50,12 +51,7 @@ export class ClerkWebhookController {
     description: "Webhook signature verification failed",
   })
   async handleClerkWebhook(@Req() request: RawBodyRequest<Request>) {
-    const webhookSecret = this.configService.get<string>("clerk.webhookSecret");
-
-    if (!webhookSecret) {
-      throw new BadRequestException("Clerk webhook secret is not configured");
-    }
-
+    const { webhookSecret } = this.configService.get("clerk", { infer: true });
     const wh = new Webhook(webhookSecret);
     let event: ReturnType<Webhook["verify"]>;
 

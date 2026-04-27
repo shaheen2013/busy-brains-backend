@@ -33,14 +33,14 @@ const dataSource = new DataSource({
 const plans: Omit<Plan, "id" | "createdAt" | "userPlans">[] = [
   {
     name: PLANS.SOLO.name,
-    price: 999,
+    price: 19900,
     maxChildren: 1,
     currency: "usd",
     stripePriceId: PLANS.SOLO.priceId,
   },
   {
     name: PLANS.FAMILY.name,
-    price: 1999,
+    price: 30000,
     maxChildren: 5,
     currency: "usd",
     stripePriceId: PLANS.FAMILY.priceId,

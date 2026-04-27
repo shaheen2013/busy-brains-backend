@@ -7,11 +7,19 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { ConfigService } from "@nestjs/config";
 import { Repository } from "typeorm";
 import Stripe from "stripe";
+import { AppConfig } from "../../config/app.config";
 import { Plan, PlanName } from "../subscriptions/entities/plan.entity";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
+import { PaymentHistory } from "../subscriptions/entities/payment-history.entity";
 import { User } from "../users/entities/user.entity";
 
 const TRIAL_DAYS = 14;
+
+type StripeTypes = InstanceType<typeof Stripe>;
+type Invoice = Awaited<ReturnType<StripeTypes["invoices"]["retrieve"]>>;
+type ExpandedInvoice = Invoice & {
+  payment_intent: string | { id: string } | null;
+};
 
 @Injectable()
 export class PaymentService {
@@ -22,9 +30,11 @@ export class PaymentService {
     private readonly planRepository: Repository<Plan>,
     @InjectRepository(UserPlan)
     private readonly userPlanRepository: Repository<UserPlan>,
-    private readonly configService: ConfigService,
+    @InjectRepository(PaymentHistory)
+    private readonly paymentHistoryRepository: Repository<PaymentHistory>,
+    private readonly configService: ConfigService<AppConfig>,
   ) {
-    const secretKey = this.configService.get<string>("stripe.secretKey");
+    const { secretKey } = this.configService.get("stripe", { infer: true });
     if (!secretKey) throw new Error("STRIPE_SECRET_KEY is not configured");
     this.stripe = new Stripe(secretKey, { apiVersion: "2026-04-22.dahlia" });
   }
@@ -78,57 +88,126 @@ export class PaymentService {
       throw new NotFoundException(`Plan "${planName}" not found`);
     }
 
-    const frontendUrl =
-      this.configService.get<string>("FRONTEND_URL") ?? "http://localhost:3000";
+    const baseUrl = this.configService.get("frontendUrl", { infer: true });
 
     const session = await this.stripe.checkout.sessions.create({
       mode: "payment",
       line_items: [{ price: plan.stripePriceId, quantity: 1 }],
       customer_email: user.email,
       client_reference_id: user.id,
-      metadata: {
-        userId: user.id,
-        planName: plan.name,
-      },
-      invoice_creation: {
-        enabled: true,
-      },
-      success_url: `${frontendUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${frontendUrl}/payment/cancel`,
+      metadata: { userId: user.id, planName: plan.name },
+      invoice_creation: { enabled: true },
+      success_url: `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/payment/cancel`,
     });
 
-    return { sessionId: session.id, url: session.url };
+    return { sessionId: session.id, url: session.url ?? "" };
   }
 
-  async activatePlanForUser(userId: string, planName: PlanName): Promise<void> {
+  async handleCheckoutCompleted(
+    userId: string,
+    planName: PlanName,
+    session: {
+      id: string;
+      payment_intent: string | null;
+      amount_total: number | null;
+      currency: string | null;
+    },
+  ): Promise<void> {
     const plan = await this.planRepository.findOneBy({ name: planName });
     if (!plan) return;
 
     const now = new Date();
-    const existing = await this.userPlanRepository.findOne({
+    let userPlan = await this.userPlanRepository.findOne({
       where: { userId },
     });
 
-    if (existing) {
-      await this.userPlanRepository.save({
-        ...existing,
+    if (userPlan) {
+      userPlan.planId = plan.id;
+      userPlan.isTrial = false;
+      userPlan.isActive = true;
+      userPlan.purchasedAt = now;
+      userPlan.trialStartedAt = null;
+      userPlan.trialEndsAt = null;
+    } else {
+      userPlan = this.userPlanRepository.create({
+        userId,
         planId: plan.id,
         isTrial: false,
         isActive: true,
         purchasedAt: now,
-        trialStartedAt: null,
-        trialEndsAt: null,
       });
-    } else {
-      await this.userPlanRepository.save(
-        this.userPlanRepository.create({
-          userId,
-          planId: plan.id,
-          isTrial: false,
-          isActive: true,
-          purchasedAt: now,
-        }),
-      );
     }
+
+    const savedPlan = await this.userPlanRepository.save(userPlan);
+
+    const record = this.paymentHistoryRepository.create({
+      userId,
+      paymentId: savedPlan.id,
+      planId: plan.id,
+      amount: session.amount_total ?? 0,
+      currency: session.currency ?? "usd",
+      stripePaymentIntentId: session.payment_intent ?? "",
+      stripeCheckoutSessionId: session.id,
+      status: "processing",
+      invoicePdfUrl: null,
+    });
+
+    await this.paymentHistoryRepository.save(record);
+  }
+
+  async handlePaymentIntentSucceeded(paymentIntentId: string): Promise<void> {
+    const record = await this.paymentHistoryRepository.findOneBy({
+      stripePaymentIntentId: paymentIntentId,
+    });
+    if (!record) return;
+
+    record.status = "succeeded";
+    await this.paymentHistoryRepository.save(record);
+  }
+
+  async handlePaymentIntentFailed(paymentIntentId: string): Promise<void> {
+    const record = await this.paymentHistoryRepository.findOneBy({
+      stripePaymentIntentId: paymentIntentId,
+    });
+    if (!record) return;
+
+    record.status = "failed";
+    await this.paymentHistoryRepository.save(record);
+
+    await this.userPlanRepository.update(record.paymentId, { isActive: false });
+  }
+
+  async handleInvoicePaid(
+    invoiceId: string,
+    invoicePdfUrl: string | null,
+  ): Promise<void> {
+    const invoice: ExpandedInvoice = (await this.stripe.invoices.retrieve(
+      invoiceId,
+      {
+        expand: ["payment_intent"],
+      },
+    )) as ExpandedInvoice;
+
+    const expandedPaymentIntent =
+      typeof invoice.payment_intent === "string"
+        ? invoice.payment_intent
+        : invoice.payment_intent?.id;
+
+    const record = await this.paymentHistoryRepository.findOneBy({
+      stripePaymentIntentId: expandedPaymentIntent,
+    });
+    if (!record) return;
+
+    record.invoicePdfUrl = invoicePdfUrl;
+    await this.paymentHistoryRepository.save(record);
+  }
+
+  async getPaymentHistory(userId: string): Promise<PaymentHistory[]> {
+    return this.paymentHistoryRepository.find({
+      where: { userId },
+      relations: { plan: true },
+      order: { createdAt: "DESC" },
+    });
   }
 }

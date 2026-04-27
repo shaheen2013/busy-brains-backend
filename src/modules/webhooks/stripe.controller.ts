@@ -12,6 +12,7 @@ import type { Request } from "express";
 import Stripe from "stripe";
 import { StripeWebhooksService } from "./stripe-webhooks.service";
 import { Public } from "../auth/decorators/public.decorator";
+import { AppConfig } from "../../config/app.config";
 
 @Public()
 @ApiTags("Webhooks")
@@ -21,9 +22,9 @@ export class StripeWebhookController {
 
   constructor(
     private stripeWebhooksService: StripeWebhooksService,
-    private configService: ConfigService,
+    private configService: ConfigService<AppConfig>,
   ) {
-    const secretKey = this.configService.get<string>("stripe.secretKey");
+    const { secretKey } = this.configService.get("stripe", { infer: true });
     if (!secretKey) throw new Error("STRIPE_SECRET_KEY is not configured");
     this.stripe = new Stripe(secretKey);
   }
@@ -62,13 +63,7 @@ export class StripeWebhookController {
   })
   async handleStripeWebhook(@Req() request: RawBodyRequest<Request>) {
     const signature = request.headers["stripe-signature"] as string;
-    const webhookSecret = this.configService.get<string>(
-      "stripe.webhookSecret",
-    );
-
-    if (!webhookSecret) {
-      throw new BadRequestException("Stripe webhook secret is not configured");
-    }
+    const { webhookSecret } = this.configService.get("stripe", { infer: true });
 
     let event: ReturnType<Stripe.Stripe["webhooks"]["constructEvent"]>;
 
@@ -91,6 +86,12 @@ export class StripeWebhookController {
         break;
       case "invoice.payment_failed":
         await this.stripeWebhooksService.handleInvoicePaymentFailed(event);
+        break;
+      case "payment_intent.succeeded":
+        await this.stripeWebhooksService.handlePaymentIntentSucceeded(event);
+        break;
+      case "payment_intent.payment_failed":
+        await this.stripeWebhooksService.handlePaymentIntentFailed(event);
         break;
       default:
         break;
