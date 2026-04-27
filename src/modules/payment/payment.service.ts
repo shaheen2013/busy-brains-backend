@@ -40,7 +40,7 @@ export class PaymentService {
     this.stripe = new Stripe(secretKey, { apiVersion: "2026-04-22.dahlia" });
   }
 
-  async startTrial(user: User, planName: PlanName): Promise<UserPlan> {
+  async startTrial(user: User): Promise<UserPlan> {
     const existing = await this.userPlanRepository.findOne({
       where: { userId: user.id, isActive: true },
     });
@@ -49,27 +49,20 @@ export class PaymentService {
       throw new ConflictException("User already has an active plan or trial");
     }
 
-    const plan = await this.planRepository.findOneBy({ name: planName });
-    if (!plan) {
-      throw new NotFoundException(`Plan "${planName}" not found`);
-    }
-
     const now = new Date();
     const trialEndsAt = new Date(now);
     trialEndsAt.setDate(trialEndsAt.getDate() + TRIAL_DAYS);
 
-    const userPlan = this.userPlanRepository.create({
-      userId: user.id,
-      planId: plan.id,
-      isTrial: true,
-      isActive: true,
-      trialStartedAt: now,
-      trialEndsAt,
-    });
-
-    const saved = await this.userPlanRepository.save(userPlan);
-    saved.plan = plan;
-    return saved;
+    return this.userPlanRepository.save(
+      this.userPlanRepository.create({
+        userId: user.id,
+        planId: null,
+        isTrial: true,
+        isActive: true,
+        trialStartedAt: now,
+        trialEndsAt,
+      }),
+    );
   }
 
   async startPlan(
@@ -189,8 +182,6 @@ export class PaymentService {
       userPlan.isTrial = false;
       userPlan.isActive = true;
       userPlan.purchasedAt = now;
-      userPlan.trialStartedAt = null;
-      userPlan.trialEndsAt = null;
     } else {
       userPlan = this.userPlanRepository.create({
         userId,

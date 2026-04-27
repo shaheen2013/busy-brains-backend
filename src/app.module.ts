@@ -14,6 +14,7 @@ import { WebhooksModule } from "./modules/webhooks/webhooks.module";
 import { HealthModule } from "./modules/health/health.module";
 import { PaymentModule } from "./modules/payment/payment.module";
 import { ModulesModule } from "./modules/modules/modules.module";
+import { ChildrenModule } from "./modules/children/children.module";
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { ModulesModule } from "./modules/modules/modules.module";
     HealthModule,
     PaymentModule,
     ModulesModule,
+    ChildrenModule,
   ],
   providers: [
     {

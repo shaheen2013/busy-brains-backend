@@ -21,12 +21,12 @@ export class UserPlan {
   @JoinColumn({ name: "userId" })
   user: User;
 
-  @Column({ type: "uuid" })
-  planId: string;
+  @Column({ type: "uuid", nullable: true })
+  planId: string | null;
 
-  @ManyToOne(() => Plan, (plan) => plan.userPlans)
+  @ManyToOne(() => Plan, (plan) => plan.userPlans, { nullable: true })
   @JoinColumn({ name: "planId" })
-  plan: Plan;
+  plan: Plan | null;
 
   @Column({ type: "boolean", default: false })
   isTrial: boolean;

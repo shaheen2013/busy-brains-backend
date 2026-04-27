@@ -54,12 +54,10 @@ export class ModulesService {
       where: { userId, isActive: true },
     });
 
-    const purchasedAt = userPlan?.isTrial
-      ? null
-      : (userPlan?.purchasedAt ?? null);
+    const baseDate = this.resolveBaseDate(userPlan ?? null);
 
     if (moduleNo !== undefined) {
-      const status = this.resolveModuleStatus(moduleNo, purchasedAt);
+      const status = this.resolveModuleStatus(moduleNo, baseDate);
 
       if (questNo !== undefined && screenNo !== undefined) {
         return {
@@ -85,25 +83,34 @@ export class ModulesService {
     // All modules
     const result: AllModulesResponse = {};
     for (let i = 1; i <= MAX_MODULES; i++) {
-      result[`module_${i}`] = this.resolveModuleStatus(i, purchasedAt);
+      result[`module_${i}`] = this.resolveModuleStatus(i, baseDate);
     }
     return result;
   }
 
+  private resolveBaseDate(userPlan: UserPlan | null): Date | null {
+    if (!userPlan?.purchasedAt) return null;
+
+    const trialBase = userPlan.trialEndsAt;
+    const purchaseBase = userPlan.purchasedAt;
+
+    return trialBase && trialBase > purchaseBase ? trialBase : purchaseBase;
+  }
+
   private resolveModuleStatus(
     moduleNo: number,
-    purchasedAt: Date | null,
+    baseDate: Date | null,
   ): AccessStatus {
     if (moduleNo === 1) {
       return { unlocked: true, accessible: true, unlockDate: null };
     }
 
-    if (!purchasedAt) {
+    if (!baseDate) {
       return { unlocked: false, accessible: false, unlockDate: null };
     }
 
     const delayDays = MODULE_UNLOCK_DAYS[moduleNo] ?? (moduleNo - 2) * 14;
-    const unlockDate = new Date(purchasedAt);
+    const unlockDate = new Date(baseDate);
     unlockDate.setDate(unlockDate.getDate() + delayDays);
 
     const unlocked = new Date() >= unlockDate;

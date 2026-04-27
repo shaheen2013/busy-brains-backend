@@ -17,17 +17,21 @@ export class UsersService {
     return this.userRepository.findOneBy({ id });
   }
 
-  async findWithActivePlan(
-    id: string,
-  ): Promise<(User & { activePlan: UserPlan | null }) | null> {
+  async findWithActivePlan(id: string) {
     const user = await this.userRepository.findOneBy({ id });
     if (!user) return null;
 
-    const activePlan = await this.userPlanRepository.findOne({
+    const userPlan = await this.userPlanRepository.findOne({
       where: { userId: id, isActive: true },
       relations: { plan: true },
     });
 
-    return { ...user, activePlan: activePlan ?? null };
+    if (!userPlan) return { ...user, activePlan: null };
+
+    const plan = userPlan.isTrial
+      ? { name: "TRIAL", trialEndsAt: userPlan.trialEndsAt }
+      : userPlan.plan;
+
+    return { ...user, activePlan: { ...userPlan, plan } };
   }
 }
