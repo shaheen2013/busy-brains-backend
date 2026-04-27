@@ -12,6 +12,7 @@ import { ClerkGuard } from "./modules/auth/guards/clerk.guard";
 import { UsersModule } from "./modules/users/users.module";
 import { WebhooksModule } from "./modules/webhooks/webhooks.module";
 import { HealthModule } from "./modules/health/health.module";
+import { PaymentModule } from "./modules/payment/payment.module";
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { HealthModule } from "./modules/health/health.module";
     UsersModule,
     WebhooksModule,
     HealthModule,
+    PaymentModule,
   ],
   providers: [
     {
