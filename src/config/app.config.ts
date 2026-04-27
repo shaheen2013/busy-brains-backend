@@ -9,6 +9,7 @@ export interface AppConfig {
 
   clerk: {
     secretKey: string;
+    webhookSecret: string;
   };
 
   stripe: {
@@ -32,6 +33,7 @@ export default (): AppConfig => ({
 
   clerk: {
     secretKey: process.env.CLERK_SECRET_KEY!,
+    webhookSecret: process.env.CLERK_WEBHOOK_SECRET!,
   },
 
   stripe: {

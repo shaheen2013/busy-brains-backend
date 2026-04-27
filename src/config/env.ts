@@ -34,6 +34,10 @@ export class EnvironmentVariables {
 
   @IsString()
   @IsNotEmpty()
+  CLERK_WEBHOOK_SECRET: string;
+
+  @IsString()
+  @IsNotEmpty()
   STRIPE_SECRET_KEY: string;
 
   @IsString()
