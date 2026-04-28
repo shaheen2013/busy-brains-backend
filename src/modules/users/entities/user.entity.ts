@@ -15,13 +15,16 @@ export class User {
   id: string;
 
   @Column({ type: "varchar" })
-  name: string;
+  firstName: string;
+
+  @Column({ type: "varchar" })
+  lastName: string;
 
   @Column({ type: "varchar", unique: true })
   email: string;
 
   @Column({ type: "varchar", nullable: true })
-  phone: string;
+  phoneNumber: string;
 
   @Column({ type: "varchar", nullable: true })
   location: string;

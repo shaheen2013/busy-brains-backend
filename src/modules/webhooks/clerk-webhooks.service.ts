@@ -60,7 +60,7 @@ export class ClerkWebhooksService {
 
   private mapClerkPayloadToUser(
     payload: ClerkUserPayload,
-  ): Pick<User, "id" | "name" | "email" | "phone"> | null {
+  ): Pick<User, "id" | "firstName" | "lastName" | "email" | "phoneNumber"> | null {
     const primaryEmail =
       payload.email_addresses.find(
         (e) => e.id === payload.primary_email_address_id,
@@ -73,15 +73,15 @@ export class ClerkWebhooksService {
       return null;
     }
 
-    const nameParts = [payload.first_name, payload.last_name].filter(Boolean);
-    const name =
-      nameParts.length > 0 ? nameParts.join(" ") : primaryEmail.split("@")[0];
+    const firstName = payload.first_name ?? primaryEmail.split("@")[0];
+    const lastName = payload.last_name ?? "";
 
     return {
       id: payload.id,
-      name,
+      firstName,
+      lastName,
       email: primaryEmail,
-      phone: payload.phone_numbers?.[0]?.phone_number ?? null,
+      phoneNumber: payload.phone_numbers?.[0]?.phone_number ?? null,
     };
   }
 }
