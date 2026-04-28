@@ -10,8 +10,8 @@ async function bootstrap() {
 
   // Swagger/OpenAPI setup
   const config = new DocumentBuilder()
-    .setTitle("Foundation API")
-    .setDescription("Foundation platform API documentation")
+    .setTitle("Busy Brains API")
+    .setDescription("Busy Brains platform API documentation")
     .setVersion("1.0.0")
     .addBearerAuth(
       { type: "http", scheme: "bearer", bearerFormat: "JWT" },
