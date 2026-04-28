@@ -332,33 +332,63 @@ export class ModulesService {
     const child = await this.childRepository.findOneBy({ id: childId, userId });
     if (!child) throw new ForbiddenException("Child not found");
 
-    // Count total screens from module registry
+    // Count totals and completed from module registry and database
+    let totalModules = 0;
+    let totalQuests = 0;
     let totalScreens = 0;
+
     for (let moduleNo = 1; moduleNo <= MAX_MODULES; moduleNo++) {
+      totalModules++;
       const registryModule = moduleRegistry.perModule[moduleNo];
       if (registryModule) {
-        for (const questNo of Object.keys(registryModule.quests).map(Number)) {
+        const questNos = Object.keys(registryModule.quests).map(Number);
+        totalQuests += questNos.length;
+        for (const questNo of questNos) {
           const questScreenCount = registryModule.quests[questNo]?.screens ?? 0;
           totalScreens += questScreenCount;
         }
       }
     }
 
-    // Count completed screens for this child
+    // Count completed items for this child
     const childModules = await this.childModuleRepository.findBy({ childId });
-    const completedScreens =
+    const completedModules = childModules.filter((m) => m.isCompleted).length;
+
+    const childQuests =
       childModules.length > 0
+        ? await this.childQuestRepository
+            .createQueryBuilder("cq")
+            .where("cq.moduleId IN (:...moduleIds)", {
+              moduleIds: childModules.map((m) => m.id),
+            })
+            .getMany()
+        : [];
+    const completedQuests = childQuests.filter((q) => q.isCompleted).length;
+
+    const completedScreens =
+      childQuests.length > 0
         ? await this.childScreenRepository
             .createQueryBuilder("cs")
-            .innerJoin("cs.quest", "cq")
-            .innerJoin("cq.module", "cm")
-            .where("cm.childId = :childId AND cs.isCompleted = true", { childId })
+            .where("cs.questId IN (:...questIds)", {
+              questIds: childQuests.map((q) => q.id),
+            })
+            .andWhere("cs.isCompleted = true")
             .getCount()
         : 0;
 
     return {
-      totalScreens,
-      completedScreens,
+      modules: {
+        completed: completedModules,
+        total: totalModules,
+      },
+      quests: {
+        completed: completedQuests,
+        total: totalQuests,
+      },
+      screens: {
+        completed: completedScreens,
+        total: totalScreens,
+      },
       progressPercentage: totalScreens > 0 ? Math.round((completedScreens / totalScreens) * 100) : 0,
     };
   }
