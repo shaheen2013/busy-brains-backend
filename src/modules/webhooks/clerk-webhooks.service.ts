@@ -1,7 +1,10 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
+import { ConfigService } from "@nestjs/config";
 import { User } from "../users/entities/user.entity";
+import { PaymentService } from "../payment/payment.service";
+import { AppConfig } from "../../config/app.config";
 
 interface ClerkEmailAddress {
   id: string;
@@ -39,6 +42,8 @@ export class ClerkWebhooksService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    private paymentService: PaymentService,
+    private configService: ConfigService<AppConfig>,
   ) {}
 
   async handleUserCreated(event: ClerkUserEvent) {
@@ -47,6 +52,24 @@ export class ClerkWebhooksService {
 
     await this.userRepository.upsert(user, ["id"]);
     this.logger.log(`User upserted: ${event.data.id}`);
+
+    const startTrialOnSignup = this.configService.get("features.startTrialOnSignup", {
+      infer: true,
+    });
+
+    if (startTrialOnSignup) {
+      try {
+        const savedUser = await this.userRepository.findOneBy({ id: event.data.id });
+        if (savedUser) {
+          await this.paymentService.startTrial(savedUser);
+          this.logger.log(`Trial started for user: ${event.data.id}`);
+        }
+      } catch (error: any) {
+        this.logger.error(
+          `Failed to start trial for user ${event.data.id}: ${error.message}`,
+        );
+      }
+    }
   }
 
   async handleUserUpdated(event: ClerkUserEvent) {
