@@ -16,6 +16,20 @@ import { User as UserEntity } from "../users/entities/user.entity";
 export class ModulesController {
   constructor(private readonly modulesService: ModulesService) {}
 
+  @Get("access-hierarchy")
+  @ApiOperation({
+    summary:
+      "Get complete access hierarchy for all modules, quests, and screens",
+    description:
+      "Returns nested structure with unlock/accessible status for all modules, quests, and screens",
+  })
+  getAccessHierarchy(
+    @User() user: UserEntity,
+    @Query("childId") childId: string,
+  ) {
+    return this.modulesService.getAccessHierarchy(user.id, childId);
+  }
+
   @Get("get-access-status")
   @ApiOperation({
     summary: "Get module access status",

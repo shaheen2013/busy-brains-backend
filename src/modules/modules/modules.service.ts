@@ -11,6 +11,7 @@ import { ChildModule } from "../children/entities/child-module.entity";
 import { ChildQuest } from "../children/entities/child-quest.entity";
 import { ChildScreen } from "../children/entities/child-screen.entity";
 import { MAX_MODULES, MODULE_UNLOCK_DAYS } from "./modules.constants";
+import { moduleRegistry } from "../../constants/module-registry";
 
 export type AccessStatus = {
   unlocked: boolean;
@@ -205,5 +206,125 @@ export class ModulesService {
 
     const accessible = prevChildModule?.isCompleted ?? false;
     return { unlocked, accessible, unlockDate };
+  }
+
+  async getAccessHierarchy(userId: string, childId: string) {
+    const child = await this.childRepository.findOneBy({ id: childId, userId });
+    if (!child) throw new ForbiddenException("Child not found");
+
+    const userPlan = await this.userPlanRepository.findOne({
+      where: { userId, isActive: true },
+    });
+
+    const baseDate = this.resolveBaseDate(userPlan ?? null);
+
+    // Fetch all child modules, quests, and screens
+    const childModules = await this.childModuleRepository.findBy({ childId });
+    const moduleMap = new Map(childModules.map((m) => [m.moduleNo, m]));
+
+    const childQuests =
+      childModules.length > 0
+        ? await this.childQuestRepository
+            .createQueryBuilder("cq")
+            .where("cq.moduleId IN (:...moduleIds)", {
+              moduleIds: childModules.map((m) => m.id),
+            })
+            .getMany()
+        : [];
+
+    const childScreens =
+      childQuests.length > 0
+        ? await this.childScreenRepository
+            .createQueryBuilder("cs")
+            .where("cs.questId IN (:...questIds)", {
+              questIds: childQuests.map((q) => q.id),
+            })
+            .getMany()
+        : [];
+
+    const result: any = {};
+
+    // Build hierarchy for all 6 modules
+    for (let moduleNo = 1; moduleNo <= MAX_MODULES; moduleNo++) {
+      const prevChildModule =
+        moduleNo > 1 ? (moduleMap.get(moduleNo - 1) ?? null) : null;
+      const moduleStatus = this.resolveModuleStatus(
+        moduleNo,
+        baseDate,
+        prevChildModule,
+      );
+      const childModule = moduleMap.get(moduleNo);
+
+      result[`module_${moduleNo}`] = {
+        ...moduleStatus,
+        isCompleted: childModule?.isCompleted ?? false,
+      };
+
+      // Add quests if module is unlocked
+      if (moduleStatus.unlocked) {
+        const childModule = moduleMap.get(moduleNo);
+        const quests = childModule
+          ? childQuests.filter((q) => q.moduleId === childModule.id)
+          : [];
+
+        result[`module_${moduleNo}`].quests = {};
+
+        // Get quests from registry
+        const registryModule = moduleRegistry.perModule[moduleNo];
+        const questNos = registryModule
+          ? Object.keys(registryModule.quests).map(Number)
+          : [];
+
+        for (const questNo of questNos) {
+          const prevQuest =
+            questNo > 1 ? quests.find((q) => q.questNo === questNo - 1) : null;
+          const questAccessible =
+            questNo === 1 || (prevQuest?.isCompleted ?? false);
+          const childQuest = quests.find((q) => q.questNo === questNo);
+
+          result[`module_${moduleNo}`].quests[`quest_${questNo}`] = {
+            unlocked: moduleStatus.unlocked,
+            accessible: questAccessible,
+            isCompleted: childQuest?.isCompleted ?? false,
+            unlockDate: moduleStatus.unlockDate,
+          };
+
+          // Add screens if quest is accessible
+          if (questAccessible) {
+            const screens = childQuest
+              ? childScreens.filter((s) => s.questId === childQuest.id)
+              : [];
+
+            result[`module_${moduleNo}`].quests[`quest_${questNo}`].screens =
+              {};
+
+            // Get screen count from registry
+            const questScreenCount =
+              registryModule.quests[questNo]?.screens ?? 0;
+
+            for (let screenNo = 1; screenNo <= questScreenCount; screenNo++) {
+              const prevScreen =
+                screenNo > 1
+                  ? screens.find((s) => s.screenNo === screenNo - 1)
+                  : null;
+              const screenAccessible =
+                screenNo === 1 || (prevScreen?.isCompleted ?? false);
+              const childScreen = screens.find((s) => s.screenNo === screenNo);
+
+              result[`module_${moduleNo}`].quests[`quest_${questNo}`].screens[
+                `screen_${screenNo}`
+              ] = {
+                unlocked: moduleStatus.unlocked,
+                accessible: screenAccessible,
+                isCompleted: childScreen?.isCompleted ?? false,
+                unlockDate: moduleStatus.unlockDate,
+              };
+            }
+          }
+        }
+      }
+    }
+
+    return result;
   }
 }
