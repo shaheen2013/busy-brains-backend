@@ -96,4 +96,17 @@ export class ModulesController {
       query.screen,
     );
   }
+
+  @Get("progress")
+  @ApiOperation({
+    summary: "Get child's overall progress",
+    description:
+      "Returns the number of completed screens, total screens, and progress percentage for a child",
+  })
+  getProgress(
+    @User() user: UserEntity,
+    @Query("childId") childId: string,
+  ) {
+    return this.modulesService.getProgress(user.id, childId);
+  }
 }

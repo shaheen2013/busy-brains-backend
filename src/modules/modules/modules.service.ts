@@ -327,4 +327,39 @@ export class ModulesService {
 
     return result;
   }
+
+  async getProgress(userId: string, childId: string) {
+    const child = await this.childRepository.findOneBy({ id: childId, userId });
+    if (!child) throw new ForbiddenException("Child not found");
+
+    // Count total screens from module registry
+    let totalScreens = 0;
+    for (let moduleNo = 1; moduleNo <= MAX_MODULES; moduleNo++) {
+      const registryModule = moduleRegistry.perModule[moduleNo];
+      if (registryModule) {
+        for (const questNo of Object.keys(registryModule.quests).map(Number)) {
+          const questScreenCount = registryModule.quests[questNo]?.screens ?? 0;
+          totalScreens += questScreenCount;
+        }
+      }
+    }
+
+    // Count completed screens for this child
+    const childModules = await this.childModuleRepository.findBy({ childId });
+    const completedScreens =
+      childModules.length > 0
+        ? await this.childScreenRepository
+            .createQueryBuilder("cs")
+            .innerJoin("cs.quest", "cq")
+            .innerJoin("cq.module", "cm")
+            .where("cm.childId = :childId AND cs.isCompleted = true", { childId })
+            .getCount()
+        : 0;
+
+    return {
+      totalScreens,
+      completedScreens,
+      progressPercentage: totalScreens > 0 ? Math.round((completedScreens / totalScreens) * 100) : 0,
+    };
+  }
 }
