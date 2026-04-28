@@ -4,6 +4,7 @@ import { User } from "../auth/decorators/user.decorator";
 import { User as UserEntity } from "./entities/user.entity";
 import { UsersService } from "./users.service";
 import { UpdateUserDto } from "./dtos/update-user.dto";
+import { UpdatePasswordDto } from "./dtos/update-password.dto";
 
 @ApiTags("Users")
 @ApiBearerAuth("Clerk-Bearer")
@@ -26,5 +27,18 @@ export class UsersController {
   })
   updateMe(@User() user: UserEntity, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.updateUser(user.id, updateUserDto);
+  }
+
+  @Patch("me/password")
+  @ApiOperation({
+    summary: "Update the currently authenticated user password",
+    description:
+      "Change user password in Clerk. Password must be at least 8 characters.",
+  })
+  updatePassword(
+    @User() user: UserEntity,
+    @Body() updatePasswordDto: UpdatePasswordDto,
+  ) {
+    return this.usersService.updatePassword(user.id, updatePasswordDto);
   }
 }

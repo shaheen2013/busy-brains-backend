@@ -12,6 +12,10 @@ interface ClerkPhoneNumber {
   phone_number: string;
 }
 
+interface ClerkSignInMethod {
+  strategy: string;
+}
+
 interface ClerkUserPayload {
   id: string;
   first_name: string | null;
@@ -19,6 +23,8 @@ interface ClerkUserPayload {
   email_addresses: ClerkEmailAddress[];
   primary_email_address_id: string | null;
   phone_numbers: ClerkPhoneNumber[];
+  password_enabled?: boolean;
+  sign_in_methods?: ClerkSignInMethod[];
 }
 
 interface ClerkUserEvent {
@@ -60,7 +66,10 @@ export class ClerkWebhooksService {
 
   private mapClerkPayloadToUser(
     payload: ClerkUserPayload,
-  ): Pick<User, "id" | "firstName" | "lastName" | "email" | "phoneNumber"> | null {
+  ): Pick<
+    User,
+    "id" | "firstName" | "lastName" | "email" | "phoneNumber" | "hasPassword"
+  > | null {
     const primaryEmail =
       payload.email_addresses.find(
         (e) => e.id === payload.primary_email_address_id,
@@ -76,12 +85,17 @@ export class ClerkWebhooksService {
     const firstName = payload.first_name ?? primaryEmail.split("@")[0];
     const lastName = payload.last_name ?? "";
 
+    const hasPassword =
+      payload.password_enabled === true ||
+      (payload.sign_in_methods?.some((m) => m.strategy === "password") ?? false);
+
     return {
       id: payload.id,
       firstName,
       lastName,
       email: primaryEmail,
       phoneNumber: payload.phone_numbers?.[0]?.phone_number ?? null,
+      hasPassword,
     };
   }
 }

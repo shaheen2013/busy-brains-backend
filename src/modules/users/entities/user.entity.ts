@@ -29,6 +29,9 @@ export class User {
   @Column({ type: "varchar", nullable: true })
   location: string;
 
+  @Column({ type: "boolean", default: false })
+  hasPassword: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 
