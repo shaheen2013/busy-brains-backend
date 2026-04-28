@@ -76,7 +76,7 @@ export class ModulesController {
   ) {
     return this.modulesService.getAccessStatus(
       user.id,
-      query.childId as string,
+      query.childId,
       query.module,
       query.quest,
       query.screen,
