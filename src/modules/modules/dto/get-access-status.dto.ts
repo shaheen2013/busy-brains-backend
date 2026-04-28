@@ -1,9 +1,13 @@
-import { ApiPropertyOptional } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import { IsInt, IsOptional, Max, Min, ValidateIf } from "class-validator";
+import { IsInt, IsOptional, IsUUID, Max, Min, ValidateIf } from "class-validator";
 import { MAX_MODULES } from "../modules.constants";
 
 export class GetAccessStatusDto {
+  @ApiProperty({ description: "Child ID (UUID)" })
+  @IsUUID()
+  childId: string;
+
   @ApiPropertyOptional({
     description: "Module number (1 – MAX_MODULES). Omit to get all modules.",
     minimum: 1,

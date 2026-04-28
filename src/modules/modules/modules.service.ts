@@ -1,7 +1,15 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
+import { Child } from "../children/entities/child.entity";
+import { ChildModule } from "../children/entities/child-module.entity";
+import { ChildQuest } from "../children/entities/child-quest.entity";
+import { ChildScreen } from "../children/entities/child-screen.entity";
 import { MAX_MODULES, MODULE_UNLOCK_DAYS } from "./modules.constants";
 
 export type AccessStatus = {
@@ -32,10 +40,19 @@ export class ModulesService {
   constructor(
     @InjectRepository(UserPlan)
     private readonly userPlanRepository: Repository<UserPlan>,
+    @InjectRepository(Child)
+    private readonly childRepository: Repository<Child>,
+    @InjectRepository(ChildModule)
+    private readonly childModuleRepository: Repository<ChildModule>,
+    @InjectRepository(ChildQuest)
+    private readonly childQuestRepository: Repository<ChildQuest>,
+    @InjectRepository(ChildScreen)
+    private readonly childScreenRepository: Repository<ChildScreen>,
   ) {}
 
   async getAccessStatus(
     userId: string,
+    childId: string,
     moduleNo?: number,
     questNo?: number,
     screenNo?: number,
@@ -50,6 +67,9 @@ export class ModulesService {
       throw new BadRequestException("quest requires module");
     }
 
+    const child = await this.childRepository.findOneBy({ id: childId, userId });
+    if (!child) throw new ForbiddenException("Child not found");
+
     const userPlan = await this.userPlanRepository.findOne({
       where: { userId, isActive: true },
     });
@@ -57,33 +77,97 @@ export class ModulesService {
     const baseDate = this.resolveBaseDate(userPlan ?? null);
 
     if (moduleNo !== undefined) {
-      const status = this.resolveModuleStatus(moduleNo, baseDate);
+      const prevChildModule =
+        moduleNo > 1
+          ? await this.childModuleRepository.findOneBy({
+              childId,
+              moduleNo: moduleNo - 1,
+            })
+          : null;
 
-      if (questNo !== undefined && screenNo !== undefined) {
+      const moduleStatus = this.resolveModuleStatus(
+        moduleNo,
+        baseDate,
+        prevChildModule,
+      );
+
+      if (questNo !== undefined) {
+        const childModule = await this.childModuleRepository.findOneBy({
+          childId,
+          moduleNo,
+        });
+
+        const prevChildQuest =
+          questNo > 1 && childModule
+            ? await this.childQuestRepository.findOneBy({
+                moduleId: childModule.id,
+                questNo: questNo - 1,
+              })
+            : null;
+
+        const questAccessible =
+          moduleStatus.accessible &&
+          (questNo === 1 || (prevChildQuest?.isCompleted ?? false));
+
+        if (screenNo !== undefined) {
+          const childQuest = childModule
+            ? await this.childQuestRepository.findOneBy({
+                moduleId: childModule.id,
+                questNo,
+              })
+            : null;
+
+          const prevChildScreen =
+            screenNo > 1 && childQuest
+              ? await this.childScreenRepository.findOneBy({
+                  questId: childQuest.id,
+                  screenNo: screenNo - 1,
+                })
+              : null;
+
+          const screenAccessible =
+            questAccessible &&
+            (screenNo === 1 || (prevChildScreen?.isCompleted ?? false));
+
+          return {
+            [`module_${moduleNo}`]: {
+              [`quest_${questNo}`]: {
+                [`screen_${screenNo}`]: {
+                  unlocked: moduleStatus.unlocked,
+                  accessible: screenAccessible,
+                  unlockDate: moduleStatus.unlockDate,
+                },
+              },
+            },
+          };
+        }
+
         return {
           [`module_${moduleNo}`]: {
             [`quest_${questNo}`]: {
-              [`screen_${screenNo}`]: status,
+              unlocked: moduleStatus.unlocked,
+              accessible: questAccessible,
+              unlockDate: moduleStatus.unlockDate,
             },
           },
         };
       }
 
-      if (questNo !== undefined) {
-        return {
-          [`module_${moduleNo}`]: {
-            [`quest_${questNo}`]: status,
-          },
-        };
-      }
-
-      return { [`module_${moduleNo}`]: status };
+      return { [`module_${moduleNo}`]: moduleStatus };
     }
 
-    // All modules
+    // All modules — load child's module records in one query
+    const childModules = await this.childModuleRepository.findBy({ childId });
+    const moduleMap = new Map(childModules.map((m) => [m.moduleNo, m]));
+
     const result: AllModulesResponse = {};
     for (let i = 1; i <= MAX_MODULES; i++) {
-      result[`module_${i}`] = this.resolveModuleStatus(i, baseDate);
+      const prevChildModule = i > 1 ? (moduleMap.get(i - 1) ?? null) : null;
+      result[`module_${i}`] = this.resolveModuleStatus(
+        i,
+        baseDate,
+        prevChildModule,
+      );
     }
     return result;
   }
@@ -100,6 +184,7 @@ export class ModulesService {
   private resolveModuleStatus(
     moduleNo: number,
     baseDate: Date | null,
+    prevChildModule: ChildModule | null,
   ): AccessStatus {
     if (moduleNo === 1) {
       return { unlocked: true, accessible: true, unlockDate: null };
@@ -114,6 +199,11 @@ export class ModulesService {
     unlockDate.setDate(unlockDate.getDate() + delayDays);
 
     const unlocked = new Date() >= unlockDate;
-    return { unlocked, accessible: unlocked, unlockDate };
+    if (!unlocked) {
+      return { unlocked: false, accessible: false, unlockDate };
+    }
+
+    const accessible = prevChildModule?.isCompleted ?? false;
+    return { unlocked, accessible, unlockDate };
   }
 }
