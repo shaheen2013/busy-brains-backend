@@ -25,6 +25,18 @@ export class PaymentController {
     return this.paymentService.startPlan(user, dto.planName);
   }
 
+  @Post("save-payment-method")
+  @ApiOperation({
+    summary: "Save a payment method (from Stripe Elements)",
+    description: "Attach a PaymentMethod to the customer and set as default",
+  })
+  savePaymentMethod(
+    @User() user: UserEntity,
+    @Body() dto: { paymentMethodId: string },
+  ) {
+    return this.paymentService.savePaymentMethod(user, dto.paymentMethodId);
+  }
+
   @Get("history")
   @ApiOperation({ summary: "Get payment history for the authenticated user" })
   getHistory(@User() user: UserEntity) {

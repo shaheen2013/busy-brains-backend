@@ -44,6 +44,24 @@ export class User {
   @Column({ type: "boolean", default: false })
   isDeleted: boolean;
 
+  @Column({ type: "varchar", nullable: true })
+  stripeCustomerId: string | null;
+
+  @Column({ type: "varchar", nullable: true })
+  paymentMethodId: string | null;
+
+  @Column({ type: "varchar", nullable: true })
+  cardBrand: string | null;
+
+  @Column({ type: "varchar", nullable: true })
+  cardLast4: string | null;
+
+  @Column({ type: "int", nullable: true })
+  cardExpMonth: number | null;
+
+  @Column({ type: "int", nullable: true })
+  cardExpYear: number | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

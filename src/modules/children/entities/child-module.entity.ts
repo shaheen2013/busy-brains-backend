@@ -22,7 +22,10 @@ export class ChildModule {
   @JoinColumn({ name: "childId" })
   child: Child;
 
-  @OneToMany(() => ChildQuest, (quest) => quest.module, { cascade: true, onDelete: "CASCADE" })
+  @OneToMany(() => ChildQuest, (quest) => quest.module, {
+    cascade: true,
+    onDelete: "CASCADE",
+  })
   quests: ChildQuest[];
 
   @Column({ type: "integer" })

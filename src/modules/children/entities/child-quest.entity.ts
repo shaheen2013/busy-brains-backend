@@ -22,7 +22,10 @@ export class ChildQuest {
   @JoinColumn({ name: "moduleId" })
   module: ChildModule;
 
-  @OneToMany(() => ChildScreen, (screen) => screen.quest, { cascade: true, onDelete: "CASCADE" })
+  @OneToMany(() => ChildScreen, (screen) => screen.quest, {
+    cascade: true,
+    onDelete: "CASCADE",
+  })
   screens: ChildScreen[];
 
   @Column({ type: "integer" })

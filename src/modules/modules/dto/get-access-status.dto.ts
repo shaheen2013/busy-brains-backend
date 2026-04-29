@@ -1,6 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import { IsInt, IsOptional, IsUUID, Max, Min, ValidateIf } from "class-validator";
+import {
+  IsInt,
+  IsOptional,
+  IsUUID,
+  Max,
+  Min,
+  ValidateIf,
+} from "class-validator";
 import { MAX_MODULES } from "../modules.constants";
 
 export class GetAccessStatusDto {

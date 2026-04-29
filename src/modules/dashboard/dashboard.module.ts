@@ -9,7 +9,15 @@ import { ChildScreen } from "../children/entities/child-screen.entity";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Child, ChildModule, ChildQuest, ChildScreen, UserPlan])],
+  imports: [
+    TypeOrmModule.forFeature([
+      Child,
+      ChildModule,
+      ChildQuest,
+      ChildScreen,
+      UserPlan,
+    ]),
+  ],
   controllers: [DashboardController],
   providers: [DashboardService],
 })
