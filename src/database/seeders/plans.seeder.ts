@@ -41,7 +41,7 @@ const plans: Omit<Plan, "id" | "createdAt" | "userPlans">[] = [
   {
     name: PLANS.FAMILY.name,
     price: 30000,
-    maxChildren: 5,
+    maxChildren: 3,
     currency: "usd",
     stripePriceId: PLANS.FAMILY.priceId,
   },

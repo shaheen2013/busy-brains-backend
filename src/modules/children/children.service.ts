@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Child } from "./entities/child.entity";
+import { ChildModule } from "./entities/child-module.entity";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
 import { CreateChildDto } from "./dto/create-child.dto";
 import { UpdateChildDto } from "./dto/update-child.dto";
@@ -17,6 +18,8 @@ export class ChildrenService {
   constructor(
     @InjectRepository(Child)
     private readonly childRepository: Repository<Child>,
+    @InjectRepository(ChildModule)
+    private readonly childModuleRepository: Repository<ChildModule>,
     @InjectRepository(UserPlan)
     private readonly userPlanRepository: Repository<UserPlan>,
   ) {}
@@ -68,5 +71,22 @@ export class ChildrenService {
 
     Object.assign(child, dto);
     return this.childRepository.save(child);
+  }
+
+  async delete(userId: string, childId: string): Promise<void> {
+    const child = await this.childRepository.findOneBy({
+      id: childId,
+      userId,
+    });
+
+    if (!child) {
+      throw new NotFoundException("Child not found");
+    }
+
+    // Delete child modules first (and their cascading quests/screens)
+    await this.childModuleRepository.delete({ childId });
+
+    // Now delete the child itself
+    await this.childRepository.remove(child);
   }
 }

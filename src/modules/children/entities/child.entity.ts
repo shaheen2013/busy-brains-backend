@@ -22,7 +22,7 @@ export class Child {
   @JoinColumn({ name: "userId" })
   user: User;
 
-  @OneToMany(() => ChildModule, (module) => module.child)
+  @OneToMany(() => ChildModule, (module) => module.child, { cascade: true, onDelete: "CASCADE" })
   modules: ChildModule[];
 
   @Column({ type: "varchar" })

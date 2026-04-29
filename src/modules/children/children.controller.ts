@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { ChildrenService } from "./children.service";
 import { CreateChildDto } from "./dto/create-child.dto";
@@ -36,5 +36,14 @@ export class ChildrenController {
     @Body() dto: UpdateChildDto,
   ) {
     return this.childrenService.update(user.id, id, dto);
+  }
+
+  @Delete(":id")
+  @ApiOperation({
+    summary: "Delete a child profile",
+    description: "Deletes a child profile and all associated data (modules, quests, screens, progress)",
+  })
+  delete(@User() user: UserEntity, @Param("id") id: string) {
+    return this.childrenService.delete(user.id, id);
   }
 }
