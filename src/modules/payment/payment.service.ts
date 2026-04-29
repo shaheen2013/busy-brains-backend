@@ -77,7 +77,9 @@ export class PaymentService {
       throw new ConflictException("User already has an active plan");
     }
 
-    const plan = await this.planRepository.findOneBy({ name: planName });
+    const plan = await this.planRepository.findOne({
+      where: { name: planName },
+    });
     if (!plan) {
       throw new NotFoundException(`Plan "${planName}" not found`);
     }
@@ -103,8 +105,8 @@ export class PaymentService {
     amount: number,
     currency: string,
   ): Promise<void> {
-    const existing = await this.paymentHistoryRepository.findOneBy({
-      stripePaymentIntentId: paymentIntentId,
+    const existing = await this.paymentHistoryRepository.findOne({
+      where: { stripePaymentIntentId: paymentIntentId },
     });
 
     if (existing) {
@@ -126,8 +128,8 @@ export class PaymentService {
   }
 
   async handlePaymentIntentFailed(paymentIntentId: string): Promise<void> {
-    const existing = await this.paymentHistoryRepository.findOneBy({
-      stripePaymentIntentId: paymentIntentId,
+    const existing = await this.paymentHistoryRepository.findOne({
+      where: { stripePaymentIntentId: paymentIntentId },
     });
 
     if (existing) {
@@ -160,7 +162,9 @@ export class PaymentService {
       currency: string | null;
     },
   ): Promise<void> {
-    const plan = await this.planRepository.findOneBy({ name: planName });
+    const plan = await this.planRepository.findOne({
+      where: { name: planName },
+    });
     if (!plan) return;
 
     if (!session.payment_intent) {
@@ -195,8 +199,8 @@ export class PaymentService {
     const savedPlan = await this.userPlanRepository.save(userPlan);
 
     // Fill in the partial record created by payment_intent event, or create fresh
-    const existing = await this.paymentHistoryRepository.findOneBy({
-      stripePaymentIntentId: session.payment_intent,
+    const existing = await this.paymentHistoryRepository.findOne({
+      where: { stripePaymentIntentId: session.payment_intent },
     });
 
     if (existing) {
@@ -239,8 +243,8 @@ export class PaymentService {
         ? invoice.payment_intent
         : invoice.payment_intent?.id;
 
-    const record = await this.paymentHistoryRepository.findOneBy({
-      stripePaymentIntentId: expandedPaymentIntent,
+    const record = await this.paymentHistoryRepository.findOne({
+      where: { stripePaymentIntentId: expandedPaymentIntent },
     });
     if (!record) return;
 

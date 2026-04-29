@@ -10,6 +10,9 @@ import { ChildScreen } from "../modules/children/entities/child-screen.entity";
 import { Plan } from "../modules/subscriptions/entities/plan.entity";
 import { UserPlan } from "../modules/subscriptions/entities/user-plan.entity";
 import { PaymentHistory } from "../modules/subscriptions/entities/payment-history.entity";
+import { Resource } from "../modules/storage/entities/resource.entity";
+import { Document } from "../modules/storage/entities/document.entity";
+import { VerificationToken } from "../modules/users/entities/verification-token.entity";
 
 @Injectable()
 export class DatabaseConfigService implements TypeOrmOptionsFactory {
@@ -38,6 +41,9 @@ export class DatabaseConfigService implements TypeOrmOptionsFactory {
         Plan,
         UserPlan,
         PaymentHistory,
+        Resource,
+        Document,
+        VerificationToken,
       ],
       synchronize: isDev,
       logging: isDev,

@@ -1,13 +1,10 @@
-import { IsString, IsOptional, IsEmail } from "class-validator";
+import { IsString, IsOptional, IsInt, Min, Max } from "class-validator";
+import { Type } from "class-transformer";
 
 export class UpdateUserDto {
   @IsOptional()
   @IsString()
-  firstName?: string;
-
-  @IsOptional()
-  @IsString()
-  lastName?: string;
+  name?: string;
 
   @IsOptional()
   @IsString()
@@ -15,5 +12,24 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsString()
-  location?: string;
+  country?: string;
+
+  @IsOptional()
+  @IsString()
+  state?: string;
+
+  @IsOptional()
+  @IsString()
+  timezone?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(120)
+  age?: number;
+
+  @IsOptional()
+  @IsString()
+  zipcode?: string;
 }

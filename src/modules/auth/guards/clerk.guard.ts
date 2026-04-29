@@ -42,6 +42,10 @@ export class ClerkGuard implements CanActivate {
       throw new UnauthorizedException("User not found");
     }
 
+    if (user.isDeleted) {
+      throw new UnauthorizedException("The account is deleted!");
+    }
+
     (request as Request & { user: unknown }).user = user;
     return true;
   }

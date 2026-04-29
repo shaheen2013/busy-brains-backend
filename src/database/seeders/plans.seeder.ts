@@ -53,7 +53,7 @@ async function seed() {
   const repo = dataSource.getRepository(Plan);
 
   for (const plan of plans) {
-    const existing = await repo.findOneBy({ name: plan.name });
+    const existing = await repo.findOne({ where: { name: plan.name } });
     if (existing) {
       await repo.update(existing.id, plan);
       console.log(`✓ Updated: ${plan.name}`);

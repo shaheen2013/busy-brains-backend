@@ -53,13 +53,18 @@ export class ClerkWebhooksService {
     await this.userRepository.upsert(user, ["id"]);
     this.logger.log(`User upserted: ${event.data.id}`);
 
-    const startTrialOnSignup = this.configService.get("features.startTrialOnSignup", {
-      infer: true,
-    });
+    const startTrialOnSignup = this.configService.get(
+      "features.startTrialOnSignup",
+      {
+        infer: true,
+      },
+    );
 
     if (startTrialOnSignup) {
       try {
-        const savedUser = await this.userRepository.findOneBy({ id: event.data.id });
+        const savedUser = await this.userRepository.findOne({
+          where: { id: event.data.id },
+        });
         if (savedUser) {
           await this.paymentService.startTrial(savedUser);
           this.logger.log(`Trial started for user: ${event.data.id}`);
@@ -91,7 +96,7 @@ export class ClerkWebhooksService {
     payload: ClerkUserPayload,
   ): Pick<
     User,
-    "id" | "firstName" | "lastName" | "email" | "phoneNumber" | "hasPassword"
+    "id" | "name" | "email" | "phoneNumber" | "hasPassword"
   > | null {
     const primaryEmail =
       payload.email_addresses.find(
@@ -105,17 +110,20 @@ export class ClerkWebhooksService {
       return null;
     }
 
-    const firstName = payload.first_name ?? primaryEmail.split("@")[0];
-    const lastName = payload.last_name ?? "";
+    const name =
+      [payload.first_name, payload.last_name]
+        .filter(Boolean)
+        .join(" ")
+        .trim() || primaryEmail.split("@")[0];
 
     const hasPassword =
       payload.password_enabled === true ||
-      (payload.sign_in_methods?.some((m) => m.strategy === "password") ?? false);
+      (payload.sign_in_methods?.some((m) => m.strategy === "password") ??
+        false);
 
     return {
       id: payload.id,
-      firstName,
-      lastName,
+      name,
       email: primaryEmail,
       phoneNumber: payload.phone_numbers?.[0]?.phone_number ?? null,
       hasPassword,

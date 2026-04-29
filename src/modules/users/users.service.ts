@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException } from "@nestjs/common";
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { ConfigService } from "@nestjs/config";
@@ -7,7 +11,11 @@ import { User } from "./entities/user.entity";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
 import { UpdateUserDto } from "./dtos/update-user.dto";
 import { UpdatePasswordDto } from "./dtos/update-password.dto";
+import { StorageService } from "../storage/storage.service";
 import { AppConfig } from "../../config/app.config";
+import { VerificationService } from "./verification.service";
+import { VerificationType } from "./entities/verification-token.entity";
+import { EmailService } from "../email/email.service";
 
 @Injectable()
 export class UsersService {
@@ -17,14 +25,17 @@ export class UsersService {
     @InjectRepository(UserPlan)
     private userPlanRepository: Repository<UserPlan>,
     private configService: ConfigService<AppConfig>,
+    private storageService: StorageService,
+    private verificationService: VerificationService,
+    private emailService: EmailService,
   ) {}
 
   findById(id: string): Promise<User | null> {
-    return this.userRepository.findOneBy({ id });
+    return this.userRepository.findOne({ where: { id: id } });
   }
 
   async findWithActivePlan(id: string) {
-    const user = await this.userRepository.findOneBy({ id });
+    const user = await this.userRepository.findOne({ where: { id: id } });
     if (!user) return null;
 
     const userPlan = await this.userPlanRepository.findOne({
@@ -32,23 +43,27 @@ export class UsersService {
       relations: { plan: true },
     });
 
-    if (!userPlan) return { ...user, activePlan: null };
+    const resource = await this.storageService.getResource("user", id);
+    const profileImage =
+      resource?.documents.find((d) => d.label === "profile")?.url ?? null;
+
+    if (!userPlan) return { ...user, activePlan: null, profileImage };
 
     const plan = userPlan.isTrial
       ? { name: "TRIAL", trialEndsAt: userPlan.trialEndsAt }
       : userPlan.plan;
 
-    return { ...user, activePlan: { ...userPlan, plan } };
+    return { ...user, activePlan: { ...userPlan, plan }, profileImage };
   }
 
   async updateUser(
     userId: string,
     updateUserDto: UpdateUserDto,
+    profileImage?: Express.Multer.File,
   ): Promise<User> {
-    const user = await this.userRepository.findOneBy({ id: userId });
+    const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) return null;
 
-    // Update Clerk user metadata with firstName and lastName
     const secretKey = this.configService.get("clerk.secretKey", {
       infer: true,
     });
@@ -56,11 +71,15 @@ export class UsersService {
       const clerkClient = createClerkClient({ secretKey });
       try {
         await clerkClient.users.updateUser(userId, {
-          firstName: updateUserDto.firstName || user.firstName,
-          lastName: updateUserDto.lastName || user.lastName,
-          unsafeMetadata: {
+          firstName: updateUserDto.name ?? user.name,
+          lastName: "",
+          publicMetadata: {
             phoneNumber: updateUserDto.phoneNumber ?? user.phoneNumber,
-            location: updateUserDto.location ?? user.location,
+            country: updateUserDto.country ?? user.country,
+            state: updateUserDto.state ?? user.state,
+            timezone: updateUserDto.timezone ?? user.timezone,
+            age: updateUserDto.age ?? user.age,
+            zipcode: updateUserDto.zipcode ?? user.zipcode,
           },
         });
       } catch (error) {
@@ -69,12 +88,22 @@ export class UsersService {
       }
     }
 
-    // Update in our database
+    if (profileImage) {
+      await this.storageService.upsertProfileImage(
+        "user",
+        userId,
+        profileImage,
+      );
+    }
+
     const updatedUser = this.userRepository.merge(user, {
-      firstName: updateUserDto.firstName ?? user.firstName,
-      lastName: updateUserDto.lastName ?? user.lastName,
+      name: updateUserDto.name ?? user.name,
       phoneNumber: updateUserDto.phoneNumber ?? user.phoneNumber,
-      location: updateUserDto.location ?? user.location,
+      country: updateUserDto.country ?? user.country,
+      state: updateUserDto.state ?? user.state,
+      timezone: updateUserDto.timezone ?? user.timezone,
+      age: updateUserDto.age ?? user.age,
+      zipcode: updateUserDto.zipcode ?? user.zipcode,
     });
 
     return this.userRepository.save(updatedUser);
@@ -84,7 +113,7 @@ export class UsersService {
     userId: string,
     updatePasswordDto: UpdatePasswordDto,
   ): Promise<void> {
-    const user = await this.userRepository.findOneBy({ id: userId });
+    const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new BadRequestException("User not found");
     }
@@ -120,5 +149,34 @@ export class UsersService {
       }
       throw error;
     }
+  }
+
+  async requestDeletion(userId: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException("User not found");
+
+    const otp = await this.verificationService.generateOtp(
+      userId,
+      VerificationType.ACCOUNT_DELETION,
+    );
+
+    await this.emailService.send({
+      to: user.email,
+      template: "ACCOUNT_DELETION_OTP",
+      data: { name: user.name, otp },
+    });
+
+    return { message: "OTP sent to email" };
+  }
+
+  async deleteAccount(userId: string, otp: string) {
+    await this.verificationService.verifyOtp(
+      userId,
+      VerificationType.ACCOUNT_DELETION,
+      otp,
+    );
+
+    await this.userRepository.update(userId, { isDeleted: true });
+    return { message: "Account deleted successfully" };
   }
 }

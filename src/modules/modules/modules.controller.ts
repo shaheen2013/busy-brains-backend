@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from "@nestjs/common";
+import { Controller, Get, ParseArrayPipe, Query } from "@nestjs/common";
 import {
   ApiBearerAuth,
   ApiOkResponse,
@@ -16,18 +16,19 @@ import { User as UserEntity } from "../users/entities/user.entity";
 export class ModulesController {
   constructor(private readonly modulesService: ModulesService) {}
 
-  @Get("access-hierarchy")
+  @Get("access-list")
   @ApiOperation({
-    summary:
-      "Get complete access hierarchy for all modules, quests, and screens",
+    summary: "Get flat access list for all modules, quests, and screens",
     description:
-      "Returns nested structure with unlock/accessible status for all modules, quests, and screens",
+      "Returns flat arrays with unlock/accessible/completion status. Use ?include=quest,screen to include quest_list and screen_list.",
   })
-  getAccessHierarchy(
+  getAccessList(
     @User() user: UserEntity,
     @Query("childId") childId: string,
+    @Query("include", new ParseArrayPipe({ optional: true, separator: "," }))
+    include: string[] = [],
   ) {
-    return this.modulesService.getAccessHierarchy(user.id, childId);
+    return this.modulesService.getAccessList(user.id, childId, include);
   }
 
   @Get("get-access-status")
@@ -49,7 +50,7 @@ export class ModulesController {
 - Module 5: +42 days
 - Module 6: +56 days
 
-> \`accessible\` mirrors \`unlocked\` for now and is reserved for future fine-grained access logic.`,
+> \`accessible\` represents the state which determines if all previous content has been completed or not!`,
   })
   @ApiOkResponse({
     description: "Access status object keyed by module / quest / screen",
@@ -95,18 +96,5 @@ export class ModulesController {
       query.quest,
       query.screen,
     );
-  }
-
-  @Get("progress")
-  @ApiOperation({
-    summary: "Get child's overall progress",
-    description:
-      "Returns the number of completed screens, total screens, and progress percentage for a child",
-  })
-  getProgress(
-    @User() user: UserEntity,
-    @Query("childId") childId: string,
-  ) {
-    return this.modulesService.getProgress(user.id, childId);
   }
 }

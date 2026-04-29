@@ -15,22 +15,34 @@ export class User {
   id: string;
 
   @Column({ type: "varchar" })
-  firstName: string;
-
-  @Column({ type: "varchar" })
-  lastName: string;
+  name: string;
 
   @Column({ type: "varchar", unique: true })
   email: string;
 
   @Column({ type: "varchar", nullable: true })
-  phoneNumber: string;
+  phoneNumber: string | null;
 
   @Column({ type: "varchar", nullable: true })
-  location: string;
+  country: string | null;
+
+  @Column({ type: "varchar", nullable: true })
+  state: string | null;
+
+  @Column({ type: "varchar", nullable: true })
+  timezone: string | null;
+
+  @Column({ type: "int", nullable: true })
+  age: number | null;
+
+  @Column({ type: "varchar", nullable: true })
+  zipcode: string | null;
 
   @Column({ type: "boolean", default: false })
   hasPassword: boolean;
+
+  @Column({ type: "boolean", default: false })
+  isDeleted: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

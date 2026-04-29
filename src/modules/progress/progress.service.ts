@@ -2,7 +2,6 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
-  NotFoundException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository } from "typeorm";
@@ -185,18 +184,17 @@ export class ProgressService {
     const childModule = await this.dataSource
       .getRepository(ChildModule)
       .findOneBy({ childId, moduleNo });
-    if (!childModule) throw new NotFoundException("Screen progress not found");
+    if (!childModule) return {} as ChildScreen;
 
     const childQuest = await this.dataSource
       .getRepository(ChildQuest)
       .findOneBy({ moduleId: childModule.id, questNo });
-    if (!childQuest) throw new NotFoundException("Screen progress not found");
+    if (!childQuest) return {} as ChildScreen;
 
     const screen = await this.dataSource
       .getRepository(ChildScreen)
       .findOneBy({ questId: childQuest.id, screenNo });
-    if (!screen) throw new NotFoundException("Screen progress not found");
 
-    return screen;
+    return screen ?? ({} as ChildScreen);
   }
 }

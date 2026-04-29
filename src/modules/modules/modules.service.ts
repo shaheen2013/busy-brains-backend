@@ -4,7 +4,7 @@ import {
   Injectable,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { In, Repository } from "typeorm";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
 import { Child } from "../children/entities/child.entity";
 import { ChildModule } from "../children/entities/child-module.entity";
@@ -17,6 +17,9 @@ export type AccessStatus = {
   unlocked: boolean;
   accessible: boolean;
   unlockDate: Date | null;
+  isCompleted: boolean;
+  status: "initialized" | "ongoing" | "completed";
+  completedAt: Date | null;
 };
 
 type AllModulesResponse = Record<`module_${number}`, AccessStatus>;
@@ -68,7 +71,9 @@ export class ModulesService {
       throw new BadRequestException("quest requires module");
     }
 
-    const child = await this.childRepository.findOneBy({ id: childId, userId });
+    const child = await this.childRepository.findOne({
+      where: { id: childId, userId },
+    });
     if (!child) throw new ForbiddenException("Child not found");
 
     const userPlan = await this.userPlanRepository.findOne({
@@ -80,9 +85,11 @@ export class ModulesService {
     if (moduleNo !== undefined) {
       const prevChildModule =
         moduleNo > 1
-          ? await this.childModuleRepository.findOneBy({
-              childId,
-              moduleNo: moduleNo - 1,
+          ? await this.childModuleRepository.findOne({
+              where: {
+                childId,
+                moduleNo: moduleNo - 1,
+              },
             })
           : null;
 
@@ -92,17 +99,21 @@ export class ModulesService {
         prevChildModule,
       );
 
-      if (questNo !== undefined) {
-        const childModule = await this.childModuleRepository.findOneBy({
+      const childModule = await this.childModuleRepository.findOne({
+        where: {
           childId,
           moduleNo,
-        });
+        },
+      });
 
+      if (questNo !== undefined) {
         const prevChildQuest =
           questNo > 1 && childModule
-            ? await this.childQuestRepository.findOneBy({
-                moduleId: childModule.id,
-                questNo: questNo - 1,
+            ? await this.childQuestRepository.findOne({
+                where: {
+                  moduleId: childModule.id,
+                  questNo: questNo - 1,
+                },
               })
             : null;
 
@@ -110,25 +121,38 @@ export class ModulesService {
           moduleStatus.accessible &&
           (questNo === 1 || (prevChildQuest?.isCompleted ?? false));
 
-        if (screenNo !== undefined) {
-          const childQuest = childModule
-            ? await this.childQuestRepository.findOneBy({
+        const childQuest = childModule
+          ? await this.childQuestRepository.findOne({
+              where: {
                 moduleId: childModule.id,
                 questNo,
-              })
-            : null;
+              },
+            })
+          : null;
 
+        if (screenNo !== undefined) {
           const prevChildScreen =
             screenNo > 1 && childQuest
-              ? await this.childScreenRepository.findOneBy({
-                  questId: childQuest.id,
-                  screenNo: screenNo - 1,
+              ? await this.childScreenRepository.findOne({
+                  where: {
+                    questId: childQuest.id,
+                    screenNo: screenNo - 1,
+                  },
                 })
               : null;
 
           const screenAccessible =
             questAccessible &&
             (screenNo === 1 || (prevChildScreen?.isCompleted ?? false));
+
+          const childScreen = childQuest
+            ? await this.childScreenRepository.findOne({
+                where: {
+                  questId: childQuest.id,
+                  screenNo,
+                },
+              })
+            : null;
 
           return {
             [`module_${moduleNo}`]: {
@@ -137,6 +161,9 @@ export class ModulesService {
                   unlocked: moduleStatus.unlocked,
                   accessible: screenAccessible,
                   unlockDate: moduleStatus.unlockDate,
+                  isCompleted: childScreen?.isCompleted ?? false,
+                  status: accessListEntityStatus(childScreen ?? null),
+                  completedAt: childScreen?.completedAt ?? null,
                 },
               },
             },
@@ -149,26 +176,45 @@ export class ModulesService {
               unlocked: moduleStatus.unlocked,
               accessible: questAccessible,
               unlockDate: moduleStatus.unlockDate,
+              isCompleted: childQuest?.isCompleted ?? false,
+              status: accessListEntityStatus(childQuest ?? null),
+              completedAt: childQuest?.completedAt ?? null,
             },
           },
         };
       }
 
-      return { [`module_${moduleNo}`]: moduleStatus };
+      return {
+        [`module_${moduleNo}`]: {
+          ...moduleStatus,
+          isCompleted: childModule?.isCompleted ?? false,
+          status: accessListEntityStatus(childModule ?? null),
+          completedAt: childModule?.completedAt ?? null,
+        },
+      };
     }
 
     // All modules — load child's module records in one query
-    const childModules = await this.childModuleRepository.findBy({ childId });
+    const childModules = await this.childModuleRepository.find({
+      where: { childId: childId },
+    });
     const moduleMap = new Map(childModules.map((m) => [m.moduleNo, m]));
 
     const result: AllModulesResponse = {};
     for (let i = 1; i <= MAX_MODULES; i++) {
       const prevChildModule = i > 1 ? (moduleMap.get(i - 1) ?? null) : null;
-      result[`module_${i}`] = this.resolveModuleStatus(
+      const moduleStatus = this.resolveModuleStatus(
         i,
         baseDate,
         prevChildModule,
       );
+      const record = moduleMap.get(i) ?? null;
+      result[`module_${i}`] = {
+        ...moduleStatus,
+        isCompleted: record?.isCompleted ?? false,
+        status: accessListEntityStatus(record),
+        completedAt: record?.completedAt ?? null,
+      };
     }
     return result;
   }
@@ -186,7 +232,7 @@ export class ModulesService {
     moduleNo: number,
     baseDate: Date | null,
     prevChildModule: ChildModule | null,
-  ): AccessStatus {
+  ): { unlocked: boolean; accessible: boolean; unlockDate: Date | null } {
     if (moduleNo === 1) {
       return { unlocked: true, accessible: true, unlockDate: null };
     }
@@ -208,188 +254,193 @@ export class ModulesService {
     return { unlocked, accessible, unlockDate };
   }
 
-  async getAccessHierarchy(userId: string, childId: string) {
-    const child = await this.childRepository.findOneBy({ id: childId, userId });
+  async getAccessList(userId: string, childId: string, include: string[]) {
+    const child = await this.childRepository.findOne({
+      where: { id: childId, userId },
+    });
     if (!child) throw new ForbiddenException("Child not found");
+
+    const includeQuest = include.includes("quest");
+    const includeScreen = include.includes("screen");
 
     const userPlan = await this.userPlanRepository.findOne({
       where: { userId, isActive: true },
     });
-
     const baseDate = this.resolveBaseDate(userPlan ?? null);
 
-    // Fetch all child modules, quests, and screens
-    const childModules = await this.childModuleRepository.findBy({ childId });
+    const childModules = await this.childModuleRepository.find({
+      where: { childId: childId },
+    });
     const moduleMap = new Map(childModules.map((m) => [m.moduleNo, m]));
 
-    const childQuests =
-      childModules.length > 0
-        ? await this.childQuestRepository
-            .createQueryBuilder("cq")
-            .where("cq.moduleId IN (:...moduleIds)", {
-              moduleIds: childModules.map((m) => m.id),
+    let childQuests: ChildQuest[] = [];
+    const questsByModuleId = new Map<string, ChildQuest[]>();
+    if (includeQuest || includeScreen) {
+      childQuests =
+        childModules.length > 0
+          ? await this.childQuestRepository.find({
+              where: {
+                moduleId: In(childModules.map((m) => m.id)),
+              },
             })
-            .getMany()
-        : [];
+          : [];
 
-    const childScreens =
-      childQuests.length > 0
-        ? await this.childScreenRepository
-            .createQueryBuilder("cs")
-            .where("cs.questId IN (:...questIds)", {
-              questIds: childQuests.map((q) => q.id),
+      for (const q of childQuests) {
+        const list = questsByModuleId.get(q.moduleId) ?? [];
+        list.push(q);
+        questsByModuleId.set(q.moduleId, list);
+      }
+    }
+
+    let allScreens: ChildScreen[] = [];
+    const screensByQuestId = new Map<string, ChildScreen[]>();
+    if (includeScreen) {
+      allScreens =
+        childQuests.length > 0
+          ? await this.childScreenRepository.find({
+              where: { questId: In(childQuests.map((q) => q.id)) },
             })
-            .getMany()
-        : [];
+          : [];
 
-    const result: any = {};
+      for (const s of allScreens) {
+        const list = screensByQuestId.get(s.questId) ?? [];
+        list.push(s);
+        screensByQuestId.set(s.questId, list);
+      }
+    }
 
-    // Build hierarchy for all 6 modules
+    // --- module_list ---
+    const module_list = [];
     for (let moduleNo = 1; moduleNo <= MAX_MODULES; moduleNo++) {
       const prevChildModule =
         moduleNo > 1 ? (moduleMap.get(moduleNo - 1) ?? null) : null;
-      const moduleStatus = this.resolveModuleStatus(
+      const { unlocked, accessible, unlockDate } = this.resolveModuleStatus(
         moduleNo,
         baseDate,
         prevChildModule,
       );
-      const childModule = moduleMap.get(moduleNo);
+      const record = moduleMap.get(moduleNo) ?? null;
+      module_list.push({
+        module: moduleNo,
+        status: accessListEntityStatus(record),
+        accessible,
+        unlocked,
+        unlockedAt: unlockDate,
+        isCompleted: record?.isCompleted ?? false,
+        completedAt: record?.completedAt ?? null,
+      });
+    }
 
-      result[`module_${moduleNo}`] = {
-        ...moduleStatus,
-        isCompleted: childModule?.isCompleted ?? false,
-      };
-
-      // Add quests if module is unlocked
-      if (moduleStatus.unlocked) {
+    // --- quest_list (optional) ---
+    let quest_list: unknown[] | undefined;
+    if (includeQuest) {
+      quest_list = [];
+      for (let moduleNo = 1; moduleNo <= MAX_MODULES; moduleNo++) {
+        const reg = moduleRegistry.perModule[moduleNo];
+        if (!reg) continue;
+        const prevChildModule =
+          moduleNo > 1 ? (moduleMap.get(moduleNo - 1) ?? null) : null;
+        const moduleStatus = this.resolveModuleStatus(
+          moduleNo,
+          baseDate,
+          prevChildModule,
+        );
         const childModule = moduleMap.get(moduleNo);
         const quests = childModule
-          ? childQuests.filter((q) => q.moduleId === childModule.id)
+          ? (questsByModuleId.get(childModule.id) ?? [])
           : [];
-
-        result[`module_${moduleNo}`].quests = {};
-
-        // Get quests from registry
-        const registryModule = moduleRegistry.perModule[moduleNo];
-        const questNos = registryModule
-          ? Object.keys(registryModule.quests).map(Number)
-          : [];
-
+        const questMap = new Map(quests.map((q) => [q.questNo, q]));
+        const questNos = Object.keys(reg.quests)
+          .map(Number)
+          .sort((a, b) => a - b);
         for (const questNo of questNos) {
           const prevQuest =
-            questNo > 1 ? quests.find((q) => q.questNo === questNo - 1) : null;
+            questNo > 1 ? (questMap.get(questNo - 1) ?? null) : null;
           const questAccessible =
-            questNo === 1 || (prevQuest?.isCompleted ?? false);
-          const childQuest = quests.find((q) => q.questNo === questNo);
-
-          result[`module_${moduleNo}`].quests[`quest_${questNo}`] = {
-            unlocked: moduleStatus.unlocked,
+            moduleStatus.unlocked &&
+            (questNo === 1 || (prevQuest?.isCompleted ?? false));
+          const record = questMap.get(questNo) ?? null;
+          quest_list.push({
+            module: moduleNo,
+            quest: questNo,
+            status: accessListEntityStatus(record),
             accessible: questAccessible,
-            isCompleted: childQuest?.isCompleted ?? false,
-            unlockDate: moduleStatus.unlockDate,
-          };
+            unlocked: moduleStatus.unlocked,
+            unlockedAt: moduleStatus.unlockDate,
+            isCompleted: record?.isCompleted ?? false,
+            completedAt: record?.completedAt ?? null,
+          });
+        }
+      }
+    }
 
-          // Add screens if quest is accessible
-          if (questAccessible) {
-            const screens = childQuest
-              ? childScreens.filter((s) => s.questId === childQuest.id)
-              : [];
-
-            result[`module_${moduleNo}`].quests[`quest_${questNo}`].screens =
-              {};
-
-            // Get screen count from registry
-            const questScreenCount =
-              registryModule.quests[questNo]?.screens ?? 0;
-
-            for (let screenNo = 1; screenNo <= questScreenCount; screenNo++) {
-              const prevScreen =
-                screenNo > 1
-                  ? screens.find((s) => s.screenNo === screenNo - 1)
-                  : null;
-              const screenAccessible =
-                screenNo === 1 || (prevScreen?.isCompleted ?? false);
-              const childScreen = screens.find((s) => s.screenNo === screenNo);
-
-              result[`module_${moduleNo}`].quests[`quest_${questNo}`].screens[
-                `screen_${screenNo}`
-              ] = {
-                unlocked: moduleStatus.unlocked,
-                accessible: screenAccessible,
-                isCompleted: childScreen?.isCompleted ?? false,
-                unlockDate: moduleStatus.unlockDate,
-              };
-            }
+    // --- screen_list (optional) ---
+    let screen_list: unknown[] | undefined;
+    if (includeScreen) {
+      screen_list = [];
+      for (let moduleNo = 1; moduleNo <= MAX_MODULES; moduleNo++) {
+        const reg = moduleRegistry.perModule[moduleNo];
+        if (!reg) continue;
+        const prevChildModule =
+          moduleNo > 1 ? (moduleMap.get(moduleNo - 1) ?? null) : null;
+        const moduleStatus = this.resolveModuleStatus(
+          moduleNo,
+          baseDate,
+          prevChildModule,
+        );
+        const childModule = moduleMap.get(moduleNo);
+        const quests = childModule
+          ? (questsByModuleId.get(childModule.id) ?? [])
+          : [];
+        const questMap = new Map(quests.map((q) => [q.questNo, q]));
+        const questNos = Object.keys(reg.quests)
+          .map(Number)
+          .sort((a, b) => a - b);
+        for (const questNo of questNos) {
+          const prevQuest =
+            questNo > 1 ? (questMap.get(questNo - 1) ?? null) : null;
+          const questAccessible =
+            moduleStatus.unlocked &&
+            (questNo === 1 || (prevQuest?.isCompleted ?? false));
+          const childQuest = questMap.get(questNo) ?? null;
+          const screens = childQuest
+            ? (screensByQuestId.get(childQuest.id) ?? [])
+            : [];
+          const screenMap = new Map(screens.map((s) => [s.screenNo, s]));
+          const screenCount = reg.quests[questNo]?.screens ?? 0;
+          for (let screenNo = 1; screenNo <= screenCount; screenNo++) {
+            const prevScreen =
+              screenNo > 1 ? (screenMap.get(screenNo - 1) ?? null) : null;
+            const screenAccessible =
+              questAccessible &&
+              (screenNo === 1 || (prevScreen?.isCompleted ?? false));
+            const record = screenMap.get(screenNo) ?? null;
+            screen_list.push({
+              module: moduleNo,
+              quest: questNo,
+              screen: screenNo,
+              status: accessListEntityStatus(record),
+              accessible: screenAccessible,
+              unlocked: moduleStatus.unlocked,
+              unlockedAt: moduleStatus.unlockDate,
+              isCompleted: record?.isCompleted ?? false,
+              completedAt: record?.completedAt ?? null,
+            });
           }
         }
       }
     }
 
+    const result: Record<string, unknown> = { module_list };
+    if (includeQuest) result.quest_list = quest_list;
+    if (includeScreen) result.screen_list = screen_list;
     return result;
   }
+}
 
-  async getProgress(userId: string, childId: string) {
-    const child = await this.childRepository.findOneBy({ id: childId, userId });
-    if (!child) throw new ForbiddenException("Child not found");
-
-    // Count totals and completed from module registry and database
-    let totalModules = 0;
-    let totalQuests = 0;
-    let totalScreens = 0;
-
-    for (let moduleNo = 1; moduleNo <= MAX_MODULES; moduleNo++) {
-      totalModules++;
-      const registryModule = moduleRegistry.perModule[moduleNo];
-      if (registryModule) {
-        const questNos = Object.keys(registryModule.quests).map(Number);
-        totalQuests += questNos.length;
-        for (const questNo of questNos) {
-          const questScreenCount = registryModule.quests[questNo]?.screens ?? 0;
-          totalScreens += questScreenCount;
-        }
-      }
-    }
-
-    // Count completed items for this child
-    const childModules = await this.childModuleRepository.findBy({ childId });
-    const completedModules = childModules.filter((m) => m.isCompleted).length;
-
-    const childQuests =
-      childModules.length > 0
-        ? await this.childQuestRepository
-            .createQueryBuilder("cq")
-            .where("cq.moduleId IN (:...moduleIds)", {
-              moduleIds: childModules.map((m) => m.id),
-            })
-            .getMany()
-        : [];
-    const completedQuests = childQuests.filter((q) => q.isCompleted).length;
-
-    const completedScreens =
-      childQuests.length > 0
-        ? await this.childScreenRepository
-            .createQueryBuilder("cs")
-            .where("cs.questId IN (:...questIds)", {
-              questIds: childQuests.map((q) => q.id),
-            })
-            .andWhere("cs.isCompleted = true")
-            .getCount()
-        : 0;
-
-    return {
-      modules: {
-        completed: completedModules,
-        total: totalModules,
-      },
-      quests: {
-        completed: completedQuests,
-        total: totalQuests,
-      },
-      screens: {
-        completed: completedScreens,
-        total: totalScreens,
-      },
-      progressPercentage: totalScreens > 0 ? Math.round((completedScreens / totalScreens) * 100) : 0,
-    };
-  }
+function accessListEntityStatus(
+  record: { isCompleted: boolean } | null | undefined,
+): "initialized" | "ongoing" | "completed" {
+  if (!record) return "initialized";
+  return record.isCompleted ? "completed" : "ongoing";
 }

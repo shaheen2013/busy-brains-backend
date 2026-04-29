@@ -16,6 +16,8 @@ import { PaymentModule } from "./modules/payment/payment.module";
 import { ModulesModule } from "./modules/modules/modules.module";
 import { ChildrenModule } from "./modules/children/children.module";
 import { ProgressModule } from "./modules/progress/progress.module";
+import { StorageModule } from "./modules/storage/storage.module";
+import { DashboardModule } from "./modules/dashboard/dashboard.module";
 
 @Module({
   imports: [
@@ -36,6 +38,8 @@ import { ProgressModule } from "./modules/progress/progress.module";
     ModulesModule,
     ChildrenModule,
     ProgressModule,
+    StorageModule,
+    DashboardModule,
   ],
   providers: [
     {
