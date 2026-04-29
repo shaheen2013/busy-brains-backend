@@ -271,7 +271,13 @@ export class DashboardService {
         modules: { completed: completedModules, total: totalModules },
         quests: { completed: completedQuests, total: totalQuests },
         screens: { completed: completedScreens, total: totalScreens },
-        progressPercentage:
+        moduleProgressPercentage: Math.round(
+          (completedModules / totalModules) * 100,
+        ),
+        questProgressPercentage: Math.round(
+          (completedQuests / totalQuests) * 100,
+        ),
+        screenProgressPercentage:
           totalScreens > 0
             ? Math.round((completedScreens / totalScreens) * 100)
             : 0,
