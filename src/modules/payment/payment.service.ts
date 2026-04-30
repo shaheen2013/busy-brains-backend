@@ -88,7 +88,19 @@ export class PaymentService {
 
     const baseUrl = this.configService.get("frontendUrl", { infer: true });
 
-    const sessionConfig: any = {
+    let stripeCustomerId = user.stripeCustomerId;
+    if (!stripeCustomerId) {
+      const customer = await this.stripe.customers.create({
+        email: user.email,
+        metadata: { userId: user.id },
+      });
+
+      stripeCustomerId = customer.id;
+      user.stripeCustomerId = stripeCustomerId;
+      await this.userRepository.save(user);
+    }
+
+    const session = await this.stripe.checkout.sessions.create({
       mode: "payment",
       line_items: [{ price: plan.stripePriceId, quantity: 1 }],
       client_reference_id: user.id,
@@ -96,33 +108,8 @@ export class PaymentService {
       invoice_creation: { enabled: true },
       success_url: `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/payment/cancel`,
-
-      payment_intent_data: {
-        setup_future_usage: "off_session",
-      },
-      saved_payment_method_options: {
-        allow_redisplay_filters: ["always"],
-        payment_method_save: "disabled",
-      },
-    };
-
-    let customerId = user.stripeCustomerId;
-
-    if (!customerId) {
-      const customer = await this.stripe.customers.create({
-        email: user.email,
-        metadata: { userId: user.id },
-      });
-
-      customerId = customer.id;
-
-      user.stripeCustomerId = customerId;
-      await this.userRepository.save(user);
-    }
-
-    sessionConfig.customer = customerId;
-
-    const session = await this.stripe.checkout.sessions.create(sessionConfig);
+      customer: stripeCustomerId,
+    });
 
     return { sessionId: session.id, url: session.url ?? "" };
   }
@@ -285,54 +272,5 @@ export class PaymentService {
       relations: { plan: true },
       order: { createdAt: "DESC" },
     });
-  }
-
-  async savePaymentMethod(
-    user: User,
-    paymentMethodId: string,
-  ): Promise<{ success: boolean }> {
-    // Get or create Stripe customer
-    let customerId = user.stripeCustomerId;
-
-    if (!customerId) {
-      const customer = await this.stripe.customers.create({
-        email: user.email,
-        metadata: { userId: user.id },
-      });
-      customerId = customer.id;
-      user.stripeCustomerId = customerId;
-    }
-
-    // Attach payment method to customer and mark it reusable in future checkouts
-    await this.stripe.paymentMethods.attach(paymentMethodId, {
-      customer: customerId,
-    });
-    await this.stripe.paymentMethods.update(paymentMethodId, {
-      allow_redisplay: "always",
-      billing_details: {
-        email: user.email,
-      },
-    });
-
-    // Set as default payment method
-    await this.stripe.customers.update(customerId, {
-      invoice_settings: {
-        default_payment_method: paymentMethodId,
-      },
-    });
-
-    const paymentMethod =
-      await this.stripe.paymentMethods.retrieve(paymentMethodId);
-
-    user.paymentMethodId = paymentMethodId;
-    user.cardBrand = paymentMethod.card?.brand || null;
-    user.cardLast4 = paymentMethod.card?.last4 || null;
-    user.cardExpMonth = paymentMethod.card?.exp_month || null;
-    user.cardExpYear = paymentMethod.card?.exp_year || null;
-    await this.userRepository.save(user);
-
-    Logger.log(`Payment method saved for user ${user.id}: ${paymentMethodId}`);
-
-    return { success: true };
   }
 }
