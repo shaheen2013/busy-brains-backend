@@ -9,4 +9,8 @@ export const PLANS = {
     name: PlanName.FAMILY_PACK,
     priceId: "price_1TQjxG81Q1UwBp8wjkijtzww",
   },
+  UPGRADE: {
+    // $100 difference price for Solo Explorer → Family Pack upgrade
+    priceId: "price_1TRv8Q81Q1UwBp8wpsHRsaHT",
+  },
 };

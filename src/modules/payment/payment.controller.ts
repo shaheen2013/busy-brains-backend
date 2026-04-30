@@ -25,6 +25,14 @@ export class PaymentController {
     return this.paymentService.startPlan(user, dto.planName);
   }
 
+  @Post("upgrade-plan")
+  @ApiOperation({
+    summary: "Upgrade from Solo Explorer to Family Pack (charges $100 difference)",
+  })
+  upgradePlan(@User() user: UserEntity) {
+    return this.paymentService.upgradePlan(user);
+  }
+
   @Get("history")
   @ApiOperation({ summary: "Get payment history for the authenticated user" })
   getHistory(@User() user: UserEntity) {

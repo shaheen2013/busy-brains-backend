@@ -9,6 +9,7 @@ import { ConfigService } from "@nestjs/config";
 import { Repository } from "typeorm";
 import Stripe from "stripe";
 import { AppConfig } from "../../config/app.config";
+import { PLANS } from "../../common/plans.constants";
 import { Plan, PlanName } from "../subscriptions/entities/plan.entity";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
 import { PaymentHistory } from "../subscriptions/entities/payment-history.entity";
@@ -106,8 +107,58 @@ export class PaymentService {
       client_reference_id: user.id,
       metadata: { userId: user.id, planName: plan.name },
       invoice_creation: { enabled: true },
-      success_url: `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/payment/cancel`,
+      success_url: `${baseUrl}/subscription`,
+      cancel_url: `${baseUrl}/subscription`,
+      customer: stripeCustomerId,
+    });
+
+    return { sessionId: session.id, url: session.url ?? "" };
+  }
+
+  async upgradePlan(user: User): Promise<{ sessionId: string; url: string }> {
+    const existing = await this.userPlanRepository.findOne({
+      where: { userId: user.id, isActive: true },
+      relations: { plan: true },
+    });
+
+    if (
+      !existing ||
+      existing.isTrial ||
+      existing.plan?.name !== PlanName.SOLO_EXPLORER
+    ) {
+      throw new ConflictException(
+        "Upgrade is only available for active Solo Explorer subscribers",
+      );
+    }
+
+    const familyPlan = await this.planRepository.findOne({
+      where: { name: PlanName.FAMILY_PACK },
+    });
+    if (!familyPlan) {
+      throw new NotFoundException(`Plan "FAMILY_PACK" not found`);
+    }
+
+    const baseUrl = this.configService.get("frontendUrl", { infer: true });
+
+    let stripeCustomerId = user.stripeCustomerId;
+    if (!stripeCustomerId) {
+      const customer = await this.stripe.customers.create({
+        email: user.email,
+        metadata: { userId: user.id },
+      });
+      stripeCustomerId = customer.id;
+      user.stripeCustomerId = stripeCustomerId;
+      await this.userRepository.save(user);
+    }
+
+    const session = await this.stripe.checkout.sessions.create({
+      mode: "payment",
+      line_items: [{ price: PLANS.UPGRADE.priceId, quantity: 1 }],
+      client_reference_id: user.id,
+      metadata: { userId: user.id, planName: familyPlan.name },
+      invoice_creation: { enabled: true },
+      success_url: `${baseUrl}/subscription`,
+      cancel_url: `${baseUrl}/subscription`,
       customer: stripeCustomerId,
     });
 
@@ -257,13 +308,28 @@ export class PaymentService {
         ? invoice.payment_intent
         : invoice.payment_intent?.id;
 
+    // Prefer the freshly retrieved invoice PDF over the event payload value
+    const pdfUrl = invoice.invoice_pdf ?? invoicePdfUrl;
+
     const record = await this.paymentHistoryRepository.findOne({
       where: { stripePaymentIntentId: expandedPaymentIntent },
     });
-    if (!record) return;
 
-    record.invoicePdfUrl = invoicePdfUrl;
-    await this.paymentHistoryRepository.save(record);
+    if (record) {
+      record.invoicePdfUrl = pdfUrl;
+      await this.paymentHistoryRepository.save(record);
+    } else {
+      // invoice.payment_succeeded arrived before checkout.session.completed —
+      // create a stub record so the PDF URL is not lost; handleCheckoutCompleted
+      // will fill in userId, planId, and amount when it runs
+      await this.paymentHistoryRepository.save(
+        this.paymentHistoryRepository.create({
+          stripePaymentIntentId: expandedPaymentIntent,
+          invoicePdfUrl: pdfUrl,
+          status: "pending",
+        }),
+      );
+    }
   }
 
   async getPaymentHistory(userId: string): Promise<PaymentHistory[]> {
