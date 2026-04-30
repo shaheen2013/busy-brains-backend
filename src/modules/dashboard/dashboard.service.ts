@@ -7,7 +7,7 @@ import { ChildQuest } from "../children/entities/child-quest.entity";
 import { ChildScreen } from "../children/entities/child-screen.entity";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
 import { moduleRegistry } from "../../constants/module-registry";
-import { MAX_MODULES, MODULE_UNLOCK_DAYS } from "../modules/modules.constants";
+import { MAX_MODULES, MODULE_UNLOCK_DAYS } from "../../constants/modules.constants";
 
 const ANSWER_MAP: Record<number, string> = { 1: "A", 2: "B", 3: "C", 4: "D" };
 const BRAIN_TYPES: Record<string, string> = {

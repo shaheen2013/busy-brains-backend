@@ -10,7 +10,7 @@ import { Child } from "../children/entities/child.entity";
 import { ChildModule } from "../children/entities/child-module.entity";
 import { ChildQuest } from "../children/entities/child-quest.entity";
 import { ChildScreen } from "../children/entities/child-screen.entity";
-import { MAX_MODULES, MODULE_UNLOCK_DAYS } from "./modules.constants";
+import { MAX_MODULES, MODULE_UNLOCK_DAYS } from "../../constants/modules.constants";
 import { moduleRegistry } from "../../constants/module-registry";
 
 export type AccessStatus = {

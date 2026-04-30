@@ -8,7 +8,7 @@ import {
   Min,
   ValidateIf,
 } from "class-validator";
-import { MAX_MODULES } from "../modules.constants";
+import { MAX_MODULES } from "../../../constants/modules.constants";
 
 export class GetAccessStatusDto {
   @ApiProperty({ description: "Child ID (UUID)" })
