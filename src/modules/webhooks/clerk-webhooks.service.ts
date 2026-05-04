@@ -81,7 +81,14 @@ export class ClerkWebhooksService {
     const user = this.mapClerkPayloadToUser(event.data);
     if (!user) return;
 
-    await this.userRepository.upsert(user, ["id"]);
+    // Only sync Clerk-owned fields. phoneNumber and other profile fields
+    // (country, state, timezone, age, zipcode) are written by PATCH /users/me
+    // and must not be overwritten here — Clerk fires user.updated each time we
+    // call clerkClient.users.updateUser(), causing a null-overwrite race.
+    await this.userRepository.update(
+      { id: user.id },
+      { name: user.name, email: user.email, hasPassword: user.hasPassword },
+    );
     this.logger.log(`User updated: ${event.data.id}`);
   }
 
