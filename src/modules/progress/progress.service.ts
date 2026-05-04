@@ -114,15 +114,30 @@ export class ProgressService {
         screen = queryRunner.manager.create(ChildScreen, {
           questId: childQuest.id,
           screenNo,
-          data: dto.data ?? null,
+          data: dto.data && Object.keys(dto.data).length > 0 ? dto.data : null,
           isCompleted: dto.isCompleted ?? false,
           completedAt: dto.isCompleted ? new Date() : null,
         });
       } else {
-        const merged = { ...(screen.data ?? {}), ...(dto.data ?? {}) };
-        screen.data = Object.fromEntries(
-          Object.entries(merged).filter(([, v]) => v != null),
-        );
+        // ✅ Only merge if dto.data has actual values
+        if (dto.data && Object.keys(dto.data).length > 0) {
+          const merged = {
+            ...(screen.data ?? {}),
+            ...dto.data,
+          };
+
+          // Remove null/undefined values
+          screen.data = Object.fromEntries(
+            Object.entries(merged).filter(([, v]) => v != null),
+          );
+        }
+
+        // ✅ Optional: allow explicit clearing of data
+        if (dto.data === null) {
+          screen.data = null;
+        }
+
+        // ✅ Handle completion logic
         if (dto.isCompleted !== undefined) {
           if (dto.isCompleted && !screen.isCompleted) {
             screen.completedAt = new Date();
@@ -132,6 +147,8 @@ export class ProgressService {
           screen.isCompleted = dto.isCompleted;
         }
       }
+
+      // Save
       screen = await queryRunner.manager.save(screen);
 
       // Cascade: check quest completion only when this screen is being completed
