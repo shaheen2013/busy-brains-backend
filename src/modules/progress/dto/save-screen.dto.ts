@@ -1,10 +1,11 @@
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { ApiPropertyOptional } from "@nestjs/swagger";
 import { IsBoolean, IsObject, IsOptional } from "class-validator";
 
 export class SaveScreenDto {
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsBoolean()
-  isCompleted: boolean;
+  isCompleted?: boolean;
 
   @ApiPropertyOptional({ type: Object })
   @IsOptional()

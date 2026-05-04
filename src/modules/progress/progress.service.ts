@@ -115,7 +115,7 @@ export class ProgressService {
           questId: childQuest.id,
           screenNo,
           data: dto.data ?? null,
-          isCompleted: dto.isCompleted,
+          isCompleted: dto.isCompleted ?? false,
           completedAt: dto.isCompleted ? new Date() : null,
         });
       } else {
@@ -123,12 +123,14 @@ export class ProgressService {
         screen.data = Object.fromEntries(
           Object.entries(merged).filter(([, v]) => v != null),
         );
-        if (dto.isCompleted && !screen.isCompleted) {
-          screen.completedAt = new Date();
-        } else if (!dto.isCompleted) {
-          screen.completedAt = null;
+        if (dto.isCompleted !== undefined) {
+          if (dto.isCompleted && !screen.isCompleted) {
+            screen.completedAt = new Date();
+          } else if (!dto.isCompleted) {
+            screen.completedAt = null;
+          }
+          screen.isCompleted = dto.isCompleted;
         }
-        screen.isCompleted = dto.isCompleted;
       }
       screen = await queryRunner.manager.save(screen);
 
