@@ -10,7 +10,10 @@ import { Child } from "../children/entities/child.entity";
 import { ChildModule } from "../children/entities/child-module.entity";
 import { ChildQuest } from "../children/entities/child-quest.entity";
 import { ChildScreen } from "../children/entities/child-screen.entity";
-import { MAX_MODULES, MODULE_UNLOCK_DAYS } from "../../constants/modules.constants";
+import {
+  MAX_MODULES,
+  MODULE_UNLOCK_DAYS,
+} from "../../constants/modules.constants";
 import { moduleRegistry } from "../../constants/module-registry";
 
 export type AccessStatus = {
@@ -221,11 +224,8 @@ export class ModulesService {
 
   private resolveBaseDate(userPlan: UserPlan | null): Date | null {
     if (!userPlan?.purchasedAt) return null;
-
-    const trialBase = userPlan.trialEndsAt;
     const purchaseBase = userPlan.purchasedAt;
-
-    return trialBase && trialBase > purchaseBase ? trialBase : purchaseBase;
+    return purchaseBase;
   }
 
   private resolveModuleStatus(
