@@ -18,6 +18,7 @@ import { ChildrenModule } from "./modules/children/children.module";
 import { ProgressModule } from "./modules/progress/progress.module";
 import { StorageModule } from "./modules/storage/storage.module";
 import { DashboardModule } from "./modules/dashboard/dashboard.module";
+import { ParentResourcesModule } from "./modules/parent-resources/parent-resources.module";
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { DashboardModule } from "./modules/dashboard/dashboard.module";
     ProgressModule,
     StorageModule,
     DashboardModule,
+    ParentResourcesModule,
   ],
   providers: [
     {
