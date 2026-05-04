@@ -18,9 +18,10 @@ export class ParentResourcesService {
   async getResources(userId: string): Promise<ParentResource[]> {
     const userPlan = await this.userPlanRepository.findOne({
       where: { userId, isActive: true },
+      relations: ["plan"],
     });
 
-    if (!userPlan) return [];
+    if (!userPlan?.plan) return [];
 
     if (
       userPlan.plan.name === PlanName.SOLO_EXPLORER ||

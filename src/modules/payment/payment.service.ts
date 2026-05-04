@@ -107,8 +107,8 @@ export class PaymentService {
       client_reference_id: user.id,
       metadata: { userId: user.id, planName: plan.name },
       invoice_creation: { enabled: true },
-      success_url: `${baseUrl}/subscription`,
-      cancel_url: `${baseUrl}/subscription`,
+      success_url: `${baseUrl}/panel/subscription`,
+      cancel_url: `${baseUrl}/panel/subscription`,
       customer: stripeCustomerId,
     });
 
@@ -157,8 +157,8 @@ export class PaymentService {
       client_reference_id: user.id,
       metadata: { userId: user.id, planName: familyPlan.name },
       invoice_creation: { enabled: true },
-      success_url: `${baseUrl}/subscription`,
-      cancel_url: `${baseUrl}/subscription`,
+      success_url: `${baseUrl}/panel/subscription`,
+      cancel_url: `${baseUrl}/panel/subscription`,
       customer: stripeCustomerId,
     });
 
