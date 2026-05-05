@@ -37,6 +37,12 @@ export class Child {
   @Column({ type: "varchar" })
   gender: string;
 
+  @Column({ type: "varchar", nullable: true, default: null })
+  profileImage: string | null;
+
+  @Column({ type: "boolean", default: false })
+  useAvatar: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 }

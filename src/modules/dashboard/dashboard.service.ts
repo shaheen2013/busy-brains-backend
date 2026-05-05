@@ -323,8 +323,24 @@ export class DashboardService {
       }
     }
 
+    // --- Milestone flags ---
+    const m4Module = moduleMap.get(4);
+    const q1Quest = m4Module
+      ? (questsByModuleId.get(m4Module.id) ?? []).find((q) => q.questNo === 1)
+      : undefined;
+    const s1Screen = q1Quest
+      ? (screensByQuestId.get(q1Quest.id) ?? []).find((s) => s.screenNo === 1)
+      : undefined;
+
+    const milestone = {
+      halfway_explored: moduleMap.get(3)?.isCompleted ?? false,
+      toolkit_builder: s1Screen?.isCompleted ?? false,
+      finished_the_journey: moduleMap.get(6)?.isCompleted ?? false,
+    };
+
     const result: Record<string, unknown> = {
       brain_data: brainData,
+      milestone,
       progress: {
         modules: { completed: completedModules, total: totalModules },
         quests: { completed: completedQuests, total: totalQuests },

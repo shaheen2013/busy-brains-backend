@@ -6,7 +6,10 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFile,
+  UseInterceptors,
 } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { ChildrenService } from "./children.service";
 import { CreateChildDto } from "./dto/create-child.dto";
@@ -44,6 +47,33 @@ export class ChildrenController {
     @Body() dto: UpdateChildDto,
   ) {
     return this.childrenService.update(user.id, id, dto);
+  }
+
+  @Post(":id/profile-image")
+  @ApiOperation({ summary: "Upload a profile image for a child" })
+  @UseInterceptors(
+    FileInterceptor("profileImage", {
+      limits: { fileSize: 5 * 1024 * 1024 },
+      fileFilter: (_, file, cb) => {
+        if (!file.mimetype.match(/^image\/(jpeg|jpg|png|webp|gif)$/)) {
+          return cb(new Error("Only image files are allowed"), false);
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  uploadProfileImage(
+    @User() user: UserEntity,
+    @Param("id") id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.childrenService.uploadProfileImage(user.id, id, file);
+  }
+
+  @Delete(":id/profile-image")
+  @ApiOperation({ summary: "Remove the profile image of a child" })
+  removeProfileImage(@User() user: UserEntity, @Param("id") id: string) {
+    return this.childrenService.removeProfileImage(user.id, id);
   }
 
   @Delete(":id")

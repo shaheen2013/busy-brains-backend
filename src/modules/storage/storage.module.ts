@@ -8,6 +8,6 @@ import { StorageService } from "./storage.service";
 @Module({
   imports: [TypeOrmModule.forFeature([Resource, Document])],
   providers: [S3Service, StorageService],
-  exports: [StorageService],
+  exports: [StorageService, S3Service],
 })
 export class StorageModule {}
