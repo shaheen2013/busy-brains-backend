@@ -33,7 +33,6 @@ export class ClerkGuard implements CanActivate {
       throw new UnauthorizedException("Missing authorization token");
     }
 
-    Logger.log(`Verifying token: ${token}`);
     const payload = await this.authService.verifyToken(token);
     Logger.log(`Token verified: ${payload.sub}`);
     const user = await this.usersService.findById(payload.sub);

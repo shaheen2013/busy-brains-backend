@@ -19,6 +19,7 @@ import { ProgressModule } from "./modules/progress/progress.module";
 import { StorageModule } from "./modules/storage/storage.module";
 import { DashboardModule } from "./modules/dashboard/dashboard.module";
 import { ParentResourcesModule } from "./modules/parent-resources/parent-resources.module";
+import { KitModule } from "./modules/kit/kit.module";
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { ParentResourcesModule } from "./modules/parent-resources/parent-resourc
     StorageModule,
     DashboardModule,
     ParentResourcesModule,
+    KitModule,
   ],
   providers: [
     {

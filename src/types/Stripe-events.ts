@@ -15,6 +15,7 @@ export type CheckoutSessionCompletedEvent = Event & {
       metadata: {
         userId: string;
         planName: PlanName;
+        isUpgrade?: string;
       };
     };
   };

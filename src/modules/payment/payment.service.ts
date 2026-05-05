@@ -155,7 +155,11 @@ export class PaymentService {
       mode: "payment",
       line_items: [{ price: PLANS.UPGRADE.priceId, quantity: 1 }],
       client_reference_id: user.id,
-      metadata: { userId: user.id, planName: familyPlan.name },
+      metadata: {
+        userId: user.id,
+        planName: familyPlan.name,
+        isUpgrade: "true",
+      },
       invoice_creation: { enabled: true },
       success_url: `${baseUrl}/panel/subscription?complete=true`,
       cancel_url: `${baseUrl}/panel/subscription`,

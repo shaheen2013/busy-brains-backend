@@ -1,5 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { PaymentService } from "../payment/payment.service";
+import { KitService } from "../kit/kit.service";
 import type {
   CheckoutSessionCompletedEvent,
   PaymentIntentSucceededEvent,
@@ -12,7 +13,10 @@ import type {
 export class StripeWebhooksService {
   private logger = new Logger(StripeWebhooksService.name);
 
-  constructor(private readonly paymentService: PaymentService) {}
+  constructor(
+    private readonly paymentService: PaymentService,
+    private readonly kitService: KitService,
+  ) {}
 
   async handleCheckoutCompleted(event: any) {
     const session = (event as CheckoutSessionCompletedEvent).data.object;
@@ -35,6 +39,10 @@ export class StripeWebhooksService {
     this.logger.log(
       `Checkout completed for user ${userId}: ${planName} (${session.id})`,
     );
+
+    if (session.metadata?.isUpgrade !== "true") {
+      await this.kitService.subscribeToSequence(userId);
+    }
   }
 
   async handlePaymentIntentSucceeded(event: any) {

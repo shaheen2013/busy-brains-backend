@@ -31,6 +31,10 @@ export interface AppConfig {
     pass: string;
     from: string;
   };
+  kit: {
+    apiKey: string;
+    sequenceId: string;
+  };
   nodeEnv: string;
   port: number;
   frontendUrl: string;
@@ -70,6 +74,10 @@ export default (): AppConfig => ({
     user: process.env.SMTP_USER || "",
     pass: process.env.SMTP_PASS || "",
     from: process.env.SMTP_FROM || "",
+  },
+  kit: {
+    apiKey: process.env.KIT_API_KEY || "",
+    sequenceId: process.env.KIT_SEQUENCE_ID || "",
   },
   nodeEnv: process.env.NODE_ENV || "development",
   port: parseInt(process.env.PORT || "3001", 10),
