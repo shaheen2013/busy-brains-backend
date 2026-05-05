@@ -268,6 +268,61 @@ export class DashboardService {
       screensByQuestId,
     );
 
+    // Build hierarchy gated on include flags
+    let hierarchy:
+      | Record<
+          string,
+          {
+            completedQuests: number;
+            totalQuests: number;
+            quest?: Record<
+              string,
+              { completedScreens: number; totalScreens: number }
+            >;
+          }
+        >
+      | undefined;
+
+    if (includeQuests) {
+      hierarchy = {};
+      for (let moduleNo = 1; moduleNo <= MAX_MODULES; moduleNo++) {
+        const reg = moduleRegistry.perModule[moduleNo];
+        if (!reg) continue;
+
+        const childModule = moduleMap.get(moduleNo);
+        const quests = childModule
+          ? (questsByModuleId.get(childModule.id) ?? [])
+          : [];
+        const questMap = new Map(quests.map((q) => [q.questNo, q]));
+        const questNos = Object.keys(reg.quests).map(Number);
+
+        let questHierarchy:
+          | Record<string, { completedScreens: number; totalScreens: number }>
+          | undefined;
+
+        if (includeScreens) {
+          questHierarchy = {};
+          for (const questNo of questNos) {
+            const totalScreens = reg.quests[questNo]?.screens ?? 0;
+            const childQuest = questMap.get(questNo);
+            const screens = childQuest
+              ? (screensByQuestId.get(childQuest.id) ?? [])
+              : [];
+            questHierarchy[String(questNo)] = {
+              completedScreens: screens.filter((s) => s.isCompleted).length,
+              totalScreens,
+            };
+          }
+        }
+
+        hierarchy[String(moduleNo)] = {
+          completedQuests: quests.filter((q) => q.isCompleted).length,
+          totalQuests: questNos.length,
+          ...(questHierarchy !== undefined && { quest: questHierarchy }),
+        };
+      }
+    }
+
     const result: Record<string, unknown> = {
       brain_data: brainData,
       progress: {
@@ -290,6 +345,7 @@ export class DashboardService {
 
     if (includeQuests) result.quest_progress = quest_progress;
     if (includeScreens) result.screen_progress = screen_progress;
+    if (hierarchy !== undefined) result.hierarchy = hierarchy;
 
     return result;
   }
