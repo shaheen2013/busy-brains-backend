@@ -24,7 +24,9 @@ export class KitService {
       return;
     }
 
-    const { apiKey, sequenceId } = this.configService.get("kit", { infer: true });
+    const { apiKey, sequenceId } = this.configService.get("kit", {
+      infer: true,
+    });
 
     if (!sequenceId) {
       this.logger.warn("KIT_SEQUENCE_ID not configured — skipping");
