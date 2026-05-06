@@ -13,6 +13,8 @@ import { UserPlan } from "../subscriptions/entities/user-plan.entity";
 import { S3Service } from "../storage/s3.service";
 import { CreateChildDto } from "./dto/create-child.dto";
 import { UpdateChildDto } from "./dto/update-child.dto";
+import { moduleRegistry } from "../../constants/module-registry";
+import { Position } from "../../types/position";
 
 const TRIAL_MAX_CHILDREN = 1;
 const BUDDY_CUSTOMIZATION_KEY = "buddy_customization";
@@ -24,7 +26,7 @@ type AvatarData = {
   outfits: string | null;
 } | null;
 
-type LastCompletedContent = {
+type nextContent = {
   moduleNo: number;
   questNo: number;
   screenNo: number;
@@ -32,7 +34,7 @@ type LastCompletedContent = {
 
 type EnrichedChild = Child & {
   avatar: AvatarData;
-  lastCompletedContent: LastCompletedContent;
+  nextContent: nextContent;
 };
 
 @Injectable()
@@ -93,7 +95,7 @@ export class ChildrenService {
       return children.map((c) => ({
         ...c,
         avatar: null,
-        lastCompletedContent: null,
+        nextContent: null,
       }));
     }
 
@@ -107,7 +109,7 @@ export class ChildrenService {
       return children.map((c) => ({
         ...c,
         avatar: null,
-        lastCompletedContent: null,
+        nextContent: null,
       }));
     }
 
@@ -139,7 +141,7 @@ export class ChildrenService {
       screensByQuestId.set(s.questId, arr);
     }
 
-    // Build per-child index of all screens with coordinates (for lastCompletedContent)
+    // Build per-child index of all screens with coordinates (for nextContent)
     type ScreenEntry = {
       screen: ChildScreen;
       moduleNo: number;
@@ -184,7 +186,7 @@ export class ChildrenService {
         }
       }
 
-      // lastCompletedContent: most recently completed screen
+      // nextContent: most recently completed screen
       const entries = screenEntriesByChildId.get(child.id) ?? [];
       const completed = entries.filter(
         (e) => e.screen.isCompleted && e.screen.completedAt,
@@ -196,15 +198,15 @@ export class ChildrenService {
       );
 
       const last = completed[0];
-      const lastCompletedContent: LastCompletedContent = last
-        ? {
+      const nextContent: nextContent = last
+        ? this.getNextContent({
             moduleNo: last.moduleNo,
             questNo: last.questNo,
             screenNo: last.screen.screenNo,
-          }
+          })
         : null;
 
-      return { ...child, avatar, lastCompletedContent };
+      return { ...child, avatar, nextContent };
     });
   }
 
@@ -295,5 +297,47 @@ export class ChildrenService {
 
   private extractS3Key(url: string): string {
     return new URL(url).pathname.slice(1);
+  }
+
+  private getNextContent(last: Position): Position {
+    const modules = moduleRegistry.perModule;
+
+    if (!last) {
+      for (const m of Object.keys(modules).map(Number)) {
+        for (const q of Object.keys(modules[m].quests).map(Number)) {
+          const screens = modules[m].quests[q].screens;
+          if (screens > 0) {
+            return { moduleNo: m, questNo: q, screenNo: 1 };
+          }
+        }
+      }
+
+      return null;
+    }
+
+    let { moduleNo, questNo, screenNo } = last;
+
+    while (true) {
+      const module = modules[moduleNo];
+      if (!module) return null;
+
+      const quest = module.quests[questNo];
+
+      if (quest && screenNo < quest.screens) {
+        return {
+          moduleNo,
+          questNo,
+          screenNo: screenNo + 1,
+        };
+      }
+
+      questNo++;
+      screenNo = 0;
+
+      if (!module.quests[questNo]) {
+        moduleNo++;
+        questNo = 1;
+      }
+    }
   }
 }
