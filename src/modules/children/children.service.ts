@@ -1,6 +1,7 @@
 import {
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -259,7 +260,16 @@ export class ChildrenService {
     return child;
   }
 
-  async delete(userId: string, childId: string): Promise<void> {
+  async requestDeletion(
+    userId: string,
+    childId: string,
+  ): Promise<{ message: string }> {
+    Logger.log(`Requesting deletion for user ${userId} and child ${childId}`);
+    return { message: "Requested deletion" };
+  }
+
+  async delete(userId: string, childId: string, otp: string): Promise<void> {
+    Logger.log(otp);
     const child = await this.childRepository.findOneBy({
       id: childId,
       userId,

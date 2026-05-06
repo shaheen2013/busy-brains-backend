@@ -16,6 +16,7 @@ import { CreateChildDto } from "./dto/create-child.dto";
 import { UpdateChildDto } from "./dto/update-child.dto";
 import { User } from "../auth/decorators/user.decorator";
 import { User as UserEntity } from "../users/entities/user.entity";
+import { DeleteChildDto } from "./dto/delete-child.dto";
 
 @ApiTags("Children")
 @ApiBearerAuth("Clerk-Bearer")
@@ -79,10 +80,20 @@ export class ChildrenController {
   @Delete(":id")
   @ApiOperation({
     summary: "Delete a child profile",
-    description:
-      "Deletes a child profile and all associated data (modules, quests, screens, progress)",
   })
-  delete(@User() user: UserEntity, @Param("id") id: string) {
-    return this.childrenService.delete(user.id, id);
+  delete(
+    @User() user: UserEntity,
+    @Param("id") id: string,
+    @Body() dto: DeleteChildDto,
+  ) {
+    return this.childrenService.delete(user.id, id, dto.otp);
+  }
+
+  @Post(":id/request-deletion")
+  @ApiOperation({
+    summary: "Request deletion of a child profile",
+  })
+  requestDeletion(@User() user: UserEntity, @Param("id") id: string) {
+    return this.childrenService.requestDeletion(user.id, id);
   }
 }
