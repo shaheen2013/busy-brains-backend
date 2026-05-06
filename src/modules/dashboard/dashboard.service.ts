@@ -108,9 +108,64 @@ export class DashboardService {
       }
     }
 
-    const completedModules = childModules.filter((m) => m.isCompleted).length;
-    const completedQuests = childQuests.filter((q) => q.isCompleted).length;
-    const completedScreens = allScreens.filter((s) => s.isCompleted).length;
+    let completedModules = 0;
+    for (let moduleNo = 1; moduleNo <= MAX_MODULES; moduleNo++) {
+      const m = moduleMap.get(moduleNo);
+      if (m?.isCompleted) completedModules++;
+    }
+
+    let completedQuests = 0;
+
+    for (let moduleNo = 1; moduleNo <= MAX_MODULES; moduleNo++) {
+      const reg = moduleRegistry.perModule[moduleNo];
+      if (!reg) continue;
+
+      const childModule = moduleMap.get(moduleNo);
+      const quests = childModule
+        ? (questsByModuleId.get(childModule.id) ?? [])
+        : [];
+
+      const questMap = new Map(quests.map((q) => [q.questNo, q]));
+
+      const questNos = Object.keys(reg.quests).map(Number);
+
+      for (const questNo of questNos) {
+        const q = questMap.get(questNo);
+        if (q?.isCompleted) completedQuests++;
+      }
+    }
+
+    let completedScreens = 0;
+
+    for (let moduleNo = 1; moduleNo <= MAX_MODULES; moduleNo++) {
+      const reg = moduleRegistry.perModule[moduleNo];
+      if (!reg) continue;
+
+      const childModule = moduleMap.get(moduleNo);
+      const quests = childModule
+        ? (questsByModuleId.get(childModule.id) ?? [])
+        : [];
+
+      const questMap = new Map(quests.map((q) => [q.questNo, q]));
+
+      const questNos = Object.keys(reg.quests).map(Number);
+
+      for (const questNo of questNos) {
+        const childQuest = questMap.get(questNo);
+        const screens = childQuest
+          ? (screensByQuestId.get(childQuest.id) ?? [])
+          : [];
+
+        const screenMap = new Map(screens.map((s) => [s.screenNo, s]));
+
+        const screenCount = reg.quests[questNo]?.screens ?? 0;
+
+        for (let screenNo = 1; screenNo <= screenCount; screenNo++) {
+          const s = screenMap.get(screenNo);
+          if (s?.isCompleted) completedScreens++;
+        }
+      }
+    }
 
     // --- module_progress ---
     const module_progress: {
@@ -285,6 +340,7 @@ export class DashboardService {
 
     if (includeQuests) {
       hierarchy = {};
+
       for (let moduleNo = 1; moduleNo <= MAX_MODULES; moduleNo++) {
         const reg = moduleRegistry.perModule[moduleNo];
         if (!reg) continue;
@@ -293,8 +349,11 @@ export class DashboardService {
         const quests = childModule
           ? (questsByModuleId.get(childModule.id) ?? [])
           : [];
+
         const questMap = new Map(quests.map((q) => [q.questNo, q]));
         const questNos = Object.keys(reg.quests).map(Number);
+
+        let completedQuests = 0;
 
         let questHierarchy:
           | Record<string, { completedScreens: number; totalScreens: number }>
@@ -302,23 +361,40 @@ export class DashboardService {
 
         if (includeScreens) {
           questHierarchy = {};
-          for (const questNo of questNos) {
+        }
+
+        for (const questNo of questNos) {
+          const childQuest = questMap.get(questNo);
+
+          if (childQuest?.isCompleted) completedQuests++;
+
+          if (includeScreens) {
             const totalScreens = reg.quests[questNo]?.screens ?? 0;
-            const childQuest = questMap.get(questNo);
+
             const screens = childQuest
               ? (screensByQuestId.get(childQuest.id) ?? [])
               : [];
+
+            const screenMap = new Map(screens.map((s) => [s.screenNo, s]));
+
+            let completedScreens = 0;
+
+            for (let screenNo = 1; screenNo <= totalScreens; screenNo++) {
+              const s = screenMap.get(screenNo);
+              if (s?.isCompleted) completedScreens++;
+            }
+
             questHierarchy[String(questNo)] = {
-              completedScreens: screens.filter((s) => s.isCompleted).length,
+              completedScreens,
               totalScreens,
             };
           }
         }
 
         hierarchy[String(moduleNo)] = {
-          completedQuests: quests.filter((q) => q.isCompleted).length,
+          completedQuests,
           totalQuests: questNos.length,
-          ...(questHierarchy !== undefined && { quest: questHierarchy }),
+          ...(questHierarchy && { quest: questHierarchy }),
         };
       }
     }

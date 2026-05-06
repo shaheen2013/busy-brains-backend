@@ -119,7 +119,6 @@ export class ProgressService {
           completedAt: dto.isCompleted ? new Date() : null,
         });
       } else {
-        // ✅ Only merge if dto.data has actual values
         if (dto.data && Object.keys(dto.data).length > 0) {
           const merged = {
             ...(screen.data ?? {}),
