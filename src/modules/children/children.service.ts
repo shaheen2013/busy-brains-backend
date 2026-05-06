@@ -33,9 +33,16 @@ type nextContent = {
   screenNo: number;
 } | null;
 
+type lastCompletedContent = {
+  module: number;
+  quest: number;
+  screen: number;
+} | null;
+
 type EnrichedChild = Child & {
   avatar: AvatarData;
   nextContent: nextContent;
+  lastCompletedContent: lastCompletedContent;
 };
 
 @Injectable()
@@ -97,6 +104,7 @@ export class ChildrenService {
         ...c,
         avatar: null,
         nextContent: null,
+        lastCompletedContent: null,
       }));
     }
 
@@ -111,6 +119,7 @@ export class ChildrenService {
         ...c,
         avatar: null,
         nextContent: null,
+        lastCompletedContent: null,
       }));
     }
 
@@ -199,6 +208,15 @@ export class ChildrenService {
       );
 
       const last = completed[0];
+
+      const lastCompletedContent: lastCompletedContent = last
+        ? {
+            module: last.moduleNo,
+            quest: last.questNo,
+            screen: last.screen.screenNo,
+          }
+        : null;
+
       const nextContent: nextContent = last
         ? this.getNextContent({
             moduleNo: last.moduleNo,
@@ -207,7 +225,7 @@ export class ChildrenService {
           })
         : null;
 
-      return { ...child, avatar, nextContent };
+      return { ...child, avatar, nextContent, lastCompletedContent };
     });
   }
 
