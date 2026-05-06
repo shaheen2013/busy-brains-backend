@@ -273,7 +273,23 @@ export class ChildrenService {
         .catch(() => {});
     }
 
-    await this.childModuleRepository.delete({ childId });
+    const modules = await this.childModuleRepository.findBy({ childId });
+    if (modules.length > 0) {
+      const moduleIds = modules.map((m) => m.id);
+      const quests = await this.childQuestRepository.findBy({
+        moduleId: In(moduleIds),
+      });
+      if (quests.length > 0) {
+        await this.childScreenRepository.delete({
+          questId: In(quests.map((q) => q.id)),
+        });
+        await this.childQuestRepository.delete({
+          moduleId: In(moduleIds),
+        });
+      }
+      await this.childModuleRepository.delete({ childId });
+    }
+
     await this.childRepository.remove(child);
   }
 
