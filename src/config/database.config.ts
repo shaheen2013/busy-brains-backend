@@ -51,7 +51,7 @@ export class DatabaseConfigService implements TypeOrmOptionsFactory {
       migrationsRun: false,
       migrations: isDev ? [] : [__dirname + "/../migrations/*.{ts,js}"],
 
-      ssl: nodeEnv === "production" ? { rejectUnauthorized: false } : false,
+      ssl: false,
 
       extra: {
         max: 3,
