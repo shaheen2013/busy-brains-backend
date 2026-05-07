@@ -1,7 +1,6 @@
 import {
   ForbiddenException,
   Injectable,
-  Logger,
   NotFoundException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -11,7 +10,11 @@ import { ChildModule } from "./entities/child-module.entity";
 import { ChildQuest } from "./entities/child-quest.entity";
 import { ChildScreen } from "./entities/child-screen.entity";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
+import { User } from "../users/entities/user.entity";
 import { S3Service } from "../storage/s3.service";
+import { EmailService } from "../email/email.service";
+import { VerificationService } from "../users/verification.service";
+import { VerificationType } from "../users/entities/verification-token.entity";
 import { CreateChildDto } from "./dto/create-child.dto";
 import { UpdateChildDto } from "./dto/update-child.dto";
 import { moduleRegistry } from "../../constants/module-registry";
@@ -58,7 +61,11 @@ export class ChildrenService {
     private readonly childScreenRepository: Repository<ChildScreen>,
     @InjectRepository(UserPlan)
     private readonly userPlanRepository: Repository<UserPlan>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     private readonly s3Service: S3Service,
+    private readonly emailService: EmailService,
+    private readonly verificationService: VerificationService,
   ) {}
 
   async create(userId: string, dto: CreateChildDto): Promise<Child> {
@@ -282,12 +289,33 @@ export class ChildrenService {
     userId: string,
     childId: string,
   ): Promise<{ message: string }> {
-    Logger.log(`Requesting deletion for user ${userId} and child ${childId}`);
-    return { message: "Requested deletion" };
+    const child = await this.childRepository.findOneBy({ id: childId, userId });
+    if (!child) throw new NotFoundException("Child not found");
+
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) throw new NotFoundException("User not found");
+
+    const otp = await this.verificationService.generateOtp(
+      userId,
+      VerificationType.CHILD_DELETION,
+    );
+
+    await this.emailService.send({
+      to: user.email,
+      template: "CHILD_DELETION_OTP",
+      data: { parentName: user.name, childName: child.name, otp },
+    });
+
+    return { message: "OTP sent to email" };
   }
 
   async delete(userId: string, childId: string, otp: string): Promise<void> {
-    Logger.log(otp);
+    await this.verificationService.verifyOtp(
+      userId,
+      VerificationType.CHILD_DELETION,
+      otp,
+    );
+
     const child = await this.childRepository.findOneBy({
       id: childId,
       userId,

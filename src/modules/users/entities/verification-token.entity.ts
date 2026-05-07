@@ -8,6 +8,7 @@ import {
 
 export enum VerificationType {
   ACCOUNT_DELETION = "ACCOUNT_DELETION",
+  CHILD_DELETION = "CHILD_DELETION",
 }
 
 @Entity("verification_tokens")
