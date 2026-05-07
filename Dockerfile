@@ -5,7 +5,8 @@ WORKDIR /app
 RUN corepack enable
 
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --ignore-scripts && \
+    pnpm rebuild bcrypt msgpackr-extract
 
 COPY . .
 RUN pnpm run build
@@ -19,7 +20,8 @@ ENV NODE_ENV=production
 RUN corepack enable
 
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile --prod
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts && \
+    pnpm rebuild bcrypt msgpackr-extract
 
 COPY --from=builder /app/dist ./dist
 
