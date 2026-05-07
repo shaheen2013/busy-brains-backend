@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import {
   S3Client,
@@ -11,8 +11,10 @@ import * as path from "path";
 
 @Injectable()
 export class S3Service {
+  private readonly logger = new Logger(S3Service.name);
   private client: S3Client;
   private bucket: string;
+  private region: string;
 
   constructor(private configService: ConfigService<AppConfig>) {
     const { region, accessKeyId, secretAccessKey, bucket } =
@@ -23,6 +25,7 @@ export class S3Service {
       credentials: { accessKeyId, secretAccessKey },
     });
     this.bucket = bucket;
+    this.region = region;
   }
 
   async upload(
@@ -32,16 +35,27 @@ export class S3Service {
     const ext = path.extname(file.originalname);
     const key = `${folder}/${randomUUID()}${ext}`;
 
-    await this.client.send(
-      new PutObjectCommand({
-        Bucket: this.bucket,
-        Key: key,
-        Body: file.buffer,
-        ContentType: file.mimetype,
-      }),
-    );
+    try {
+      await this.client.send(
+        new PutObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+          Body: file.buffer,
+          ContentType: file.mimetype,
+        }),
+      );
+    } catch (err) {
+      this.logger.error(
+        `S3 upload failed — bucket: ${this.bucket}, key: ${key}`,
+        err,
+      );
+      throw err;
+    }
 
-    const url = `https://${this.bucket}.s3.amazonaws.com/${key}`;
+    const url = `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`;
+    this.logger.log(
+      `S3 upload successful — bucket: ${this.bucket}, key: ${key}, url: ${url}`,
+    );
     return { key, url };
   }
 

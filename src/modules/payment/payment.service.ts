@@ -110,6 +110,7 @@ export class PaymentService {
       success_url: `${baseUrl}/panel/subscription?complete=true`,
       cancel_url: `${baseUrl}/panel/subscription`,
       customer: stripeCustomerId,
+      allow_promotion_codes: true,
     });
 
     return { sessionId: session.id, url: session.url ?? "" };
@@ -164,6 +165,7 @@ export class PaymentService {
       success_url: `${baseUrl}/panel/subscription?complete=true`,
       cancel_url: `${baseUrl}/panel/subscription`,
       customer: stripeCustomerId,
+      allow_promotion_codes: true,
     });
 
     return { sessionId: session.id, url: session.url ?? "" };
