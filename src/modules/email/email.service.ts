@@ -22,11 +22,9 @@ export class EmailService {
     });
   }
 
-  async send<T extends keyof EmailTemplateMap>(params: {
-    to: string;
-    template: T;
-    data: EmailTemplateMap[T];
-  }) {
+  async send<T extends keyof EmailTemplateMap>(
+    params: { [K in T]: { to: string; template: K; data: EmailTemplateMap[K] } }[T],
+  ) {
     const template = templateRegistry[params.template];
 
     if (!template) {
