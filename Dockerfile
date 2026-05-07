@@ -23,6 +23,6 @@ RUN pnpm install --frozen-lockfile --prod
 
 COPY --from=builder /app/dist ./dist
 
-EXPOSE 3001
+EXPOSE 5000
 
 CMD ["node", "--dns-result-order=ipv4first", "dist/main"]
