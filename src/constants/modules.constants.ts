@@ -23,7 +23,7 @@ const PRODUCTION = {
   6: 56,
 };
 
-const developmentMode = false;
+const developmentMode = true;
 
 export const MODULE_UNLOCK_DAYS: Record<number, number> = developmentMode
   ? DEVELOPMENT
