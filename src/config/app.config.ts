@@ -1,4 +1,9 @@
 export interface AppConfig {
+  google: {
+    clientId: string;
+    clientSecret: string;
+  };
+  backendUrl: string;
   database: {
     host: string;
     port: number;
@@ -44,6 +49,11 @@ export interface AppConfig {
 }
 
 export default (): AppConfig => ({
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID || "",
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+  },
+  backendUrl: process.env.BACKEND_URL || "http://localhost:3001",
   database: {
     host: process.env.DB_HOST,
     port: parseInt(process.env.DB_PORT || "5432", 10),

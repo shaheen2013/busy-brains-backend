@@ -34,6 +34,26 @@ export class UsersService {
     return this.userRepository.findOne({ where: { id: id } });
   }
 
+  async findOrCreateFromOAuth(params: {
+    clerkId: string;
+    email: string;
+    name: string;
+  }): Promise<{ user: User; isNew: boolean }> {
+    const existing = await this.userRepository.findOne({
+      where: { id: params.clerkId },
+    });
+    if (existing) return { user: existing, isNew: false };
+
+    const user = this.userRepository.create({
+      id: params.clerkId,
+      email: params.email,
+      name: params.name,
+      hasPassword: false,
+    });
+    const saved = await this.userRepository.save(user);
+    return { user: saved, isNew: true };
+  }
+
   async findWithActivePlan(id: string) {
     const user = await this.userRepository.findOne({ where: { id: id } });
     if (!user) return null;
