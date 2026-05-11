@@ -44,6 +44,12 @@ export class UsersService {
     });
     if (existing) return { user: existing, isNew: false };
 
+    // A user may have previously registered via email/password with the same email
+    const existingByEmail = await this.userRepository.findOne({
+      where: { email: params.email },
+    });
+    if (existingByEmail) return { user: existingByEmail, isNew: false };
+
     const user = this.userRepository.create({
       id: params.clerkId,
       email: params.email,
