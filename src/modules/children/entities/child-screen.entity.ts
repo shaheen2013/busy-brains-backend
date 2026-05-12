@@ -5,10 +5,12 @@ import {
   ManyToOne,
   JoinColumn,
   CreateDateColumn,
+  Unique,
 } from "typeorm";
 import { ChildQuest } from "./child-quest.entity";
 
 @Entity("child_screens")
+@Unique(["questId", "screenNo"])
 export class ChildScreen {
   @PrimaryGeneratedColumn("uuid")
   id: string;

@@ -6,11 +6,13 @@ import {
   OneToMany,
   JoinColumn,
   CreateDateColumn,
+  Unique,
 } from "typeorm";
 import { Child } from "./child.entity";
 import { ChildQuest } from "./child-quest.entity";
 
 @Entity("child_modules")
+@Unique(["childId", "moduleNo"])
 export class ChildModule {
   @PrimaryGeneratedColumn("uuid")
   id: string;
