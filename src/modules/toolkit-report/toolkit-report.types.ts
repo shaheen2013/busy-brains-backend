@@ -33,10 +33,26 @@ export interface FavouriteToolsInfo {
   tools: string[];
 }
 
-export interface ToolkitTypeData {
+export interface SingleToolkitTypeData {
   brainType: BrainTypeInfo;
   tactileSense: TactileSenseInfo;
   favouriteTools: FavouriteToolsInfo;
   toolkitInfo: ToolkitInfo;
   images: ToolkitImage[];
+}
+
+export interface BalancedToolkitTypeData {
+  combinedTypes: [SingleToolkitType, SingleToolkitType];
+  brainType: BrainTypeInfo;
+  tactileSense: TactileSenseInfo;
+  favouriteTools: FavouriteToolsInfo;
+  toolkitInfo: ToolkitInfo;
+}
+
+export type ToolkitTypeData = SingleToolkitTypeData | BalancedToolkitTypeData;
+
+export function isBalanced(
+  data: ToolkitTypeData,
+): data is BalancedToolkitTypeData {
+  return "combinedTypes" in data;
 }

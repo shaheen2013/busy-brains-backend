@@ -6,6 +6,7 @@ import {
   ToolkitType,
   ToolkitTypeData,
   ToolkitImage,
+  isBalanced,
 } from "./toolkit-report.types";
 import { TOOLKIT_DATA } from "./toolkit-report.constants";
 
@@ -81,9 +82,20 @@ export class ToolkitReportService {
       .join("");
   }
 
+  private resolveImages(data: ToolkitTypeData): ToolkitImage[] {
+    if (isBalanced(data)) {
+      const [type1, type2] = data.combinedTypes;
+      return [
+        ...(TOOLKIT_DATA[type1] as { images: ToolkitImage[] }).images,
+        ...(TOOLKIT_DATA[type2] as { images: ToolkitImage[] }).images,
+      ];
+    }
+    return data.images;
+  }
+
   private buildHtml(childName: string, data: ToolkitTypeData): string {
-    const { brainType, tactileSense, favouriteTools, toolkitInfo, images } =
-      data;
+    const { brainType, tactileSense, favouriteTools, toolkitInfo } = data;
+    const images = this.resolveImages(data);
 
     const logoSrc = this.loadAsset("logo.svg");
     const heroSrc = this.loadAsset("hero-child.svg");

@@ -280,7 +280,9 @@ const CALM_AND_COMFORT_DATA: ToolkitTypeData = {
   images: CALM_AND_COMFORT_IMAGES,
 };
 
+// Change combinedTypes to any two SingleToolkitType values to alter the combination
 const BALANCED_DATA: ToolkitTypeData = {
+  combinedTypes: ["rest_and_breathe", "calm_and_comfort"],
   brainType: {
     title: "Mover + Cozy Brain Combo",
     subtitle: "the best of both worlds!",
@@ -322,7 +324,6 @@ const BALANCED_DATA: ToolkitTypeData = {
       "Your brain is flexible and can use different kinds of tools depending on how you feel. Sometimes you might need to move, sometimes you might need to feel calm, and sometimes you might need quiet or breathing.",
     needs: ["movement", "calm", "breathing", "comfort", "creativity"],
   },
-  images: [...REST_AND_BREATHE_IMAGES, ...CALM_AND_COMFORT_IMAGES],
 };
 
 export const TOOLKIT_DATA: Record<ToolkitType, ToolkitTypeData> = {
