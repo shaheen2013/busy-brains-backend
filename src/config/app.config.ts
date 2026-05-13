@@ -21,6 +21,7 @@ export interface AppConfig {
     secretKey: string;
     publishableKey: string;
     webhookSecret: string;
+    upgradePriceId: string;
   };
 
   s3: {
@@ -71,6 +72,7 @@ export default (): AppConfig => ({
     secretKey: process.env.STRIPE_SECRET_KEY,
     publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
     webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+    upgradePriceId: process.env.STRIPE_PRICE_UPGRADE,
   },
   s3: {
     region: process.env.AWS_REGION || "us-east-1",

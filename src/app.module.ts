@@ -20,6 +20,7 @@ import { StorageModule } from "./modules/storage/storage.module";
 import { DashboardModule } from "./modules/dashboard/dashboard.module";
 import { ParentResourcesModule } from "./modules/parent-resources/parent-resources.module";
 import { KitModule } from "./modules/kit/kit.module";
+import { ToolkitReportModule } from "./modules/toolkit-report/toolkit-report.module";
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { KitModule } from "./modules/kit/kit.module";
     DashboardModule,
     ParentResourcesModule,
     KitModule,
+    ToolkitReportModule,
   ],
   providers: [
     {

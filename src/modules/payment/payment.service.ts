@@ -9,7 +9,6 @@ import { ConfigService } from "@nestjs/config";
 import { Repository } from "typeorm";
 import Stripe from "stripe";
 import { AppConfig } from "../../config/app.config";
-import { PLANS } from "../../common/plans.constants";
 import { Plan, PlanName } from "../subscriptions/entities/plan.entity";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
 import { PaymentHistory } from "../subscriptions/entities/payment-history.entity";
@@ -152,9 +151,13 @@ export class PaymentService {
       await this.userRepository.save(user);
     }
 
+    const { upgradePriceId } = this.configService.get("stripe", {
+      infer: true,
+    });
+
     const session = await this.stripe.checkout.sessions.create({
       mode: "payment",
-      line_items: [{ price: PLANS.UPGRADE.priceId, quantity: 1 }],
+      line_items: [{ price: upgradePriceId, quantity: 1 }],
       client_reference_id: user.id,
       metadata: {
         userId: user.id,
