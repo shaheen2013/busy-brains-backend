@@ -19,8 +19,14 @@ export class ToolkitReportService {
     const data = TOOLKIT_DATA[this.toolkitType];
     const html = this.buildHtml(this.childName, data);
 
+    const executablePath =
+      process.env.PUPPETEER_EXECUTABLE_PATH ||
+      process.env.CHROME_BIN ||
+      undefined;
+
     const browser = await puppeteer.launch({
       headless: true,
+      executablePath,
       args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu"],
     });
 
