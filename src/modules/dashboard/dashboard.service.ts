@@ -21,6 +21,14 @@ const BRAIN_TYPES: Record<string, string> = {
 };
 const QUIZ_KEY = "module_1_quest_5_screen_2_quiz_answers";
 
+const TACTILE_ANSWER_MAP: Record<number, string> = { 1: "A", 2: "B", 3: "C" };
+const TACTILE_TYPES: Record<string, string> = {
+  A: "Touch Explorer",
+  B: "Touch Detective",
+  C: "Touch on Your Terms",
+};
+const TACTILE_QUIZ_KEY = "module_4_quest_2_screen_2_quiz_answers";
+
 type ProgressStatus = "initialized" | "ongoing" | "completed";
 
 function entityStatus(
@@ -323,6 +331,13 @@ export class DashboardService {
       screensByQuestId,
     );
 
+    // --- Tactile data ---
+    const tactileData = await this.resolveTactileData(
+      childModules,
+      questsByModuleId,
+      screensByQuestId,
+    );
+
     // Build hierarchy gated on include flags
     let hierarchy:
       | Record<
@@ -416,6 +431,7 @@ export class DashboardService {
 
     const result: Record<string, unknown> = {
       brain_data: brainData,
+      tactile_data: tactileData,
       milestone,
       progress: {
         modules: { completed: completedModules, total: totalModules },
@@ -486,6 +502,52 @@ export class DashboardService {
       winners.length === 1
         ? `The ${brainType} Brain`
         : `${brainType} Brain Combo`;
+
+    return { status: "completed" as const, type, answers: rawAnswers, counts };
+  }
+
+  private async resolveTactileData(
+    childModules: ChildModule[],
+    questsByModuleId: Map<string, ChildQuest[]>,
+    screensByQuestId: Map<string, ChildScreen[]>,
+  ) {
+    const empty = {
+      status: "pending" as const,
+      type: "unknown",
+      answers: {},
+      counts: { A: 0, B: 0, C: 0 },
+    };
+
+    const module4 = childModules.find((m) => m.moduleNo === 4);
+    if (!module4) return empty;
+
+    const quest2 = (questsByModuleId.get(module4.id) ?? []).find(
+      (q) => q.questNo === 2,
+    );
+    if (!quest2) return empty;
+
+    const screen2 = (screensByQuestId.get(quest2.id) ?? []).find(
+      (s) => s.screenNo === 2,
+    );
+    if (!screen2?.data?.[TACTILE_QUIZ_KEY]) return empty;
+
+    const rawAnswers = screen2.data[TACTILE_QUIZ_KEY] as Record<string, number>;
+    const counts: Record<string, number> = { A: 0, B: 0, C: 0 };
+
+    for (const val of Object.values(rawAnswers)) {
+      const letter = TACTILE_ANSWER_MAP[val];
+      if (letter) counts[letter]++;
+    }
+
+    const maxCount = Math.max(...Object.values(counts));
+    const winners = Object.entries(counts)
+      .filter(([, c]) => c === maxCount)
+      .map(([k]) => k)
+      .sort();
+
+    const tactileType = winners.map((k) => TACTILE_TYPES[k]).join(" + ");
+    const type =
+      winners.length === 1 ? tactileType : `${tactileType} Combo`;
 
     return { status: "completed" as const, type, answers: rawAnswers, counts };
   }
