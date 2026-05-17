@@ -125,7 +125,16 @@ async function bootstrap() {
 
   // Enable CORS
   app.enableCors({
-    origin: createCorsOriginChecker(["*"]),
+    origin: createCorsOriginChecker([
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+
+      "https://busy-brains.com.au",
+      "https://www.busy-brains.com.au",
+
+      "https://staging.busy-brains.com.au",
+      "https://www.staging.busy-brains.com.au",
+    ]),
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
   });
