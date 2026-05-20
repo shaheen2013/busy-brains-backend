@@ -12,7 +12,7 @@ import { ChildScreen } from "./entities/child-screen.entity";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
 import { User } from "../users/entities/user.entity";
 import { S3Service } from "../storage/s3.service";
-import { EmailService } from "../email/email.service";
+import { KitService } from "../kit/kit.service";
 import { VerificationService } from "../users/verification.service";
 import { VerificationType } from "../users/entities/verification-token.entity";
 import { CreateChildDto } from "./dto/create-child.dto";
@@ -64,7 +64,7 @@ export class ChildrenService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly s3Service: S3Service,
-    private readonly emailService: EmailService,
+    private readonly kitService: KitService,
     private readonly verificationService: VerificationService,
   ) {}
 
@@ -300,11 +300,7 @@ export class ChildrenService {
       VerificationType.CHILD_DELETION,
     );
 
-    await this.emailService.send({
-      to: user.email,
-      template: "CHILD_DELETION_OTP",
-      data: { parentName: user.name, childName: child.name, otp },
-    });
+    await this.kitService.sendChildDeletionOtp(userId, child.name, otp);
 
     return { message: "OTP sent to email" };
   }

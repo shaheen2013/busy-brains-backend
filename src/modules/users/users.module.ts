@@ -5,7 +5,7 @@ import { UserPlan } from "../subscriptions/entities/user-plan.entity";
 import { UsersService } from "./users.service";
 import { UsersController } from "./users.controller";
 import { StorageModule } from "../storage/storage.module";
-import { EmailModule } from "../email/email.module";
+import { KitModule } from "../kit/kit.module";
 import { VerificationService } from "./verification.service";
 import { VerificationToken } from "./entities/verification-token.entity";
 
@@ -13,7 +13,7 @@ import { VerificationToken } from "./entities/verification-token.entity";
   imports: [
     TypeOrmModule.forFeature([User, UserPlan, VerificationToken]),
     StorageModule,
-    EmailModule,
+    KitModule,
   ],
   controllers: [UsersController],
   providers: [UsersService, VerificationService],

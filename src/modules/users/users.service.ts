@@ -15,7 +15,7 @@ import { StorageService } from "../storage/storage.service";
 import { AppConfig } from "../../config/app.config";
 import { VerificationService } from "./verification.service";
 import { VerificationType } from "./entities/verification-token.entity";
-import { EmailService } from "../email/email.service";
+import { KitService } from "../kit/kit.service";
 
 @Injectable()
 export class UsersService {
@@ -27,7 +27,7 @@ export class UsersService {
     private configService: ConfigService<AppConfig>,
     private storageService: StorageService,
     private verificationService: VerificationService,
-    private emailService: EmailService,
+    private kitService: KitService,
   ) {}
 
   findById(id: string): Promise<User | null> {
@@ -186,11 +186,7 @@ export class UsersService {
       VerificationType.ACCOUNT_DELETION,
     );
 
-    await this.emailService.send({
-      to: user.email,
-      template: "ACCOUNT_DELETION_OTP",
-      data: { name: user.name, otp },
-    });
+    await this.kitService.sendAccountDeletionOtp(userId, otp);
 
     return { message: "OTP sent to email" };
   }

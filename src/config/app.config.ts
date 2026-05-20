@@ -39,7 +39,10 @@ export interface AppConfig {
   };
   kit: {
     apiKey: string;
-    sequenceId: string;
+    purchaseCompletionSequenceId: string;
+    module1CompletionSequenceId: string;
+    accountDeletionOtpSequenceId: string;
+    childDeletionOtpSequenceId: string;
   };
   nodeEnv: string;
   port: number;
@@ -89,7 +92,14 @@ export default (): AppConfig => ({
   },
   kit: {
     apiKey: process.env.KIT_API_KEY || "",
-    sequenceId: process.env.KIT_SEQUENCE_ID || "",
+    purchaseCompletionSequenceId:
+      process.env.KIT_PURCHASE_COMPLETION_SEQUENCE_ID || "",
+    module1CompletionSequenceId:
+      process.env.KIT_MODULE1_COMPLETION_SEQUENCE_ID || "",
+    accountDeletionOtpSequenceId:
+      process.env.KIT_ACCOUNT_DELETION_OTP_SEQUENCE_ID || "",
+    childDeletionOtpSequenceId:
+      process.env.KIT_CHILD_DELETION_OTP_SEQUENCE_ID || "",
   },
   nodeEnv: process.env.NODE_ENV || "development",
   port: parseInt(process.env.PORT || "3001", 10),

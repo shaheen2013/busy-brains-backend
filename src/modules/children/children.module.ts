@@ -8,7 +8,7 @@ import { ChildModule } from "./entities/child-module.entity";
 import { ChildQuest } from "./entities/child-quest.entity";
 import { ChildScreen } from "./entities/child-screen.entity";
 import { StorageModule } from "../storage/storage.module";
-import { EmailModule } from "../email/email.module";
+import { KitModule } from "../kit/kit.module";
 import { VerificationToken } from "../users/entities/verification-token.entity";
 import { VerificationService } from "../users/verification.service";
 import { User } from "../users/entities/user.entity";
@@ -25,7 +25,7 @@ import { User } from "../users/entities/user.entity";
       User,
     ]),
     StorageModule,
-    EmailModule,
+    KitModule,
   ],
   controllers: [ChildrenController],
   providers: [ChildrenService, VerificationService],
