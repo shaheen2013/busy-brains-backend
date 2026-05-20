@@ -11,6 +11,7 @@ import { ChildQuest } from "../children/entities/child-quest.entity";
 import { ChildScreen } from "../children/entities/child-screen.entity";
 import { moduleRegistry } from "../../constants/module-registry";
 import { SaveScreenDto } from "./dto/save-screen.dto";
+import { KitService } from "../kit/kit.service";
 
 @Injectable()
 export class ProgressService {
@@ -18,6 +19,7 @@ export class ProgressService {
     @InjectRepository(Child)
     private readonly childRepository: Repository<Child>,
     private readonly dataSource: DataSource,
+    private readonly kitService: KitService,
   ) {}
 
   async saveScreen(
@@ -174,6 +176,10 @@ export class ProgressService {
               childModule.isCompleted = true;
               childModule.completedAt = new Date();
               await queryRunner.manager.save(childModule);
+
+              if (moduleNo === 1) {
+                await this.kitService.notifyModule1Completed(userId, child.name);
+              }
             }
           }
         }

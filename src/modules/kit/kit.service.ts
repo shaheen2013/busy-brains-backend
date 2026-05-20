@@ -17,6 +17,52 @@ export class KitService {
     private readonly configService: ConfigService<AppConfig>,
   ) {}
 
+  async notifyModule1Completed(
+    userId: string,
+    childName: string,
+  ): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      this.logger.warn(
+        `User ${userId} not found — skipping module 1 completion notification`,
+      );
+      return;
+    }
+
+    // TODO: send Kit email when template is ready
+    this.logger.log(
+      `[Kit] Module 1 completed — child: "${childName}", parent email: ${user.email}`,
+    );
+
+    const { apiKey } = this.configService.get("kit", {
+      infer: true,
+    });
+
+    if (!apiKey) {
+      this.logger.warn("KIT_API_KEY not configured — skipping");
+      return;
+    }
+
+    const sequenceId = 123456;
+    const response = await fetch(
+      `${KIT_API_BASE}/sequences/${sequenceId}/subscribe`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          api_secret: apiKey,
+          email: user.email,
+          child_name: childName,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`Kit API error (${response.status}): ${body}`);
+    }
+  }
+
   async subscribeToSequence(userId: string): Promise<void> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
