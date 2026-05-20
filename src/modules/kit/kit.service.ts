@@ -53,7 +53,7 @@ export class KitService {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           api_secret: apiKey,
-          email: "mdmarufbinsalim@gmail.com",
+          email: user.email,
           first_name: user.name,
 
           fields: {
@@ -97,7 +97,7 @@ export class KitService {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           api_secret: apiKey,
-          email: "mdmarufbinsalim@gmail.com",
+          email: user.email,
           first_name: user.name,
           fields: { otp },
         }),
@@ -144,7 +144,7 @@ export class KitService {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           api_secret: apiKey,
-          email: "mdmarufbinsalim@gmail.com",
+          email: user.email,
           first_name: user.name,
           fields: { otp, child_name: childName },
         }),
@@ -192,7 +192,7 @@ export class KitService {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           api_secret: apiKey,
-          email: "mdmarufbinsalim@gmail.com",
+          email: user.email,
           first_name: user.name,
         }),
       },

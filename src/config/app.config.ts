@@ -30,13 +30,6 @@ export interface AppConfig {
     secretAccessKey: string;
     bucket: string;
   };
-  email: {
-    host: string;
-    port: number;
-    user: string;
-    pass: string;
-    from: string;
-  };
   kit: {
     apiKey: string;
     purchaseCompletionSequenceId: string;
@@ -82,13 +75,6 @@ export default (): AppConfig => ({
     accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
     bucket: process.env.AWS_S3_BUCKET || "",
-  },
-  email: {
-    host: process.env.SMTP_HOST || "",
-    port: parseInt(process.env.SMTP_PORT || "587", 10),
-    user: process.env.SMTP_USER || "",
-    pass: process.env.SMTP_PASS || "",
-    from: process.env.SMTP_FROM || "",
   },
   kit: {
     apiKey: process.env.KIT_API_KEY || "",
