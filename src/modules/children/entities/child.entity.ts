@@ -40,8 +40,11 @@ export class Child {
   @Column({ type: "varchar", nullable: true, default: null })
   profileImage: string | null;
 
-  @Column({ type: "boolean", default: false })
-  useAvatar: boolean;
+  @Column({ type: "varchar", default: "image" })
+  avatar_type: "avatar" | "prebuilt" | "image";
+
+  @Column({ type: "varchar", nullable: true, default: null })
+  prebuilt_buddy: string | null;
 
   @CreateDateColumn()
   createdAt: Date;

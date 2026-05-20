@@ -268,7 +268,7 @@ export class ChildrenService {
 
     const { url } = await this.s3Service.upload(file, `children/${childId}`);
     child.profileImage = url;
-    child.useAvatar = false;
+    child.avatar_type = "image";
     return this.childRepository.save(child);
   }
 
