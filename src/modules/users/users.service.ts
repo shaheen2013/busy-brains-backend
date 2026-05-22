@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Logger,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
@@ -145,9 +146,10 @@ export class UsersService {
     }
 
     if (user.hasPassword && !updatePasswordDto.currentPassword) {
-      throw new BadRequestException(
-        "Current password is required to change your password",
-      );
+      throw new BadRequestException({
+        message: "Current password is required to change your password",
+        field: "currentPassword",
+      });
     }
 
     const secretKey = this.configService.get("clerk.secretKey", {
@@ -159,6 +161,27 @@ export class UsersService {
 
     const clerkClient = createClerkClient({ secretKey });
 
+    if (user.hasPassword && updatePasswordDto.currentPassword) {
+      try {
+        const { verified } = await clerkClient.users.verifyPassword({
+          userId,
+          password: updatePasswordDto.currentPassword,
+        });
+        if (!verified) {
+          throw new BadRequestException({
+            message: "Current password is incorrect",
+            field: "currentPassword",
+          });
+        }
+      } catch (error: any) {
+        if (error instanceof BadRequestException) throw error;
+        throw new BadRequestException({
+          message: "Current password is incorrect",
+          field: "currentPassword",
+        });
+      }
+    }
+
     try {
       await clerkClient.users.updateUser(userId, {
         password: updatePasswordDto.newPassword,
@@ -168,12 +191,11 @@ export class UsersService {
         await this.userRepository.update(userId, { hasPassword: true });
       }
     } catch (error: any) {
-      if (error?.errors?.[0]?.message?.includes("password")) {
-        throw new BadRequestException(
-          "Failed to update password. Please try again.",
-        );
-      }
-      throw error;
+      Logger.error(error);
+      throw new BadRequestException({
+        message: "Failed to update password. Please try again.",
+        field: "newPassword",
+      });
     }
   }
 
