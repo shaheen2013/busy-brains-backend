@@ -44,7 +44,7 @@ const moduleRegistry = {
       quests: {
         "1": { screens: 2 },
         "2": { screens: 3 },
-        "3": { screens: 0 },
+        "3": { screens: 4 },
         "4": { screens: 0 },
         "5": { screens: 0 },
         "6": { screens: 0 },
