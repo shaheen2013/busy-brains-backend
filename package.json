@@ -25,7 +25,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand"
+    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "test:e2e": "docker compose -f docker-compose.test.yml up -d --wait && jest --config test/jest-e2e.json --runInBand; docker compose -f docker-compose.test.yml down -v"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1038.0",
