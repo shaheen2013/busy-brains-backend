@@ -27,7 +27,8 @@ export class PaymentController {
 
   @Post("upgrade-plan")
   @ApiOperation({
-    summary: "Upgrade from Solo Explorer to Family Pack (charges $100 difference)",
+    summary:
+      "Upgrade from Solo Explorer to Family Pack (charges $100 difference)",
   })
   upgradePlan(@User() user: UserEntity) {
     return this.paymentService.upgradePlan(user);

@@ -178,7 +178,10 @@ export class ProgressService {
               await queryRunner.manager.save(childModule);
 
               if (moduleNo === 1) {
-                await this.kitService.notifyModule1Completed(userId, child.name);
+                await this.kitService.notifyModule1Completed(
+                  userId,
+                  child.name,
+                );
               }
             }
           }

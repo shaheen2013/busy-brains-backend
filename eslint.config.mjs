@@ -37,4 +37,11 @@ export default tseslint.config(
       "@typescript-eslint/no-unsafe-call": "off",
     },
   },
+  {
+    files: ['**/*.spec.ts'],
+    rules: {
+      '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+    },
+  },
 );

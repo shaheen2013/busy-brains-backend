@@ -8,7 +8,9 @@ import { User as UserEntity } from "../users/entities/user.entity";
 @ApiBearerAuth("Clerk-Bearer")
 @Controller("parent-resources")
 export class ParentResourcesController {
-  constructor(private readonly parentResourcesService: ParentResourcesService) {}
+  constructor(
+    private readonly parentResourcesService: ParentResourcesService,
+  ) {}
 
   @Get()
   @ApiOperation({

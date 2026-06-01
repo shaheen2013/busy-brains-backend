@@ -45,7 +45,7 @@ const moduleRegistry = {
         "1": { screens: 2 },
         "2": { screens: 3 },
         "3": { screens: 4 },
-        "4": { screens: 0 },
+        "4": { screens: 1 },
         "5": { screens: 0 },
         "6": { screens: 0 },
       },
