@@ -7,7 +7,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
     "start": "nest start",
     "dev": "NODE_OPTIONS=--dns-result-order=ipv4first nest start --watch",
     "start:debug": "NODE_OPTIONS=--dns-result-order=ipv4first nest start --debug --watch",
@@ -16,7 +16,12 @@
     "plans:seed": "TS_NODE_PROJECT=tsconfig.seed.json node --env-file=.env -r ts-node/register src/database/seeders/plans.seeder.ts",
     "fresh:seed": "TS_NODE_PROJECT=tsconfig.seed.json node --env-file=.env -r ts-node/register src/database/seeders/fresh-seed.ts",
     "plans:seed:prod": "node dist/database/seeders/plans.seeder.js",
-    "fresh:seed:prod": "node dist/database/seeders/fresh-seed.js"
+    "fresh:seed:prod": "node dist/database/seeders/fresh-seed.js",
+    "lint:fix": "eslint --fix",
+    "spell": "cspell \"**/*.{js,jsx,ts,tsx,md,json}\" --no-progress",
+    "security:secrets": "secretlint \"**/*\"",
+    "security": "npm audit --audit-level=moderate",
+    "prepare": "husky"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1038.0",
@@ -57,18 +62,24 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",
+    "@mediusware/mw-husky-config": "^0.0.2",
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.1",
+    "@secretlint/secretlint-rule-preset-recommend": "^13.0.2",
     "@types/express": "^5.0.0",
     "@types/multer": "^2.1.0",
     "@types/node": "^24.0.0",
     "@types/supertest": "^7.0.0",
+    "cspell": "^10.0.1",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
     "globals": "^17.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "prettier": "^3.4.2",
+    "secretlint": "^13.0.2",
     "source-map-support": "^0.5.21",
     "supertest": "^7.0.0",
     "ts-loader": "^9.5.2",
@@ -76,5 +87,16 @@
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "prettier --write",
+      "eslint --fix",
+      "cspell --no-must-find-files"
+    ],
+    "*.{json,css,md}": [
+      "prettier --write",
+      "cspell --no-must-find-files"
+    ]
   }
 }
