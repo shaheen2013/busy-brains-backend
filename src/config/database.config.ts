@@ -54,7 +54,7 @@ export class DatabaseConfigService implements TypeOrmOptionsFactory {
       ssl: false,
 
       extra: {
-        max: 3,
+        max: 10,
         keepAlive: true,
       },
     };
