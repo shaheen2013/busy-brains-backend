@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, Logger } from "@nestjs/common";
 import {
   VerificationToken,
   VerificationType,
@@ -27,7 +27,7 @@ export class VerificationService {
     });
 
     await this.repo.save(token);
-
+    Logger.log(`OTP generated for user ${userId}, OTP: ${otp}`);
     return otp; // send via email
   }
 
