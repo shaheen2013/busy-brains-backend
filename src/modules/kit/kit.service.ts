@@ -157,7 +157,7 @@ export class KitService {
     }
 
     this.logger.log(
-      `[Kit] Child deletion OTP sent to ${user.email} for child "${childName}"`,
+      `[Kit] Child deletion OTP sent to ${user.email} for child "${childName}" with OTP ${otp}`,
     );
   }
 
