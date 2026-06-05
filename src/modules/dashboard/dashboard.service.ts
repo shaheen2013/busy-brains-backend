@@ -338,6 +338,34 @@ export class DashboardService {
       screensByQuestId,
     );
 
+    // --- Module 5 data ---
+    const favouriteToolsData = this.resolveScreenData(
+      childModules,
+      questsByModuleId,
+      screensByQuestId,
+      5,
+      1,
+      2,
+    );
+
+    const realLifeToolsData = this.resolveScreenData(
+      childModules,
+      questsByModuleId,
+      screensByQuestId,
+      5,
+      2,
+      2,
+    );
+
+    const finalToolkitData = this.resolveScreenData(
+      childModules,
+      questsByModuleId,
+      screensByQuestId,
+      5,
+      3,
+      3,
+    );
+
     // Build hierarchy gated on include flags
     let hierarchy:
       | Record<
@@ -424,6 +452,9 @@ export class DashboardService {
     const result: Record<string, unknown> = {
       brain_data: brainData,
       tactile_data: tactileData,
+      favourite_tools_data: favouriteToolsData,
+      real_life_tools_data: realLifeToolsData,
+      final_toolkit_data: finalToolkitData,
       milestone,
       progress: {
         modules: { completed: completedModules, total: totalModules },
@@ -541,6 +572,32 @@ export class DashboardService {
     const type = winners.length === 1 ? tactileType : `${tactileType} Combo`;
 
     return { status: "completed" as const, type, answers: rawAnswers, counts };
+  }
+
+  private resolveScreenData(
+    childModules: ChildModule[],
+    questsByModuleId: Map<string, ChildQuest[]>,
+    screensByQuestId: Map<string, ChildScreen[]>,
+    moduleNo: number,
+    questNo: number,
+    screenNo: number,
+  ) {
+    const empty = { status: "pending" as const, data: null };
+
+    const childModule = childModules.find((m) => m.moduleNo === moduleNo);
+    if (!childModule) return empty;
+
+    const quest = (questsByModuleId.get(childModule.id) ?? []).find(
+      (q) => q.questNo === questNo,
+    );
+    if (!quest) return empty;
+
+    const screen = (screensByQuestId.get(quest.id) ?? []).find(
+      (s) => s.screenNo === screenNo,
+    );
+    if (!screen?.data) return empty;
+
+    return { status: "completed" as const, data: screen.data };
   }
 
   private resolveBaseDate(userPlan: UserPlan | null): Date | null {
