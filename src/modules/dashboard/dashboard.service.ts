@@ -363,7 +363,7 @@ export class DashboardService {
       screensByQuestId,
       5,
       3,
-      3,
+      2,
     );
 
     // Build hierarchy gated on include flags
