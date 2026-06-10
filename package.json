@@ -9,7 +9,7 @@
     "build": "nest build",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
     "start": "nest start",
-    "dev": "NODE_OPTIONS=--dns-result-order=ipv4first nest start --watch",
+    "dev": "NODE_OPTIONS='--dns-result-order=ipv4first -r dotenv/config' nest start --watch",
     "start:debug": "NODE_OPTIONS=--dns-result-order=ipv4first nest start --debug --watch",
     "start:prod": "NODE_OPTIONS=--dns-result-order=ipv4first node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
