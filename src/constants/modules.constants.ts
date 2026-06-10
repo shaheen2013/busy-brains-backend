@@ -23,7 +23,8 @@ const PRODUCTION = {
   6: 56,
 };
 
-const developmentMode = true;
+const developmentMode = process.env.NODE_ENV === "staging";
+console.log("developmentMode:", developmentMode);
 
 export const MODULE_UNLOCK_DAYS: Record<number, number> = developmentMode
   ? DEVELOPMENT
