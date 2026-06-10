@@ -152,8 +152,9 @@ export class ProgressService {
       // Save
       screen = await queryRunner.manager.save(screen);
 
-      // Cascade: check quest completion only when this screen is being completed
-      if (dto.isCompleted && !childQuest.isCompleted) {
+      // Cascade: re-evaluate quest completion on every save so registry changes
+      // (e.g. reduced screen count) are picked up without requiring a new completion event.
+      if (!childQuest.isCompleted) {
         const completedScreenCount = await queryRunner.manager.countBy(
           ChildScreen,
           { questId: childQuest.id, isCompleted: true },
