@@ -368,7 +368,7 @@ export class ModulesService {
           const prevQuest =
             questNo > 1 ? (questMap.get(questNo - 1) ?? null) : null;
           const questAccessible =
-            moduleStatus.unlocked &&
+            moduleStatus.accessible &&
             (questNo === 1 || (prevQuest?.isCompleted ?? false));
           const record = questMap.get(questNo) ?? null;
           quest_list.push({
@@ -411,7 +411,7 @@ export class ModulesService {
           const prevQuest =
             questNo > 1 ? (questMap.get(questNo - 1) ?? null) : null;
           const questAccessible =
-            moduleStatus.unlocked &&
+            moduleStatus.accessible &&
             (questNo === 1 || (prevQuest?.isCompleted ?? false));
           const childQuest = questMap.get(questNo) ?? null;
           const screens = childQuest
