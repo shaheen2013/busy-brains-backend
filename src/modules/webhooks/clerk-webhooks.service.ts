@@ -4,6 +4,7 @@ import { Repository } from "typeorm";
 import { ConfigService } from "@nestjs/config";
 import { User } from "../users/entities/user.entity";
 import { PaymentService } from "../payment/payment.service";
+import { KitService } from "../kit/kit.service";
 import { AppConfig } from "../../config/app.config";
 
 interface ClerkEmailAddress {
@@ -43,6 +44,7 @@ export class ClerkWebhooksService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private paymentService: PaymentService,
+    private kitService: KitService,
     private configService: ConfigService<AppConfig>,
   ) {}
 
@@ -52,6 +54,14 @@ export class ClerkWebhooksService {
 
     await this.userRepository.upsert(user, ["id"]);
     this.logger.log(`User upserted: ${event.data.id}`);
+
+    try {
+      await this.kitService.subscribeToSignupSequence(event.data.id);
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to subscribe user ${event.data.id} to Kit signup sequence: ${error.message}`,
+      );
+    }
 
     const startTrialOnSignup = this.configService.get(
       "features.startTrialOnSignup",

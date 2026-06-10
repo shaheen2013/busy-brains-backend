@@ -17,37 +17,28 @@ export class KitService {
     private readonly configService: ConfigService<AppConfig>,
   ) {}
 
-  async notifyModule1Completed(
-    userId: string,
-    childName: string,
-  ): Promise<void> {
+  async subscribeToSignupSequence(userId: string): Promise<void> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       this.logger.warn(
-        `User ${userId} not found — skipping module 1 completion notification`,
+        `User ${userId} not found — skipping signup Kit subscription`,
       );
       return;
     }
 
-    // TODO: send Kit email when template is ready
-    this.logger.log(
-      `[Kit] Module 1 completed — child: "${childName}", parent email: ${user.email}`,
-    );
+    const { apiKey, signupSequenceId } = this.configService.get("kit", {
+      infer: true,
+    });
 
-    const { apiKey, module1CompletionSequenceId } = this.configService.get(
-      "kit",
-      { infer: true },
-    );
-
-    if (!apiKey || !module1CompletionSequenceId) {
+    if (!apiKey || !signupSequenceId) {
       this.logger.warn(
-        "KIT_API_KEY or KIT_MODULE1_COMPLETION_SEQUENCE_ID not configured — skipping",
+        "KIT_API_KEY or KIT_SIGNUP_SEQUENCE_ID not configured — skipping",
       );
       return;
     }
 
     const response = await fetch(
-      `${KIT_API_BASE}/sequences/${module1CompletionSequenceId}/subscribe`,
+      `${KIT_API_BASE}/sequences/${signupSequenceId}/subscribe`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -55,10 +46,6 @@ export class KitService {
           api_secret: apiKey,
           email: user.email,
           first_name: user.name,
-
-          fields: {
-            child_name: childName,
-          },
         }),
       },
     );
@@ -67,6 +54,8 @@ export class KitService {
       const body = await response.text();
       throw new Error(`Kit API error (${response.status}): ${body}`);
     }
+
+    this.logger.log(`[Kit] Subscribed ${user.email} to signup sequence`);
   }
 
   async sendAccountDeletionOtp(userId: string, otp: string): Promise<void> {

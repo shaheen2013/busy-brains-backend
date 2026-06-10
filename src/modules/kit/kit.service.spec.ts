@@ -19,7 +19,7 @@ const KIT_API_BASE = "https://api.convertkit.com/v3";
 
 const MOCK_KIT_CONFIG = {
   apiKey: "test-api-key",
-  module1CompletionSequenceId: "seq-module1",
+  signupSequenceId: "seq-signup",
   accountDeletionOtpSequenceId: "seq-account-deletion",
   childDeletionOtpSequenceId: "seq-child-deletion",
   purchaseCompletionSequenceId: "seq-purchase",
@@ -66,13 +66,13 @@ describe("KitService", () => {
   });
 
   // ---------------------------------------------------------------------------
-  // notifyModule1Completed
+  // subscribeToSignupSequence
   // ---------------------------------------------------------------------------
-  describe("notifyModule1Completed", () => {
+  describe("subscribeToSignupSequence", () => {
     it("returns early when user not found", async () => {
       userRepository.findOne.mockResolvedValueOnce(null);
 
-      await service.notifyModule1Completed("missing-user", "Alice");
+      await service.subscribeToSignupSequence("missing-user");
 
       expect(mockFetch).not.toHaveBeenCalled();
     });
@@ -84,19 +84,19 @@ describe("KitService", () => {
         apiKey: "",
       });
 
-      await service.notifyModule1Completed("user-1", "Alice");
+      await service.subscribeToSignupSequence("user-1");
 
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
-    it("returns early when module1CompletionSequenceId is missing", async () => {
+    it("returns early when signupSequenceId is missing", async () => {
       userRepository.findOne.mockResolvedValueOnce(mockUser);
       mockConfigService.get.mockReturnValueOnce({
         ...MOCK_KIT_CONFIG,
-        module1CompletionSequenceId: "",
+        signupSequenceId: "",
       });
 
-      await service.notifyModule1Completed("user-1", "Alice");
+      await service.subscribeToSignupSequence("user-1");
 
       expect(mockFetch).not.toHaveBeenCalled();
     });
@@ -104,10 +104,10 @@ describe("KitService", () => {
     it("calls fetch with correct URL and body", async () => {
       userRepository.findOne.mockResolvedValueOnce(mockUser);
 
-      await service.notifyModule1Completed("user-1", "Alice");
+      await service.subscribeToSignupSequence("user-1");
 
       expect(mockFetch).toHaveBeenCalledWith(
-        `${KIT_API_BASE}/sequences/${MOCK_KIT_CONFIG.module1CompletionSequenceId}/subscribe`,
+        `${KIT_API_BASE}/sequences/${MOCK_KIT_CONFIG.signupSequenceId}/subscribe`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -115,7 +115,6 @@ describe("KitService", () => {
             api_secret: MOCK_KIT_CONFIG.apiKey,
             email: mockUser.email,
             first_name: mockUser.name,
-            fields: { child_name: "Alice" },
           }),
         },
       );
@@ -130,7 +129,7 @@ describe("KitService", () => {
       });
 
       await expect(
-        service.notifyModule1Completed("user-1", "Alice"),
+        service.subscribeToSignupSequence("user-1"),
       ).rejects.toThrow("Kit API error (422): Unprocessable Entity");
     });
   });

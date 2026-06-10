@@ -7,6 +7,7 @@ import { AppConfig } from "../../config/app.config";
 import { Public } from "./decorators/public.decorator";
 import { UsersService } from "../users/users.service";
 import { PaymentService } from "../payment/payment.service";
+import { KitService } from "../kit/kit.service";
 
 @Controller("auth/google")
 export class GoogleAuthController {
@@ -20,6 +21,7 @@ export class GoogleAuthController {
     private configService: ConfigService<AppConfig>,
     private usersService: UsersService,
     private paymentService: PaymentService,
+    private kitService: KitService,
   ) {
     const clientId = this.configService.get("google.clientId", { infer: true });
     const clientSecret = this.configService.get("google.clientSecret", {
@@ -128,6 +130,13 @@ export class GoogleAuthController {
               `Failed to start trial for ${clerkUserId}: ${trialErr.message}`,
             );
           }
+        }
+        try {
+          await this.kitService.subscribeToSignupSequence(dbUser.id);
+        } catch (kitErr: any) {
+          this.logger.error(
+            `Failed to subscribe ${clerkUserId} to Kit signup sequence: ${kitErr.message}`,
+          );
         }
       }
 

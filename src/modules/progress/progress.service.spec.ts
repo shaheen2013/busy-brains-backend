@@ -7,7 +7,6 @@ import { Child } from "../children/entities/child.entity";
 import { ChildModule } from "../children/entities/child-module.entity";
 import { ChildQuest } from "../children/entities/child-quest.entity";
 import { ChildScreen } from "../children/entities/child-screen.entity";
-import { KitService } from "../kit/kit.service";
 
 jest.mock("../../constants/module-registry", () => ({
   moduleRegistry: {
@@ -101,7 +100,6 @@ describe("ProgressService", () => {
     getRepository: jest.Mock;
   };
 
-  let mockKitService: { notifyModule1Completed: jest.Mock };
 
   const userId = "user-uuid-1";
   const childId = "child-uuid-1";
@@ -178,9 +176,6 @@ describe("ProgressService", () => {
     };
 
     mockChildRepository = { findOneBy: jest.fn() };
-    mockKitService = {
-      notifyModule1Completed: jest.fn().mockResolvedValue(undefined),
-    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -192,10 +187,6 @@ describe("ProgressService", () => {
         {
           provide: DataSource,
           useValue: mockDataSource,
-        },
-        {
-          provide: KitService,
-          useValue: mockKitService,
         },
       ],
     }).compile();
@@ -486,63 +477,6 @@ describe("ProgressService", () => {
           call[0]?.questNo === 1 && call[0]?.moduleId !== undefined,
       );
       expect(questSave).toBeDefined();
-    });
-
-    it("calls kitService.notifyModule1Completed when module 1 is fully completed", async () => {
-      mockChildRepository.findOneBy.mockResolvedValue(mockChild);
-
-      const childModule = makeChildModule(1, false);
-      const childQuest = makeChildQuest(1, childModule.id, false);
-      const existingScreen = makeChildScreen(1, childQuest.id, false);
-
-      mockQueryRunnerManager.findOne
-        .mockResolvedValueOnce(childModule)
-        .mockResolvedValueOnce(childQuest)
-        .mockResolvedValueOnce(existingScreen);
-
-      mockQueryRunnerManager.save.mockResolvedValue({
-        ...existingScreen,
-        isCompleted: true,
-      });
-
-      mockQueryRunnerManager.countBy
-        .mockResolvedValueOnce(1) // completedScreenCount
-        .mockResolvedValueOnce(7); // completedQuestCount >= 7 (all quests)
-
-      await service.saveScreen(userId, childId, 1, 1, 1, { isCompleted: true });
-
-      expect(mockKitService.notifyModule1Completed).toHaveBeenCalledWith(
-        userId,
-        mockChild.name,
-      );
-    });
-
-    it("does NOT call kitService.notifyModule1Completed when moduleNo is not 1", async () => {
-      mockChildRepository.findOneBy.mockResolvedValue(mockChild);
-
-      // For module 2, need prev module completed
-      const prevModule = makeChildModule(1, true);
-      const childModule = makeChildModule(2, false);
-      const childQuest = makeChildQuest(1, childModule.id, false);
-      const existingScreen = makeChildScreen(1, childQuest.id, false);
-
-      mockQueryRunnerManager.findOne
-        .mockResolvedValueOnce(prevModule) // prevModule check
-        .mockResolvedValueOnce(childModule) // find existing ChildModule
-        .mockResolvedValueOnce(childQuest) // find existing ChildQuest
-        .mockResolvedValueOnce(existingScreen);
-
-      mockQueryRunnerManager.save.mockResolvedValue({
-        ...existingScreen,
-        isCompleted: true,
-      });
-
-      // module 2 quest 1 has 2 screens; only 1 completed → quest not completed
-      mockQueryRunnerManager.countBy.mockResolvedValue(1);
-
-      await service.saveScreen(userId, childId, 2, 1, 1, { isCompleted: true });
-
-      expect(mockKitService.notifyModule1Completed).not.toHaveBeenCalled();
     });
 
     it("rolls back transaction on error and rethrows", async () => {

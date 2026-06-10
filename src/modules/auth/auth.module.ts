@@ -4,9 +4,10 @@ import { ClerkGuard } from "./guards/clerk.guard";
 import { GoogleAuthController } from "./google-auth.controller";
 import { UsersModule } from "../users/users.module";
 import { PaymentModule } from "../payment/payment.module";
+import { KitModule } from "../kit/kit.module";
 
 @Module({
-  imports: [UsersModule, PaymentModule],
+  imports: [UsersModule, PaymentModule, KitModule],
   controllers: [GoogleAuthController],
   providers: [AuthService, ClerkGuard],
   exports: [AuthService, ClerkGuard],

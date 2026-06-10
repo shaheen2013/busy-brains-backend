@@ -33,7 +33,7 @@ export interface AppConfig {
   kit: {
     apiKey: string;
     purchaseCompletionSequenceId: string;
-    module1CompletionSequenceId: string;
+    signupSequenceId: string;
     accountDeletionOtpSequenceId: string;
     childDeletionOtpSequenceId: string;
   };
@@ -80,8 +80,7 @@ export default (): AppConfig => ({
     apiKey: process.env.KIT_API_KEY || "",
     purchaseCompletionSequenceId:
       process.env.KIT_PURCHASE_COMPLETION_SEQUENCE_ID || "",
-    module1CompletionSequenceId:
-      process.env.KIT_MODULE1_COMPLETION_SEQUENCE_ID || "",
+    signupSequenceId: process.env.KIT_SIGNUP_SEQUENCE_ID || "",
     accountDeletionOtpSequenceId:
       process.env.KIT_ACCOUNT_DELETION_OTP_SEQUENCE_ID || "",
     childDeletionOtpSequenceId:
