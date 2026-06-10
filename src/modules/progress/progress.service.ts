@@ -164,27 +164,28 @@ export class ProgressService {
           childQuest.isCompleted = true;
           childQuest.completedAt = new Date();
           await queryRunner.manager.save(childQuest);
+        }
+      }
 
-          // Cascade: check module completion
-          if (!childModule.isCompleted) {
-            const totalQuests = Object.keys(moduleData.quests).length;
-            const completedQuestCount = await queryRunner.manager.countBy(
-              ChildQuest,
-              { moduleId: childModule.id, isCompleted: true },
+      // Cascade: re-evaluate module completion whenever quest is complete but module isn't.
+      // Decoupled from quest cascade so a resubmit can heal a stale module state.
+      if (childQuest.isCompleted && !childModule.isCompleted) {
+        const totalQuests = Object.keys(moduleData.quests).length;
+        const completedQuestCount = await queryRunner.manager.countBy(
+          ChildQuest,
+          { moduleId: childModule.id, isCompleted: true },
+        );
+
+        if (completedQuestCount >= totalQuests) {
+          childModule.isCompleted = true;
+          childModule.completedAt = new Date();
+          await queryRunner.manager.save(childModule);
+
+          if (moduleNo === 1) {
+            await this.kitService.notifyModule1Completed(
+              userId,
+              child.name,
             );
-
-            if (completedQuestCount >= totalQuests) {
-              childModule.isCompleted = true;
-              childModule.completedAt = new Date();
-              await queryRunner.manager.save(childModule);
-
-              if (moduleNo === 1) {
-                await this.kitService.notifyModule1Completed(
-                  userId,
-                  child.name,
-                );
-              }
-            }
           }
         }
       }
