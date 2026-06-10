@@ -29,3 +29,10 @@ console.log("developmentMode:", developmentMode);
 export const MODULE_UNLOCK_DAYS: Record<number, number> = developmentMode
   ? DEVELOPMENT
   : PRODUCTION;
+
+// Users in this set bypass payment and time-based module gates.
+// Sequential completion (previous screen/module must be done) still applies.
+export const FREE_ACCESS_EMAILS = new Set([
+  "shaheenmediusware@gmail.com",
+  "mdmarufbinsalimbhuiyan@gmail.com",
+]);

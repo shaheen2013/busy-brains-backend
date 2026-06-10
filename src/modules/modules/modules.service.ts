@@ -11,6 +11,7 @@ import { ChildModule } from "../children/entities/child-module.entity";
 import { ChildQuest } from "../children/entities/child-quest.entity";
 import { ChildScreen } from "../children/entities/child-screen.entity";
 import {
+  FREE_ACCESS_EMAILS,
   MAX_MODULES,
   MODULE_UNLOCK_DAYS,
 } from "../../constants/modules.constants";
@@ -59,6 +60,7 @@ export class ModulesService {
 
   async getAccessStatus(
     userId: string,
+    userEmail: string,
     childId: string,
     moduleNo?: number,
     questNo?: number,
@@ -83,7 +85,9 @@ export class ModulesService {
       where: { userId, isActive: true },
     });
 
-    const baseDate = this.resolveBaseDate(userPlan ?? null);
+    const baseDate = FREE_ACCESS_EMAILS.has(userEmail)
+      ? new Date(Date.now() - 100 * 24 * 60 * 60 * 1000)
+      : this.resolveBaseDate(userPlan ?? null);
 
     if (moduleNo !== undefined) {
       const prevChildModule =
@@ -254,7 +258,12 @@ export class ModulesService {
     return { unlocked, accessible, unlockDate };
   }
 
-  async getAccessList(userId: string, childId: string, include: string[]) {
+  async getAccessList(
+    userId: string,
+    userEmail: string,
+    childId: string,
+    include: string[],
+  ) {
     const child = await this.childRepository.findOne({
       where: { id: childId, userId },
     });
@@ -266,7 +275,9 @@ export class ModulesService {
     const userPlan = await this.userPlanRepository.findOne({
       where: { userId, isActive: true },
     });
-    const baseDate = this.resolveBaseDate(userPlan ?? null);
+    const baseDate = FREE_ACCESS_EMAILS.has(userEmail)
+      ? new Date(Date.now() - 100 * 24 * 60 * 60 * 1000)
+      : this.resolveBaseDate(userPlan ?? null);
 
     const childModules = await this.childModuleRepository.find({
       where: { childId: childId },

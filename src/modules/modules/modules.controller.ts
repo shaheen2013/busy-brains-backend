@@ -28,7 +28,12 @@ export class ModulesController {
     @Query("include", new ParseArrayPipe({ optional: true, separator: "," }))
     include: string[] = [],
   ) {
-    return this.modulesService.getAccessList(user.id, childId, include);
+    return this.modulesService.getAccessList(
+      user.id,
+      user.email,
+      childId,
+      include,
+    );
   }
 
   @Get("get-access-status")
@@ -91,6 +96,7 @@ export class ModulesController {
   ) {
     return this.modulesService.getAccessStatus(
       user.id,
+      user.email,
       query.childId,
       query.module,
       query.quest,

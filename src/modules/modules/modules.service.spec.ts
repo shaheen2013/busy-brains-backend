@@ -78,6 +78,7 @@ jest.mock("../../constants/module-registry", () => ({
 jest.mock("../../constants/modules.constants", () => ({
   MAX_MODULES: 6,
   MODULE_UNLOCK_DAYS: { 1: 0, 2: 0, 3: 14, 4: 28, 5: 42, 6: 56 },
+  FREE_ACCESS_EMAILS: new Set(),
 }));
 
 const createMockRepository = () => ({
@@ -103,6 +104,7 @@ describe("ModulesService", () => {
   let childScreenRepo: ReturnType<typeof createMockRepository>;
 
   const userId = "user-uuid-1";
+  const userEmail = "test@example.com";
   const childId = "child-uuid-1";
 
   const mockChild = {
@@ -144,28 +146,42 @@ describe("ModulesService", () => {
   describe("getAccessStatus — validation", () => {
     it("throws BadRequestException when screen is given without module", async () => {
       await expect(
-        service.getAccessStatus(userId, childId, undefined, undefined, 1),
+        service.getAccessStatus(
+          userId,
+          userEmail,
+          childId,
+          undefined,
+          undefined,
+          1,
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 
     it("throws BadRequestException when screen is given without quest", async () => {
       await expect(
-        service.getAccessStatus(userId, childId, 1, undefined, 2),
+        service.getAccessStatus(userId, userEmail, childId, 1, undefined, 2),
       ).rejects.toThrow(BadRequestException);
     });
 
     it("throws BadRequestException when quest is given without module", async () => {
       await expect(
-        service.getAccessStatus(userId, childId, undefined, 1, undefined),
+        service.getAccessStatus(
+          userId,
+          userEmail,
+          childId,
+          undefined,
+          1,
+          undefined,
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 
     it("throws ForbiddenException when child is not found", async () => {
       childRepo.findOne.mockResolvedValue(null);
 
-      await expect(service.getAccessStatus(userId, childId, 1)).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        service.getAccessStatus(userId, userEmail, childId, 1),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
@@ -180,7 +196,12 @@ describe("ModulesService", () => {
     });
 
     it("returns module_1 as unlocked and accessible regardless of baseDate", async () => {
-      const result = await service.getAccessStatus(userId, childId, 1);
+      const result = await service.getAccessStatus(
+        userId,
+        userEmail,
+        childId,
+        1,
+      );
 
       expect(result).toMatchObject({
         module_1: {
@@ -192,7 +213,12 @@ describe("ModulesService", () => {
     });
 
     it("returns module_1 as not completed when no ChildModule record exists", async () => {
-      const result = (await service.getAccessStatus(userId, childId, 1)) as any;
+      const result = (await service.getAccessStatus(
+        userId,
+        userEmail,
+        childId,
+        1,
+      )) as any;
       expect(result.module_1.isCompleted).toBe(false);
     });
 
@@ -204,7 +230,12 @@ describe("ModulesService", () => {
         completedAt: new Date(),
       });
 
-      const result = (await service.getAccessStatus(userId, childId, 1)) as any;
+      const result = (await service.getAccessStatus(
+        userId,
+        userEmail,
+        childId,
+        1,
+      )) as any;
       expect(result.module_1.isCompleted).toBe(true);
       expect(result.module_1.status).toBe("completed");
     });
@@ -218,7 +249,12 @@ describe("ModulesService", () => {
       childRepo.findOne.mockResolvedValue(mockChild);
       userPlanRepo.findOne.mockResolvedValue(null);
 
-      const result = (await service.getAccessStatus(userId, childId, 2)) as any;
+      const result = (await service.getAccessStatus(
+        userId,
+        userEmail,
+        childId,
+        2,
+      )) as any;
 
       expect(result.module_2.unlocked).toBe(false);
       expect(result.module_2.accessible).toBe(false);
@@ -241,7 +277,12 @@ describe("ModulesService", () => {
         isCompleted: false,
       });
 
-      const result = (await service.getAccessStatus(userId, childId, 2)) as any;
+      const result = (await service.getAccessStatus(
+        userId,
+        userEmail,
+        childId,
+        2,
+      )) as any;
 
       expect(result.module_2.unlocked).toBe(true);
       expect(result.module_2.accessible).toBe(false);
@@ -261,7 +302,12 @@ describe("ModulesService", () => {
         .mockResolvedValueOnce({ id: "cm-1", moduleNo: 1, isCompleted: true }) // prev module lookup
         .mockResolvedValueOnce(null); // current module lookup
 
-      const result = (await service.getAccessStatus(userId, childId, 2)) as any;
+      const result = (await service.getAccessStatus(
+        userId,
+        userEmail,
+        childId,
+        2,
+      )) as any;
 
       expect(result.module_2.unlocked).toBe(true);
       expect(result.module_2.accessible).toBe(true);
@@ -277,7 +323,11 @@ describe("ModulesService", () => {
       userPlanRepo.findOne.mockResolvedValue(null);
       childModuleRepo.find.mockResolvedValue([]);
 
-      const result = (await service.getAccessStatus(userId, childId)) as any;
+      const result = (await service.getAccessStatus(
+        userId,
+        userEmail,
+        childId,
+      )) as any;
 
       expect(Object.keys(result)).toHaveLength(6);
       for (let i = 1; i <= 6; i++) {
@@ -290,7 +340,11 @@ describe("ModulesService", () => {
       userPlanRepo.findOne.mockResolvedValue(null);
       childModuleRepo.find.mockResolvedValue([]);
 
-      const result = (await service.getAccessStatus(userId, childId)) as any;
+      const result = (await service.getAccessStatus(
+        userId,
+        userEmail,
+        childId,
+      )) as any;
 
       expect(result.module_1.unlocked).toBe(true);
       expect(result.module_1.accessible).toBe(true);
@@ -301,7 +355,11 @@ describe("ModulesService", () => {
       userPlanRepo.findOne.mockResolvedValue(null);
       childModuleRepo.find.mockResolvedValue([]);
 
-      const result = (await service.getAccessStatus(userId, childId)) as any;
+      const result = (await service.getAccessStatus(
+        userId,
+        userEmail,
+        childId,
+      )) as any;
 
       for (let i = 2; i <= 6; i++) {
         expect(result[`module_${i}`].unlocked).toBe(false);
@@ -326,6 +384,7 @@ describe("ModulesService", () => {
 
       const result = (await service.getAccessStatus(
         userId,
+        userEmail,
         childId,
         1,
         1,
@@ -349,6 +408,7 @@ describe("ModulesService", () => {
 
       const result = (await service.getAccessStatus(
         userId,
+        userEmail,
         childId,
         1,
         2,
@@ -381,6 +441,7 @@ describe("ModulesService", () => {
 
       const result = (await service.getAccessStatus(
         userId,
+        userEmail,
         childId,
         1,
         1,
@@ -401,9 +462,9 @@ describe("ModulesService", () => {
     it("throws ForbiddenException when child is not found", async () => {
       childRepo.findOne.mockResolvedValue(null);
 
-      await expect(service.getAccessList(userId, childId, [])).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        service.getAccessList(userId, userEmail, childId, []),
+      ).rejects.toThrow(ForbiddenException);
     });
 
     it("returns only module_list when include is empty", async () => {
@@ -411,7 +472,12 @@ describe("ModulesService", () => {
       userPlanRepo.findOne.mockResolvedValue(null);
       childModuleRepo.find.mockResolvedValue([]);
 
-      const result = await service.getAccessList(userId, childId, []);
+      const result = await service.getAccessList(
+        userId,
+        userEmail,
+        childId,
+        [],
+      );
 
       expect(result).toHaveProperty("module_list");
       expect(result).not.toHaveProperty("quest_list");
@@ -424,7 +490,12 @@ describe("ModulesService", () => {
       userPlanRepo.findOne.mockResolvedValue(null);
       childModuleRepo.find.mockResolvedValue([]);
 
-      const result = await service.getAccessList(userId, childId, []);
+      const result = await service.getAccessList(
+        userId,
+        userEmail,
+        childId,
+        [],
+      );
       const list = result.module_list as any[];
 
       expect(list[0]).toMatchObject({
@@ -442,7 +513,9 @@ describe("ModulesService", () => {
       childModuleRepo.find.mockResolvedValue([]);
       childQuestRepo.find.mockResolvedValue([]);
 
-      const result = await service.getAccessList(userId, childId, ["quest"]);
+      const result = await service.getAccessList(userId, userEmail, childId, [
+        "quest",
+      ]);
 
       expect(result).toHaveProperty("module_list");
       expect(result).toHaveProperty("quest_list");
@@ -455,7 +528,9 @@ describe("ModulesService", () => {
       childModuleRepo.find.mockResolvedValue([]);
       childQuestRepo.find.mockResolvedValue([]);
 
-      const result = await service.getAccessList(userId, childId, ["quest"]);
+      const result = await service.getAccessList(userId, userEmail, childId, [
+        "quest",
+      ]);
       const questList = result.quest_list as any[];
 
       // Module 1 has quests 1-7 per our mock
@@ -470,7 +545,7 @@ describe("ModulesService", () => {
       childQuestRepo.find.mockResolvedValue([]);
       childScreenRepo.find.mockResolvedValue([]);
 
-      const result = await service.getAccessList(userId, childId, [
+      const result = await service.getAccessList(userId, userEmail, childId, [
         "quest",
         "screen",
       ]);
@@ -489,7 +564,12 @@ describe("ModulesService", () => {
         { id: "cm-1", moduleNo: 1, isCompleted: true, completedAt },
       ]);
 
-      const result = await service.getAccessList(userId, childId, []);
+      const result = await service.getAccessList(
+        userId,
+        userEmail,
+        childId,
+        [],
+      );
       const list = result.module_list as any[];
       const module1 = list.find((m: any) => m.module === 1);
 
@@ -503,7 +583,7 @@ describe("ModulesService", () => {
       userPlanRepo.findOne.mockResolvedValue(null);
       childModuleRepo.find.mockResolvedValue([]);
 
-      await service.getAccessList(userId, childId, []);
+      await service.getAccessList(userId, userEmail, childId, []);
 
       expect(childQuestRepo.find).not.toHaveBeenCalled();
       expect(childScreenRepo.find).not.toHaveBeenCalled();
