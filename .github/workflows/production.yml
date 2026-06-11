@@ -1,0 +1,76 @@
+# =============================================================================
+# BusyBrain Frontend — Production Deployment Pipeline
+# =============================================================================
+#
+# Trigger  : Push to the `main` branch
+# Target   : Remote server via SSH
+# Strategy : Pull latest code → write env → clean build → PM2 restart
+#
+# Required GitHub Secrets:
+#   NEXT_PUBLIC_META_PIXEL_ID                          — Meta Pixel ID
+#   REMOTE_HOST                                        — Server public IP or hostname
+#   REMOTE_USERNAME                                    — SSH login user
+#   REMOTE_SSH_PRIVATE_KEY                             — Private SSH key (contents of .pem file)
+#   NEXT_PUBLIC_KIT_API_KEY                            — Kit API key
+#   NEXT_PUBLIC_KIT_FORM_ID                            — Kit form ID
+#   NEXT_PUBLIC_KIT_EMAIL_QUIZ_URL                     — Kit email quiz URL
+#   NEXT_PUBLIC_ASSET_URL                              — Asset base URL
+#   NEXT_PUBLIC_PRODUCTION_API_URL                     — API base URL
+#   NEXT_PUBLIC_PRODUCTION_CLERK_PUBLISHABLE_KEY       — Clerk publishable key (production)
+#   NEXT_PUBLIC_PRODUCTION_CLERK_SECRET_KEY            — Clerk secret key (production)
+#   NEXT_PUBLIC_PRODUCTION_CLERK_SIGN_IN_URL           — Clerk sign-in URL (production)
+#   NEXT_PUBLIC_PRODUCTION_CLERK_SIGN_IN_FORCE_REDIRECT_URL — Clerk sign-in redirect URL (production)
+#   NEXT_PUBLIC_PRODUCTION_CLERK_SIGN_UP_URL           — Clerk sign-up URL (production)
+#
+# =============================================================================
+
+name: Deploy BusyBrain to Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # -------------------------------------------------------------------------
+      # 1. Check out the latest code from the main branch
+      # -------------------------------------------------------------------------
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # -------------------------------------------------------------------------
+      # 2. SSH into server — pull code, write env, build, and restart PM2
+      # -------------------------------------------------------------------------
+      - name: SSH Deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USERNAME }}
+          key: ${{ secrets.REMOTE_SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/busy-brains-frontend-production
+            git reset --hard
+            git pull origin production
+
+            cat > .env.local << 'ENVEOF'
+            NEXT_PUBLIC_META_PIXEL_ID=${{ secrets.NEXT_PUBLIC_META_PIXEL_ID }}
+            NEXT_PUBLIC_KIT_API_KEY=${{ secrets.NEXT_PUBLIC_KIT_API_KEY }}
+            NEXT_PUBLIC_KIT_FORM_ID=${{ secrets.NEXT_PUBLIC_KIT_FORM_ID }}
+            NEXT_PUBLIC_KIT_EMAIL_QUIZ_URL=${{ secrets.NEXT_PUBLIC_KIT_EMAIL_QUIZ_URL }}
+            NEXT_PUBLIC_ASSET_URL=${{ secrets.NEXT_PUBLIC_ASSET_URL }}
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_PRODUCTION_API_URL }}
+            NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_PRODUCTION_CLERK_PUBLISHABLE_KEY }}
+            CLERK_SECRET_KEY=${{ secrets.NEXT_PUBLIC_PRODUCTION_CLERK_SECRET_KEY }}
+            NEXT_PUBLIC_CLERK_SIGN_IN_URL=${{ secrets.NEXT_PUBLIC_PRODUCTION_CLERK_SIGN_IN_URL }}
+            NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=${{ secrets.NEXT_PUBLIC_PRODUCTION_CLERK_SIGN_IN_FORCE_REDIRECT_URL }}
+            NEXT_PUBLIC_CLERK_SIGN_UP_URL=${{ secrets.NEXT_PUBLIC_PRODUCTION_CLERK_SIGN_UP_URL }}
+            ENVEOF
+
+            sudo rm -rf node_modules .next
+            pnpm install
+            pnpm run build
+            pm2 restart production
