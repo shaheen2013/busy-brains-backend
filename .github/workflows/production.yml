@@ -1,0 +1,52 @@
+# =============================================================================
+# BusyBrain Backend — Production Deployment Pipeline
+# =============================================================================
+#
+# Trigger  : Push to the `main` branch
+# Target   : Remote server via SSH
+# Strategy : Pull latest code → Docker rebuild → compose up
+#
+# Required GitHub Secrets:
+#   REMOTE_HOST                              — Server public IP or hostname
+#   REMOTE_USERNAME                          — SSH login user
+#   REMOTE_SSH_PRIVATE_KEY                   — Private SSH key (contents of .pem file)
+#
+# Server prerequisites:
+#   - Repo cloned at /var/www/busy-brains-backend-production
+#   - `.env` created manually on the server (gitignored, not overwritten by deploy)
+#   - Docker and Docker Compose installed
+#
+# =============================================================================
+
+name: Deploy BusyBrain Backend to Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # -------------------------------------------------------------------------
+      # 1. Check out the latest code from the main branch
+      # -------------------------------------------------------------------------
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # -------------------------------------------------------------------------
+      # 2. SSH into server — pull code, rebuild, and restart containers
+      # -------------------------------------------------------------------------
+      - name: SSH Deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USERNAME }}
+          key: ${{ secrets.REMOTE_SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/busy-brains-backend-production
+            git reset --hard
+            git pull origin main
+            docker compose -p busy-brains-backend-production up -d --build
