@@ -42,8 +42,8 @@ export class PaymentHistory {
   @Column({ type: "varchar", nullable: true })
   currency: string | null;
 
-  @Column({ type: "varchar", unique: true })
-  stripePaymentIntentId: string;
+  @Column({ type: "varchar", unique: true, nullable: true })
+  stripePaymentIntentId: string | null;
 
   @Column({ type: "varchar", nullable: true })
   stripeCheckoutSessionId: string | null;
