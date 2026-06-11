@@ -49,4 +49,4 @@ jobs:
             cd /var/www/busy-brains-backend-production
             git reset --hard
             git pull origin main
-            docker compose -p busy-brains-backend-production up -d --build
+            docker compose -p busy-brains-backend up -d --build
