@@ -241,7 +241,11 @@ export class PaymentService {
     });
     if (!plan) return;
 
-    if (!session.payment_intent) {
+    // 100% discount promo codes result in amount_total=0 and no payment_intent.
+    // Still a valid purchase — activate the plan but skip payment history.
+    const isFreeCheckout = !session.payment_intent && session.amount_total === 0;
+
+    if (!session.payment_intent && !isFreeCheckout) {
       Logger.warn(
         `checkout.session.completed missing payment_intent: ${session.id}`,
       );
@@ -271,6 +275,8 @@ export class PaymentService {
     }
 
     const savedPlan = await this.userPlanRepository.save(userPlan);
+
+    if (isFreeCheckout) return;
 
     // Fill in the partial record created by payment_intent event, or create fresh
     const existing = await this.paymentHistoryRepository.findOne({
