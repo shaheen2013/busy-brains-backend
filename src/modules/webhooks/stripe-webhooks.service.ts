@@ -34,6 +34,7 @@ export class StripeWebhooksService {
       payment_intent: session.payment_intent,
       amount_total: session.amount_total,
       currency: session.currency,
+      promotionCodeId: session.discounts?.[0]?.promotion_code ?? null,
     });
 
     this.logger.log(

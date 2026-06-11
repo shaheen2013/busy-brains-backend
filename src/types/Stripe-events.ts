@@ -17,6 +17,10 @@ export type CheckoutSessionCompletedEvent = Event & {
         planName: PlanName;
         isUpgrade?: string;
       };
+      discounts: Array<{
+        coupon: string | null;
+        promotion_code: string | null;
+      }> | null;
     };
   };
 };

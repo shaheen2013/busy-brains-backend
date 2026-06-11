@@ -234,6 +234,7 @@ export class PaymentService {
       payment_intent: string | null;
       amount_total: number | null;
       currency: string | null;
+      promotionCodeId?: string | null;
     },
   ): Promise<void> {
     const plan = await this.planRepository.findOne({
@@ -276,6 +277,19 @@ export class PaymentService {
 
     const savedPlan = await this.userPlanRepository.save(userPlan);
 
+    // Resolve human-readable promo code from Stripe if a promotion code ID is present
+    let promoCode: string | null = null;
+    if (session.promotionCodeId) {
+      try {
+        const pc = await this.stripe.promotionCodes.retrieve(
+          session.promotionCodeId,
+        );
+        promoCode = pc.code;
+      } catch {
+        Logger.warn(`Could not retrieve promo code: ${session.promotionCodeId}`);
+      }
+    }
+
     // Fill in the partial record created by payment_intent event, or create fresh.
     // For free checkouts (100% promo) there is no payment_intent so skip the lookup.
     const existing = isFreeCheckout
@@ -291,6 +305,7 @@ export class PaymentService {
       existing.amount = session.amount_total ?? existing.amount;
       existing.currency = session.currency ?? existing.currency;
       existing.stripeCheckoutSessionId = session.id;
+      existing.promoCode = promoCode;
       await this.paymentHistoryRepository.save(existing);
     } else {
       await this.paymentHistoryRepository.save(
@@ -303,6 +318,7 @@ export class PaymentService {
           stripePaymentIntentId: session.payment_intent,
           stripeCheckoutSessionId: session.id,
           status: "processing",
+          promoCode,
         }),
       );
     }
