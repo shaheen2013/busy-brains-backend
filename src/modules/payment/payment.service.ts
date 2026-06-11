@@ -276,12 +276,13 @@ export class PaymentService {
 
     const savedPlan = await this.userPlanRepository.save(userPlan);
 
-    if (isFreeCheckout) return;
-
-    // Fill in the partial record created by payment_intent event, or create fresh
-    const existing = await this.paymentHistoryRepository.findOne({
-      where: { stripePaymentIntentId: session.payment_intent },
-    });
+    // Fill in the partial record created by payment_intent event, or create fresh.
+    // For free checkouts (100% promo) there is no payment_intent so skip the lookup.
+    const existing = isFreeCheckout
+      ? null
+      : await this.paymentHistoryRepository.findOne({
+          where: { stripePaymentIntentId: session.payment_intent },
+        });
 
     if (existing) {
       existing.userId = userId;
