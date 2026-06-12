@@ -35,4 +35,5 @@ export const MODULE_UNLOCK_DAYS: Record<number, number> = developmentMode
 export const FREE_ACCESS_EMAILS = new Set([
   "shaheenmediusware@gmail.com",
   "mdmarufbinsalimbhuiyan@gmail.com",
+  "aileenk00@gmail.com",
 ]);
