@@ -12,7 +12,7 @@ export class CreateChildDto {
   @Max(18)
   age: number;
 
-  @ApiProperty({ enum: ["male", "female"] })
-  @IsIn(["male", "female"])
+  @ApiProperty({ enum: ["male", "female", "nonBinary", "preferNotToSay"] })
+  @IsIn(["male", "female", "nonBinary", "preferNotToSay"])
   gender: string;
 }
