@@ -494,7 +494,7 @@ export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
     </div>
 
     <!-- Page footer -->
-    <div class="flex justify-between items-center mt-3.5 pt-3 border-t border-dashed border-[#e5e7eb] text-[8.5px] text-bb-slate-ghost">
+    <div class="flex justify-between items-center mt-10 pt-3 border-t border-dashed border-[#6CC5C640] text-[8.5px] text-bb-slate-ghost">
       <span>busy-brains.com.au &middot; Busy Brains Child's Workbook &middot; My Personal Guide</span>
       <span class="inline-flex gap-1">
         <i class="w-1.5 h-1.5 rounded-full inline-block bg-red-400"></i>
