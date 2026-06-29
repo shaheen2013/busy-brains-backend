@@ -9,7 +9,6 @@ export type ImageGroup = "movement" | "rest_and_breathe" | "calm_and_comfort";
 export interface ToolkitImage {
   imageFile: string; // relative to assets/images/
   label: string;
-  description: string;
 }
 
 export interface BrainContent {

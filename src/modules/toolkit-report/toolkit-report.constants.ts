@@ -19,52 +19,42 @@ const MOVEMENT_IMAGES: ToolkitImage[] = [
   {
     imageFile: "movement/1.svg",
     label: "Jump on the spot",
-    description: "Jump around and feel the energy",
   },
   {
     imageFile: "movement/2.svg",
-    label: "Shake arms and legs out",
-    description: "Shake and wake your body up",
+    label: "Wall push-ups",
   },
   {
     imageFile: "movement/3.svg",
-    label: "Wall push-ups",
-    description: "Push and feel your muscles work",
+    label: "Animal walks",
   },
   {
     imageFile: "movement/4.svg",
-    label: "Run in place",
-    description: "Run fast then slow down",
+    label: "Dance to one song",
   },
   {
     imageFile: "movement/5.svg",
-    label: "Star jumps",
-    description: "Jump wide and feel strong",
+    label: "Play a ball game",
   },
   {
     imageFile: "movement/6.svg",
-    label: "Animal walks",
-    description: "Walk like a crab or bear",
+    label: "Run a lap outside",
   },
   {
     imageFile: "movement/7.svg",
-    label: "Throw and catch a ball",
-    description: "Focus and catch it!",
+    label: "Stretch tall, curl small",
   },
   {
     imageFile: "movement/8.svg",
-    label: "Dance to music",
-    description: "Move and feel the beat",
+    label: "Shake arms and legs out",
   },
   {
     imageFile: "movement/9.svg",
-    label: "Spin in circles slowly",
-    description: "Spin around gently and stop",
+    label: "Swing",
   },
   {
     imageFile: "movement/10.svg",
-    label: "Balance on one leg",
-    description: "Balance steady and strong",
+    label: "Make an obstacle course",
   },
 ];
 
@@ -72,52 +62,42 @@ const REST_AND_BREATHE_IMAGES: ToolkitImage[] = [
   {
     imageFile: "rest-and-breathe/1.svg",
     label: "5 slow belly breaths",
-    description: "Slow breaths, tummy up and down",
   },
   {
     imageFile: "rest-and-breathe/2.svg",
     label: "Close eyes for 30 seconds",
-    description: "Close eyes, give brain rest",
   },
   {
     imageFile: "rest-and-breathe/3.svg",
     label: "Notice 3 sounds around you",
-    description: "Listen for three quiet sounds",
   },
   {
     imageFile: "rest-and-breathe/4.svg",
     label: "Guided breathing animation",
-    description: "Follow breathing with Buddy",
   },
   {
     imageFile: "rest-and-breathe/5.svg",
-    label: "Stretch slowly",
-    description: "Stretch body nice and slow",
+    label: "Quiet corner time",
   },
   {
     imageFile: "rest-and-breathe/6.svg",
-    label: "Quiet corner time",
-    description: "Sit in your cosy corner",
+    label: "Stretch slowly",
   },
   {
     imageFile: "rest-and-breathe/7.svg",
-    label: "Listen to calm music",
-    description: "Listen to soft calming music",
+    label: "Listen to music",
   },
   {
     imageFile: "rest-and-breathe/8.svg",
     label: "Body scan",
-    description: "Feel body from toes up",
   },
   {
     imageFile: "rest-and-breathe/9.svg",
     label: "Chill time",
-    description: "Do something calm you love",
   },
   {
     imageFile: "rest-and-breathe/10.svg",
     label: "Drink water slowly",
-    description: "Sip water slow and calm",
   },
 ];
 
@@ -125,52 +105,42 @@ const CALM_AND_COMFORT_IMAGES: ToolkitImage[] = [
   {
     imageFile: "calm-and-comfort/1.svg",
     label: "Hug a pillow or teddy",
-    description: "Squeeze tight and feel calm",
   },
   {
     imageFile: "calm-and-comfort/2.svg",
     label: "Wrap in a blanket",
-    description: "Wrap up warm and calm",
   },
   {
     imageFile: "calm-and-comfort/3.svg",
     label: "Squeeze putty or playdough",
-    description: "Squish, squeeze, and feel calm",
   },
   {
     imageFile: "calm-and-comfort/4.svg",
     label: "Firm hand or shoulder squeeze",
-    description: "Ask for a strong safe squeeze",
   },
   {
     imageFile: "calm-and-comfort/5.svg",
     label: "Sit next to someone you trust",
-    description: "Feel safe and feel calm",
   },
   {
     imageFile: "calm-and-comfort/6.svg",
     label: "Play with some fidget tools",
-    description: "Fidget, focus and stay calm",
   },
   {
     imageFile: "calm-and-comfort/7.svg",
     label: "Body sock",
-    description: "Stretch and feel your body",
   },
   {
     imageFile: "calm-and-comfort/8.svg",
     label: "Headphones & music",
-    description: "Listen and feel calm inside",
   },
   {
     imageFile: "calm-and-comfort/9.svg",
     label: "Warm drink",
-    description: "Sip slowly, feel warm inside",
   },
   {
     imageFile: "calm-and-comfort/10.svg",
     label: "Pet your pet",
-    description: "Gently pat and feel calm",
   },
 ];
 
