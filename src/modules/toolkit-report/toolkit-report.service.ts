@@ -390,6 +390,7 @@ export class ToolkitReportService {
 
   /* ── Section icon squares + letter badge ── */
   .card-head { display: flex; align-items: center; gap: 11px; margin-bottom: 12px; }
+
   .icon-sq {
     position: relative; width: 42px; height: 42px; border-radius: 13px;
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
@@ -411,8 +412,10 @@ export class ToolkitReportService {
   .card-h2 { font-size: 14px; font-weight: 800; color: #1e293b; margin-bottom: 7px; }
   .card-p { font-size: 10.5px; color: #475569; line-height: 1.6; }
   .cards-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .info-card { border: 1px solid #eef0f3; border-radius: 18px; padding: 18px; background: #fff; }
-  .info-card.brain { background: #fefce8; border-color: #fde68a; }
+  .info-card { border: 1px solid #BBE4E5; border-radius: 18px; padding: 18px; background: #fff; }
+  .info-card.brain { border-color: #FFD52544; }
+  .brain .card-head { background: #FFD525; }
+  .tactile .card-head { background: #F0F9F9; }
   .bullets { list-style: none; padding: 0; }
   .bullets li {
     font-size: 10.5px; color: #475569; line-height: 1.55;
@@ -506,7 +509,7 @@ export class ToolkitReportService {
         <p class="card-p">${this.escapeHtml(brainType.description)}</p>
       </div>
 
-      <div class="info-card">
+      <div class="info-card tactile">
         <div class="card-head">
           <div class="icon-sq teal">${ICONS.hand}<span class="badge">B</span></div>
           <div>
