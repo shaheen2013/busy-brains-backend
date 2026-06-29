@@ -396,8 +396,8 @@ export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
       <div class="absolute -bottom-[50px] left-[30px] w-[80px] h-[80px] rounded-full bg-[#6CC5C610]"></div>
 
       <div>
-        <span class="inline-flex items-center gap-1.5 bg-white border border-[#ece3fb] text-[#6b7280] text-[9px] font-semibold px-2.5 py-[3px] rounded-[20px] mb-2.5">
-          <span class="w-1.5 h-1.5 rounded-full bg-bb-teal"></span> Final Toolkit
+        <span class="inline-flex items-center gap-1.5 border border-[rgba(108,197,198,0.4)] bg-[rgba(108,197,198,0.18)] text-[#34586E] text-[9px] font-semibold px-2.5 py-[3px] rounded-[20px] mb-2.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#6CC5C6]"></span> Final Toolkit
         </span>
         <div class="text-[23px] font-black text-bb-slate leading-[1.2] tracking-[-0.4px]">
           ${escapeHtml(childName)}'s Busy Brains <span class="text-bb-teal">Complete Toolkit</span> &#127890;
