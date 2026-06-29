@@ -505,8 +505,10 @@ export class ToolkitReportService {
             <div class="card-sub">${this.escapeHtml(brainHeadSub)}</div>
           </div>
         </div>
-        <div class="card-h2">${this.escapeHtml(brainType.title)}</div>
-        <p class="card-p">${this.escapeHtml(brainType.description)}</p>
+        <div style="padding: 0 16px;">
+          <div class="card-h2">${this.escapeHtml(brainType.title)}</div>
+          <p class="card-p">${this.escapeHtml(brainType.description)}</p>
+        </div>
       </div>
 
       <div class="info-card tactile">
