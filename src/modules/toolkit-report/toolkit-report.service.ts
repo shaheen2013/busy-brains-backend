@@ -519,9 +519,11 @@ export class ToolkitReportService {
             <div class="card-sub">${this.escapeHtml(tactileHeadSub)}</div>
           </div>
         </div>
-        <div class="card-h2">${this.escapeHtml(tactileSense.title)}</div>
-        <ul class="bullets">${bulletPoints}</ul>
-      </div>
+          <div style="padding: 0 16px;">
+            <div class="card-h2">${this.escapeHtml(tactileSense.title)}</div>
+            <ul class="bullets">${bulletPoints}</ul>
+          </div>
+        </div>
     </div>
 
     <!-- Favourite Fun Tools -->
