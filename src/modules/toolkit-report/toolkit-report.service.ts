@@ -504,7 +504,7 @@ export class ToolkitReportService {
             <div class="card-sub">${this.escapeHtml(brainHeadSub)}</div>
           </div>
         </div>
-        <div style="padding: 0 16px;">
+        <div style="padding: 16px;">
           <div class="card-h2">${this.escapeHtml(brainType.title)}</div>
           <p class="card-p">${this.escapeHtml(brainType.description)}</p>
         </div>
@@ -518,7 +518,7 @@ export class ToolkitReportService {
             <div class="card-sub">${this.escapeHtml(tactileHeadSub)}</div>
           </div>
         </div>
-          <div style="padding: 0 16px;">
+          <div style="padding: 16px;">
             <div class="card-h2">${this.escapeHtml(tactileSense.title)}</div>
             <ul class="bullets">${bulletPoints}</ul>
           </div>
@@ -562,7 +562,7 @@ export class ToolkitReportService {
         <p class="star-body">
           You now know your brain type, your sensory profile, and your personal toolkit.
           Stick this on your fridge or in your bedroom. Whenever you feel big feelings,
-          look at your toolkit and pick a tool. You've totally got this! &#128153;
+          look at your toolkit and pick a tool. You've totally got this!
         </p>
       </div>
     </div>
