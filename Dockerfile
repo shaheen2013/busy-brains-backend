@@ -24,7 +24,9 @@ RUN apk add --no-cache \
     freetype \
     harfbuzz \
     ca-certificates \
-    ttf-freefont
+    ttf-freefont \
+    font-noto \
+    font-noto-emoji
 
 RUN corepack enable
 
