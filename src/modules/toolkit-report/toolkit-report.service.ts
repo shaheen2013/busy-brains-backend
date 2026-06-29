@@ -413,9 +413,9 @@ export class ToolkitReportService {
   .card-p { font-size: 10.5px; color: #475569; line-height: 1.6; }
   .cards-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .info-card { border: 1px solid #BBE4E5; border-radius: 18px; background: #fff; }
-  .info-card.brain { border-color: #FFD52544; border-radius: 18px 18px 0 0; }
-  .brain .card-head { background: #FFD525; border-radius: 18px 18px 0 0; }
-  .tactile .card-head { background: #F0F9F9; }
+  .info-card.brain { border-color: #FFD52544; }
+  .brain .card-head { background: #FFD525; border-radius: 18px 18px 0 0; padding: 16px; }
+  .tactile .card-head { background: #F0F9F9; border-radius: 18px 18px 0 0; padding: 16px; }
   .bullets { list-style: none; padding: 0; }
   .bullets li {
     font-size: 10.5px; color: #475569; line-height: 1.55;
