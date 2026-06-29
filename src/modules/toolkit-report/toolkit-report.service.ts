@@ -423,7 +423,8 @@ export class ToolkitReportService {
   .bullets li::before { content: '•'; position: absolute; left: 2px; color: #94a3b8; font-weight: 700; }
 
   /* ── Fun tools ── */
-  .fun-card { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 18px; padding: 18px; }
+  .fun-card { border: 1px solid #bbf7d0; border-radius: 18px; }
+  .fun-card .card-head { padding: 16px; border-radius: 18px 18px 0 0; background: #F2FBEE; }
   .fun-h2 { font-size: 12.5px; font-weight: 800; color: #1e293b; margin-bottom: 11px; }
   .tags { display: flex; flex-wrap: wrap; gap: 7px; }
   .tag { font-size: 9.5px; font-weight: 600; padding: 5px 12px; border-radius: 20px; border: 1px solid; }
