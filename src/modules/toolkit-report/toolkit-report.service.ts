@@ -53,7 +53,7 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="#1f7a4d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V11"/><path d="M12 11C12 7.5 9.2 5.5 5 5.8 4.7 9.6 7.5 11.6 12 11Z"/><path d="M12 13c0-3 2.4-4.8 6-4.5.3 3.4-2.4 5-6 4.5Z"/></svg>',
   hand: '<svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 12V6.5a1.5 1.5 0 0 1 3 0V11"/><path d="M10.5 11V4.8a1.5 1.5 0 0 1 3 0V11"/><path d="M13.5 11.2V6.2a1.5 1.5 0 0 1 3 0V13"/><path d="M16.5 10.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1.6a6 6 0 0 1-4.9-2.6l-2.4-3.5a1.5 1.5 0 0 1 2.4-1.8L8.4 15"/></svg>',
   star: '<svg viewBox="0 0 24 24" fill="#ffffff" stroke="#ffffff" stroke-width="1.2" stroke-linejoin="round"><polygon points="12 3 14.6 9.1 21 9.6 16.1 13.9 17.7 20.2 12 16.6 6.3 20.2 7.9 13.9 3 9.6 9.4 9.1"/></svg>',
-  target: `<svg width="35" height="35" viewBox="0 0 35 35" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 34.1852H34.1853V-9.9007e-05H0V34.1852Z" fill="#0A0A0A"/></svg>`,
+  target: `🎯`,
 };
 
 @Injectable()
