@@ -331,10 +331,15 @@ export class ToolkitReportService {
 <html>
 <head>
 <meta charset="UTF-8">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Nunito+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-family: "Nunito", sans-serif;
     background: #ffffff;
     color: #1e293b;
     font-size: 13px;
@@ -342,6 +347,9 @@ export class ToolkitReportService {
     print-color-adjust: exact;
   }
   .page { padding-bottom: 28px; }
+  .nunito-sans {
+    font-family: "Nunito Sans", sans-serif;
+  }
 
   /* ── Top bar ── */
   .topbar { display: flex; justify-content: space-between; align-items: flex-start; }
