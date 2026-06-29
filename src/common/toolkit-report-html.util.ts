@@ -52,7 +52,7 @@ const DEFAULT_TAG = { bg: "#F1F5F9", border: "#E2E8F0", text: "#475569" };
 // design, so the report draws its own simple line icons).
 const ICONS = {
   sprout: `<span class="emoji">🧩</span>`,
-  hand: '<svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 12V6.5a1.5 1.5 0 0 1 3 0V11"/><path d="M10.5 11V4.8a1.5 1.5 0 0 1 3 0V11"/><path d="M13.5 11.2V6.2a1.5 1.5 0 0 1 3 0V13"/><path d="M16.5 10.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1.6a6 6 0 0 1-4.9-2.6l-2.4-3.5a1.5 1.5 0 0 1 2.4-1.8L8.4 15"/></svg>',
+  hand: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><g clip-path="url(#clip0_9450_228208)"><path d="M18 11V6C18 5.46957 17.7893 4.96086 17.4142 4.58579C17.0391 4.21071 16.5304 4 16 4C15.4696 4 14.9609 4.21071 14.5858 4.58579C14.2107 4.96086 14 5.46957 14 6" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 9.99951V3.99951C14 3.46908 13.7893 2.96037 13.4142 2.5853C13.0391 2.21023 12.5304 1.99951 12 1.99951C11.4696 1.99951 10.9609 2.21023 10.5858 2.5853C10.2107 2.96037 10 3.46908 10 3.99951V5.99951" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.99609 10.5V6C9.99609 5.46957 9.78538 4.96086 9.41031 4.58579C9.03523 4.21071 8.52653 4 7.99609 4C7.46566 4 6.95695 4.21071 6.58188 4.58579C6.20681 4.96086 5.99609 5.46957 5.99609 6V14" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M17.9962 7.99902C17.9962 7.46859 18.2069 6.95988 18.582 6.58481C18.9571 6.20974 19.4658 5.99902 19.9962 5.99902C20.5266 5.99902 21.0353 6.20974 21.4104 6.58481C21.7855 6.95988 21.9962 7.46859 21.9962 7.99902V13.999C21.9962 16.1208 21.1533 18.1556 19.653 19.6559C18.1528 21.1562 16.1179 21.999 13.9962 21.999H11.9962C9.19619 21.999 7.49619 21.139 6.0062 19.659L2.4062 16.059C2.06213 15.678 1.87778 15.1792 1.89132 14.666C1.90486 14.1527 2.11524 13.6644 2.47892 13.302C2.84259 12.9396 3.3317 12.7309 3.84497 12.7192C4.35824 12.7075 4.85636 12.8936 5.2362 13.239L6.99619 14.999" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></g><defs><clipPath id="clip0_9450_228208"><rect width="24" height="24" fill="white"/></clipPath></defs></svg>`,
   star: `<span class="emoji">⭐</span>`,
   target: `<span class="emoji">🎯</span>`,
 };
@@ -325,7 +325,7 @@ export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
           'nunito-sans': ['"Nunito Sans"', 'sans-serif'],
         },
         colors: {
-          'bb-slate': '#1e293b',
+          'bb-slate': '#2F5064',
           'bb-slate-light': '#475569',
           'bb-slate-muted': '#64748b',
           'bb-slate-faint': '#94a3b8',
@@ -336,7 +336,7 @@ export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
           'bb-teal-bg': '#f0f9f9',
           'bb-teal-border': '#bbe4e5',
           'bb-teal-border-strong': '#6cc5c6',
-          'bb-purple': '#7c3aed',
+          'bb-purple': '#9C6AFF',
           'bb-purple-light': '#ede7ff',
           'bb-purple-bg': '#faf8ff',
           'bb-purple-border': '#e9d5ff',
@@ -369,6 +369,7 @@ export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
     background: #ffffff;
     color: #1e293b;
     font-size: 13px;
+    box-sizing: border-box;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
@@ -383,13 +384,17 @@ export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
     <div class="p-0">
       <img class="h-10 block" src="${logoSrc}" alt="Busy Brains" />
     </div>
-    <div class="text-[22px] font-extrabold text-bb-slate pr-10 pb-0 pl-0 tracking-[-0.3px] pt-[3.5px]">Busy Brains Child's Toolkit</div>
+    <div class="text-[22px] text-[#486284] font-extrabold text-bb-slate pr-10 pb-0 pl-0 tracking-[-0.3px] pt-[12px]">Busy Brains Child's Toolkit</div>
   </div>
 
   <div class="max-w-[700px] mx-auto mt-[18px] mb-0 px-[18px] flex flex-col gap-3.5">
 
     <!-- Hero -->
-    <div class="bg-gradient-to-br from-[#ede9fe] via-[#f3eefe] to-[#fdeef6] border border-[#ece3fb] rounded-[22px] px-6 py-5 flex justify-between items-center relative overflow-hidden">
+    <div class="relative overflow-clip rounded-3xl border-[2px] border-[#89D1D1] bg-[linear-gradient(0deg,rgba(255,255,255,0.20)_0%,rgba(255,255,255,0.20)_100%),linear-gradient(135deg,rgba(108,197,198,0.18)_0%,rgba(156,106,255,0.12)_60%,rgba(255,213,37,0.10)_100%)] px-6 py-5 flex justify-between items-center relative overflow-hidden">
+      
+      <div class="absolute -top-[40px] right-[80px] w-[120px] h-[120px] rounded-full bg-[#9C6AFF10]"></div>
+      <div class="absolute -bottom-[50px] left-[30px] w-[80px] h-[80px] rounded-full bg-[#6CC5C610]"></div>
+
       <div>
         <span class="inline-flex items-center gap-1.5 bg-white border border-[#ece3fb] text-[#6b7280] text-[9px] font-semibold px-2.5 py-[3px] rounded-[20px] mb-2.5">
           <span class="w-1.5 h-1.5 rounded-full bg-bb-teal"></span> Final Toolkit
@@ -404,15 +409,15 @@ export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
 
     <!-- Brain Type + Tactile Sense -->
     <div class="grid grid-cols-2 gap-3.5">
-      <div class="border border-bb-yellow-border rounded-[18px] bg-white">
-        <div class="flex items-center gap-[11px] mb-3 bg-bb-yellow-bg rounded-t-[18px] p-4">
-          <div class="relative w-[42px] h-[42px] rounded-[13px] flex items-center justify-center shrink-0 bg-bb-yellow">
+      <div class="border-[2px] border-[#FFD525] rounded-[18px] bg-white">
+        <div class="flex items-center gap-[11px] bg-bb-yellow-bg rounded-t-[16px] p-4 pb-6">
+          <div class="relative w-[42px] h-[42px] rounded-[18px] flex items-center justify-center shrink-0 bg-bb-yellow">
             ${ICONS.sprout}
-            <span class="absolute -bottom-[5px] -right-[5px] w-[17px] h-[17px] rounded-full bg-bb-green border-2 border-white text-white text-[8px] font-extrabold flex items-center justify-center">A</span>
+            <span class="absolute -bottom-[5px] -right-[5px] w-[17px] h-[17px] rounded-full bg-[#7A5800] border-2 border-white text-white text-[8px] font-extrabold flex items-center justify-center">A</span>
           </div>
           <div>
-            <div class="text-[13px] font-extrabold text-bb-slate">My Brain Type</div>
-            <div class="text-[9.5px] text-bb-slate-faint mt-0.5">${escapeHtml(brainHeadSub)}</div>
+            <div class="text-[13px] font-extrabold text-[#7A5800]">My Brain Type</div>
+            <div class="text-[9.5px] text-[#7A5800] mt-0.5">${escapeHtml(brainHeadSub)}</div>
           </div>
         </div>
         <div class="p-4">
@@ -421,15 +426,15 @@ export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
         </div>
       </div>
 
-      <div class="border border-bb-teal-border rounded-[18px] bg-white">
-        <div class="flex items-center gap-[11px] mb-3 bg-bb-teal-bg rounded-t-[18px] p-4">
-          <div class="relative w-[42px] h-[42px] rounded-[13px] flex items-center justify-center shrink-0 bg-bb-teal-light">
+      <div class="border-[2px] border-[#2CC3D5] rounded-[18px] bg-white">
+        <div class="flex items-center gap-[11px] bg-bb-teal-bg rounded-t-[18px] p-4">
+          <div class="relative w-[42px] h-[42px] rounded-[18px] flex items-center justify-center shrink-0 bg-bb-teal-light">
             ${ICONS.hand}
-            <span class="absolute -bottom-[5px] -right-[5px] w-[17px] h-[17px] rounded-full bg-bb-green border-2 border-white text-white text-[8px] font-extrabold flex items-center justify-center">B</span>
+            <span class="absolute -bottom-[5px] -right-[5px] w-[17px] h-[17px] rounded-full bg-[#2D5353] border-2 border-white text-white text-[8px] font-extrabold flex items-center justify-center">B</span>
           </div>
           <div>
-            <div class="text-[13px] font-extrabold text-bb-slate">My Tactile Sense</div>
-            <div class="text-[9.5px] text-bb-slate-faint mt-0.5">${escapeHtml(tactileHeadSub)}</div>
+            <div class="text-[13px] font-extrabold text-[#2D5353]">My Tactile Sense</div>
+            <div class="text-[9.5px] text-[#2D5353] mt-0.5">${escapeHtml(tactileHeadSub)}</div>
           </div>
         </div>
         <div class="p-4">
@@ -440,15 +445,15 @@ export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
     </div>
 
     <!-- Favourite Fun Tools -->
-    <div class="border border-bb-green-border rounded-[18px]">
+    <div class="border-[2px] border-[#C4EEB2] rounded-[18px]">
       <div class="flex items-center gap-[11px] p-4 rounded-t-[18px] bg-bb-green-bg">
         <div class="relative w-[42px] h-[42px] rounded-[13px] flex items-center justify-center shrink-0 bg-bb-green">
           ${ICONS.star}
-          <span class="absolute -bottom-[5px] -right-[5px] w-[17px] h-[17px] rounded-full bg-bb-green border-2 border-white text-white text-[8px] font-extrabold flex items-center justify-center">C</span>
+          <span class="absolute -bottom-[5px] -right-[5px] w-[17px] h-[17px] rounded-full bg-[#457730] border-2 border-white text-white text-[8px] font-extrabold flex items-center justify-center">C</span>
         </div>
         <div>
-          <div class="text-[13px] font-extrabold text-bb-slate">My Favourite Fun Tools</div>
-          <div class="text-[9.5px] text-bb-slate-faint mt-0.5">${escapeHtml(favouriteTools.subtitle)}</div>
+          <div class="text-[13px] font-extrabold text-[#457730]">My Favourite Fun Tools</div>
+          <div class="text-[9.5px] text-[#457730] mt-0.5">${escapeHtml(favouriteTools.subtitle)}</div>
         </div>
       </div>
       <div class="p-4">
@@ -458,7 +463,7 @@ export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
     </div>
 
     <!-- Final Toolkit -->
-    <div class="border border-[#9C6AFF] rounded-[20px] p-5">
+    <div class="border-[2px] border-[#9C6AFF] rounded-[20px] p-5">
       <div class="flex items-center gap-[11px] mb-3">
         <div class="relative w-[42px] h-[42px] rounded-[13px] flex items-center justify-center shrink-0 bg-[linear-gradient(135deg,_rgba(156,106,255,0.13)_0%,_rgba(156,106,255,0.27)_100%)]">
           ${ICONS.target}
