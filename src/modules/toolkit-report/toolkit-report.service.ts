@@ -345,11 +345,7 @@ export class ToolkitReportService {
 
   /* ── Top bar ── */
   .topbar { display: flex; justify-content: space-between; align-items: flex-start; }
-  .logo-box {
-    background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
-    border-radius: 0 0 26px 0;
-    padding: 12px 30px 16px 20px;
-  }
+  .logo-box { padding: 0px; }
   .logo { height: 40px; display: block; }
   .top-title {
     font-size: 22px; font-weight: 800; color: #1e293b;
@@ -405,10 +401,8 @@ export class ToolkitReportService {
   .card-sub { font-size: 9.5px; color: #94a3b8; margin-top: 2px; }
   .card-h2 { font-size: 14px; font-weight: 800; color: #1e293b; margin-bottom: 7px; }
   .card-p { font-size: 10.5px; color: #475569; line-height: 1.6; }
-
-  /* ── Brain + Tactile cards ── */
-  .cards-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
-  .info-card { border: 1px solid #eef0f3; border-radius: 18px; padding: 18px; background: #ffffff; }
+  .cards-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .info-card { border: 1px solid #eef0f3; border-radius: 18px; padding: 18px; background: #fff; }
   .info-card.brain { background: #fefce8; border-color: #fde68a; }
   .bullets { list-style: none; padding: 0; }
   .bullets li {
