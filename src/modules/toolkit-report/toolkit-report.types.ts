@@ -29,6 +29,19 @@ export interface ToolkitContent {
   imageGroups: ImageGroup[];
 }
 
+// A favourite tool plus the category it came from (drives tag colour).
+export interface FavouriteTool {
+  title: string;
+  flag: string;
+}
+
+// A grid tile: the image, its label, and the category accent for its border.
+export interface GridImage {
+  imageFile: string;
+  label: string;
+  group: ImageGroup;
+}
+
 // The fully-resolved data the report template renders, derived from a child's
 // real progress data rather than any hard-coded sample.
 export interface ReportModel {
@@ -45,12 +58,12 @@ export interface ReportModel {
   };
   favouriteTools: {
     subtitle: string;
-    tools: string[];
+    tools: FavouriteTool[];
   };
   toolkitInfo: {
     title: string;
     description: string;
     needs: string[];
   };
-  images: ToolkitImage[];
+  images: GridImage[];
 }

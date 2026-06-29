@@ -8,11 +8,12 @@ import { Child } from "../children/entities/child.entity";
 import { DashboardService } from "../dashboard/dashboard.service";
 import {
   BrainFlag,
+  FavouriteTool,
+  GridImage,
   ImageGroup,
   ReportModel,
   TactileFlag,
   ToolkitFlag,
-  ToolkitImage,
 } from "./toolkit-report.types";
 import {
   BRAIN_CONTENT,
@@ -26,6 +27,34 @@ interface SavedToolkitGroup {
   list?: { title?: string }[];
   toolFlag?: string;
 }
+
+// Dashed border accent per tool category for the Final Toolkit grid tiles.
+const GROUP_ACCENT: Record<ImageGroup, string> = {
+  movement: "#EF8570",
+  rest_and_breathe: "#A176FD",
+  calm_and_comfort: "#34C0CE",
+};
+
+// Favourite-tool tag colours keyed by the saved toolFlag.
+const TAG_COLORS: Record<string, { bg: string; border: string; text: string }> =
+  {
+    movement: { bg: "#F5F3FF", border: "#DDD6FE", text: "#7C3AED" },
+    restBreath: { bg: "#ECFEFF", border: "#A5E8EC", text: "#0E9CA8" },
+    fun: { bg: "#FFF1ED", border: "#FBD3C8", text: "#E8694B" },
+    calmComfort: { bg: "#F0FDF4", border: "#BBF7D0", text: "#16A34A" },
+  };
+const DEFAULT_TAG = { bg: "#F1F5F9", border: "#E2E8F0", text: "#475569" };
+
+// Inline glyphs for the section icons (the brand asset icons don't match the
+// design, so the report draws its own simple line icons).
+const ICONS = {
+  sprout:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="#1f7a4d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V11"/><path d="M12 11C12 7.5 9.2 5.5 5 5.8 4.7 9.6 7.5 11.6 12 11Z"/><path d="M12 13c0-3 2.4-4.8 6-4.5.3 3.4-2.4 5-6 4.5Z"/></svg>',
+  hand: '<svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 12V6.5a1.5 1.5 0 0 1 3 0V11"/><path d="M10.5 11V4.8a1.5 1.5 0 0 1 3 0V11"/><path d="M13.5 11.2V6.2a1.5 1.5 0 0 1 3 0V13"/><path d="M16.5 10.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1.6a6 6 0 0 1-4.9-2.6l-2.4-3.5a1.5 1.5 0 0 1 2.4-1.8L8.4 15"/></svg>',
+  star: '<svg viewBox="0 0 24 24" fill="#ffffff" stroke="#ffffff" stroke-width="1.2" stroke-linejoin="round"><polygon points="12 3 14.6 9.1 21 9.6 16.1 13.9 17.7 20.2 12 16.6 6.3 20.2 7.9 13.9 3 9.6 9.4 9.1"/></svg>',
+  target:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.6" fill="#ffffff" stroke="none"/></svg>',
+};
 
 @Injectable()
 export class ToolkitReportService {
@@ -170,13 +199,16 @@ export class ToolkitReportService {
   ): ReportModel["favouriteTools"] {
     const groups =
       (data?.module_5_quest_1_saved_toolkit as SavedToolkitGroup[]) ?? [];
-    const tools = this.dedupe(
-      groups.flatMap((group) =>
-        (group.list ?? [])
-          .map((item) => item.title?.trim())
-          .filter((title): title is string => !!title),
-      ),
-    );
+    const seen = new Set<string>();
+    const tools: FavouriteTool[] = [];
+    for (const group of groups) {
+      for (const item of group.list ?? []) {
+        const title = item.title?.trim();
+        if (!title || seen.has(title)) continue;
+        seen.add(title);
+        tools.push({ title, flag: group.toolFlag ?? "" });
+      }
+    }
     return {
       subtitle: "You picked these yourself — great taste!",
       tools,
@@ -185,7 +217,7 @@ export class ToolkitReportService {
 
   private resolveToolkit(data: Record<string, unknown> | null | undefined): {
     toolkitInfo: ReportModel["toolkitInfo"];
-    images: ToolkitImage[];
+    images: GridImage[];
   } {
     const counts = (data?.module_5_quest_3_screen_2_quiz_counts ??
       {}) as Record<string, number>;
@@ -200,12 +232,27 @@ export class ToolkitReportService {
     if (single) {
       groups = TOOLKIT_IMAGE_GROUPS[flag];
     } else if (winners.length > 1) {
-      groups = this.dedupe(
-        winners.flatMap((w) => TOOLKIT_IMAGE_GROUPS[w as ToolkitFlag] ?? []),
-      ) as ImageGroup[];
+      const seen = new Set<ImageGroup>();
+      groups = [];
+      for (const w of winners) {
+        for (const g of TOOLKIT_IMAGE_GROUPS[w as ToolkitFlag] ?? []) {
+          if (!seen.has(g)) {
+            seen.add(g);
+            groups.push(g);
+          }
+        }
+      }
     } else {
       groups = content.imageGroups;
     }
+
+    const images: GridImage[] = groups.flatMap((group) =>
+      (IMAGE_SETS[group] ?? []).map((img) => ({
+        imageFile: img.imageFile,
+        label: img.label,
+        group,
+      })),
+    );
 
     return {
       toolkitInfo: {
@@ -213,7 +260,7 @@ export class ToolkitReportService {
         description: content.description,
         needs: content.needs,
       },
-      images: groups.flatMap((group) => IMAGE_SETS[group] ?? []),
+      images,
     };
   }
 
@@ -243,53 +290,42 @@ export class ToolkitReportService {
       .replace(/"/g, "&quot;");
   }
 
-  private buildImageGrid(images: ToolkitImage[]): string {
+  private buildImageGrid(images: GridImage[]): string {
     return images
       .map((img) => {
         const src = this.loadAsset(`images/${img.imageFile}`);
+        const accent = GROUP_ACCENT[img.group];
         return `
-          <div class="img-item">
-            <img class="img-thumb" src="${src}" alt="${this.escapeHtml(img.label)}" />
-            <div class="img-label">${this.escapeHtml(img.label)}</div>
-            <div class="img-desc">${this.escapeHtml(img.description)}</div>
+          <div class="cell" style="border-color:${accent}">
+            <img class="cell-img" src="${src}" alt="${this.escapeHtml(img.label)}" />
+            <div class="cell-label">${this.escapeHtml(img.label)}</div>
           </div>`;
       })
       .join("");
   }
 
   private buildHtml(model: ReportModel): string {
-    const {
-      childName,
-      brainType,
-      tactileSense,
-      favouriteTools,
-      toolkitInfo,
-      images,
-    } = model;
+    const { childName, brainType, tactileSense, favouriteTools, toolkitInfo } =
+      model;
 
     const logoSrc = this.loadAsset("logo.svg");
     const heroSrc = this.loadAsset("hero-child.svg");
-    const brainIconSrc = this.loadAsset("icons/brain.svg");
-    const tactileIconSrc = this.loadAsset("icons/tactile.svg");
-    const toolsIconSrc = this.loadAsset("icons/tools.svg");
-    const toolkitIconSrc = this.loadAsset("icons/toolkit.svg");
 
     const toolTags = favouriteTools.tools
-      .map(
-        (tool, i) =>
-          `<span class="tool-tag color-${i % 4}">${this.escapeHtml(tool)}</span>`,
-      )
-      .join("");
-
-    const needTags = toolkitInfo.needs
-      .map((need) => `<span class="need-tag">${this.escapeHtml(need)}</span>`)
+      .map((tool) => {
+        const c = TAG_COLORS[tool.flag] ?? DEFAULT_TAG;
+        return `<span class="tag" style="background:${c.bg};border-color:${c.border};color:${c.text}">${this.escapeHtml(tool.title)}</span>`;
+      })
       .join("");
 
     const bulletPoints = tactileSense.bulletPoints
       .map((p) => `<li>${this.escapeHtml(p)}</li>`)
       .join("");
 
-    const imageGrid = this.buildImageGrid(images);
+    const imageGrid = this.buildImageGrid(model.images);
+
+    const brainHeadSub = `${brainType.title} — ${brainType.subtitle}`;
+    const tactileHeadSub = `${tactileSense.title} — ${tactileSense.subtitle}`;
 
     return `<!DOCTYPE html>
 <html>
@@ -299,253 +335,237 @@ export class ToolkitReportService {
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Helvetica Neue', Arial, sans-serif;
-    background: #f8f6f3;
-    color: #1a1a2e;
+    background: #ffffff;
+    color: #1e293b;
     font-size: 13px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page { padding-bottom: 28px; }
+
+  /* ── Top bar ── */
+  .topbar { display: flex; justify-content: space-between; align-items: flex-start; }
+  .logo-box {
+    background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+    border-radius: 0 0 26px 0;
+    padding: 12px 30px 16px 20px;
+  }
+  .logo { height: 40px; display: block; }
+  .top-title {
+    font-size: 22px; font-weight: 800; color: #1e293b;
+    padding: 24px 40px 0 0; letter-spacing: -0.3px;
   }
 
-  /* ── Page header ── */
-  .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0px;
-    background: white;
-    border-bottom: 1px solid #eee;
-  }
-  .logo { height: 36px; }
-  .page-title { font-size: 18px; font-weight: 700; color: #1a1a2e; }
-
-  /* ── Main content wrapper ── */
-  .content { padding: 14px 0; display: flex; flex-direction: column; gap: 12px; }
-
-  /* ── Shared card ── */
-  .card {
-    border: 2px solid #c4a8e0;
-    border-radius: 18px;
-    overflow: hidden;
-    background: white;
+  /* ── Content column ── */
+  .wrap {
+    max-width: 700px; margin: 18px auto 0; padding: 0 18px;
+    display: flex; flex-direction: column; gap: 14px;
   }
 
-  /* ── Toolkit card header ── */
-  .card-hero {
-    background: linear-gradient(135deg, #ede9fe 0%, #e0f2fe 100%);
-    padding: 16px 22px;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+  /* ── Hero ── */
+  .hero {
+    background: linear-gradient(120deg, #ede9fe 0%, #f3eefe 55%, #fdeef6 100%);
+    border: 1px solid #ece3fb;
+    border-radius: 22px;
+    padding: 20px 24px;
+    display: flex; justify-content: space-between; align-items: center;
+    position: relative; overflow: hidden;
   }
   .hero-badge {
-    display: inline-block;
-    background: #7c3aed;
-    color: white;
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 10px;
-    border-radius: 20px;
-    margin-bottom: 6px;
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #ffffff; border: 1px solid #ece3fb;
+    color: #6b7280; font-size: 9px; font-weight: 600;
+    padding: 3px 10px; border-radius: 20px; margin-bottom: 10px;
   }
-  .hero-title { font-size: 20px; font-weight: 900; color: #1a1a2e; line-height: 1.2; }
-  .hero-title .child-name { color: #22c55e; }
-  .hero-subtitle { font-size: 10px; color: #64748b; margin-top: 4px; }
-  .hero-img { width: 80px; height: 80px; object-fit: contain; }
+  .hero-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #22b8c9; }
+  .hero-title { font-size: 23px; font-weight: 900; color: #1e293b; line-height: 1.2; letter-spacing: -0.4px; }
+  .hero-title .accent { color: #22b8c9; }
+  .hero-sub { font-size: 10.5px; color: #64748b; margin-top: 7px; }
+  .hero-img { width: 96px; height: 96px; object-fit: contain; flex-shrink: 0; }
 
-  /* ── Two-column info row ── */
-  .two-col { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #e9d5ff; }
-  .col-cell { padding: 14px 18px; }
-  .col-cell + .col-cell { border-left: 1px solid #e9d5ff; }
-  .col-cell.green-bg { background: #f0fdf4; }
-  .col-cell.purple-bg { background: #faf5ff; }
-
-  .cell-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-  .cell-icon { width: 28px; height: 28px; object-fit: contain; flex-shrink: 0; }
-  .cell-label { font-size: 11px; font-weight: 700; color: #1a1a2e; }
-  .cell-sublabel { font-size: 9px; color: #94a3b8; }
-  .cell-title { font-size: 13px; font-weight: 800; color: #1a1a2e; margin-bottom: 5px; }
-  .cell-body { font-size: 9.5px; color: #475569; line-height: 1.55; }
-  .bullet-list { list-style: none; padding: 0; }
-  .bullet-list li {
-    font-size: 9.5px; color: #475569; line-height: 1.5;
-    padding-left: 10px; position: relative;
+  /* ── Section icon squares + letter badge ── */
+  .card-head { display: flex; align-items: center; gap: 11px; margin-bottom: 12px; }
+  .icon-sq {
+    position: relative; width: 42px; height: 42px; border-radius: 13px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
-  .bullet-list li::before { content: '•'; position: absolute; left: 0; color: #94a3b8; }
-
-  /* ── Tool tags ── */
-  .tools-section-title { font-size: 10px; font-weight: 700; color: #166534; margin: 4px 0 6px; }
-  .tag-wrap { display: flex; flex-wrap: wrap; gap: 4px; }
-  .tool-tag { font-size: 8.5px; padding: 3px 9px; border-radius: 12px; font-weight: 500; }
-  .tool-tag.color-0 { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
-  .tool-tag.color-1 { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
-  .tool-tag.color-2 { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
-  .tool-tag.color-3 { background: #fce7f3; color: #9d174d; border: 1px solid #fbcfe8; }
-
-  /* ── Needs tags ── */
-  .needs-title { font-size: 9.5px; font-weight: 700; color: #555; margin: 8px 0 5px; }
-  .need-tag {
-    display: inline-block; background: #1e1b4b; color: white;
-    font-size: 8px; padding: 3px 9px; border-radius: 12px; margin: 2px;
+  .icon-sq svg { width: 22px; height: 22px; }
+  .icon-sq.yellow { background: #fbbf24; }
+  .icon-sq.teal { background: #2cc0ce; }
+  .icon-sq.green { background: #34c759; }
+  .icon-sq.purple { background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%); }
+  .icon-sq .badge {
+    position: absolute; bottom: -5px; right: -5px;
+    width: 17px; height: 17px; border-radius: 50%;
+    background: #34c759; border: 2px solid #ffffff;
+    color: #ffffff; font-size: 8px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
   }
+  .card-label { font-size: 13px; font-weight: 800; color: #1e293b; }
+  .card-sub { font-size: 9.5px; color: #94a3b8; margin-top: 2px; }
+  .card-h2 { font-size: 14px; font-weight: 800; color: #1e293b; margin-bottom: 7px; }
+  .card-p { font-size: 10.5px; color: #475569; line-height: 1.6; }
 
-  /* ── Final toolkit section ── */
-  .final-card {
-    border: 2px solid #ddd6fe;
-    border-radius: 18px;
-    overflow: hidden;
-    background: white;
-    padding: 18px 20px;
+  /* ── Brain + Tactile cards ── */
+  .cards-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+  .info-card { border: 1px solid #eef0f3; border-radius: 18px; padding: 18px; background: #ffffff; }
+  .info-card.brain { background: #fefce8; border-color: #fde68a; }
+  .bullets { list-style: none; padding: 0; }
+  .bullets li {
+    font-size: 10.5px; color: #475569; line-height: 1.55;
+    padding-left: 14px; position: relative; margin-bottom: 2px;
   }
-  .final-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
-  .final-icon {
-    width: 36px; height: 36px; background: #fef9c3;
-    border-radius: 10px; display: flex; align-items: center;
-    justify-content: center; font-size: 18px; flex-shrink: 0;
-  }
-  .final-title { font-size: 17px; font-weight: 900; color: #1a1a2e; }
-  .final-subtitle { font-size: 9.5px; color: #94a3b8; margin-top: 1px; }
-  .toolkit-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
-  .toolkit-name { font-size: 12px; font-weight: 800; color: #1a1a2e; }
+  .bullets li::before { content: '•'; position: absolute; left: 2px; color: #94a3b8; font-weight: 700; }
+
+  /* ── Fun tools ── */
+  .fun-card { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 18px; padding: 18px; }
+  .fun-h2 { font-size: 12.5px; font-weight: 800; color: #1e293b; margin-bottom: 11px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 7px; }
+  .tag { font-size: 9.5px; font-weight: 600; padding: 5px 12px; border-radius: 20px; border: 1px solid; }
+
+  /* ── Final toolkit ── */
+  .final-card { border: 1px solid #e9d5ff; border-radius: 20px; padding: 20px; background: #ffffff; }
+  .final-label { font-size: 16px; font-weight: 900; color: #7c3aed; }
+  .toolkit-row { display: flex; align-items: center; gap: 9px; margin: 4px 0 14px; }
+  .toolkit-name { font-size: 13px; font-weight: 800; color: #1e293b; }
   .primary-badge {
-    background: #fef08a; color: #713f12;
-    font-size: 8px; font-weight: 700; padding: 2px 8px; border-radius: 10px;
+    background: #ede7ff; color: #7c3aed;
+    font-size: 9px; font-weight: 700; padding: 3px 11px; border-radius: 14px;
   }
-
-  /* ── Image grid ── */
-  .img-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
-  .img-item { display: flex; flex-direction: column; align-items: center; text-align: center; }
-  .img-thumb { width: 88px; height: 88px; border-radius: 12px; object-fit: contain; margin-bottom: 5px; }
-  .img-label { font-size: 8.5px; font-weight: 700; color: #1a1a2e; line-height: 1.3; }
-  .img-desc { font-size: 7.5px; color: #94a3b8; line-height: 1.3; margin-top: 2px; }
-
-  /* ── Footer card ── */
-  .footer-card {
-    border: 2px solid #ddd6fe; border-radius: 18px;
-    padding: 14px 20px; background: white;
-    display: flex; align-items: center; gap: 14px;
+  .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 11px; }
+  .cell {
+    border: 1.5px dashed; border-radius: 14px;
+    padding: 10px 6px 9px;
+    display: flex; flex-direction: column; align-items: center;
+    background: #ffffff;
   }
-  .footer-emoji { font-size: 38px; flex-shrink: 0; }
-  .footer-title { font-size: 13px; font-weight: 800; color: #1a1a2e; }
-  .footer-body { font-size: 9.5px; color: #475569; line-height: 1.5; margin-top: 3px; }
+  .cell-img { width: 100%; height: 80px; object-fit: contain; margin-bottom: 7px; }
+  .cell-label { font-size: 8px; font-weight: 700; color: #334155; text-align: center; line-height: 1.3; }
+
+  /* ── Superstar ── */
+  .star-card {
+    border: 1px solid #e9d5ff; border-radius: 18px; padding: 16px 20px;
+    background: #faf8ff; display: flex; align-items: center; gap: 14px;
+  }
+  .star-emoji { font-size: 34px; flex-shrink: 0; }
+  .star-title { font-size: 14px; font-weight: 800; color: #7c3aed; }
+  .star-body { font-size: 10px; color: #475569; line-height: 1.55; margin-top: 4px; }
 
   /* ── Page footer ── */
-  .page-footer { text-align: center; padding: 10px; font-size: 8px; color: #cbd5e1; }
+  .page-foot {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 14px; padding-top: 12px; border-top: 1px dashed #e5e7eb;
+    font-size: 8.5px; color: #cbd5e1;
+  }
+  .dots { display: inline-flex; gap: 4px; }
+  .dots i { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+  .dots i:nth-child(1) { background: #f87171; }
+  .dots i:nth-child(2) { background: #fbbf24; }
+  .dots i:nth-child(3) { background: #34d399; }
+  .dots i:nth-child(4) { background: #60a5fa; }
+  .dots i:nth-child(5) { background: #a78bfa; }
 </style>
 </head>
 <body>
+<div class="page">
 
-<!-- Page header -->
-<div class="page-header">
-  <img class="logo" src="${logoSrc}" alt="Busy Brains" />
-  <div class="page-title">Busy Brains Child's Workbook</div>
-</div>
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="logo-box"><img class="logo" src="${logoSrc}" alt="Busy Brains" /></div>
+    <div class="top-title">Busy Brains Child's Toolkit</div>
+  </div>
 
-<div class="content" style="padding-left:12px; padding-right:12px;">
+  <div class="wrap">
 
-  <!-- ── Main toolkit card ── -->
-  <div class="card">
-    <div class="card-hero">
+    <!-- Hero -->
+    <div class="hero">
       <div>
-        <div class="hero-badge">&#10024; Final Toolkit</div>
+        <span class="hero-badge"><span class="dot"></span> Final Toolkit</span>
         <div class="hero-title">
-          <span class="child-name">${this.escapeHtml(childName)}'s</span>
-          Busy Brains Complete Toolkit &#127827;
+          ${this.escapeHtml(childName)}'s Busy Brains <span class="accent">Complete Toolkit</span> &#127890;
         </div>
-        <div class="hero-subtitle">Built from your favourites, quiz results &amp; sensory profile</div>
+        <div class="hero-sub">Built from your favourites, quiz results &amp; sensory profile</div>
       </div>
       <img class="hero-img" src="${heroSrc}" alt="Child meditating" />
     </div>
 
     <!-- Brain Type + Tactile Sense -->
-    <div class="two-col">
-      <div class="col-cell">
-        <div class="cell-header">
-          <img class="cell-icon" src="${brainIconSrc}" alt="Brain" />
+    <div class="cards-2">
+      <div class="info-card brain">
+        <div class="card-head">
+          <div class="icon-sq yellow">${ICONS.sprout}<span class="badge">A</span></div>
           <div>
-            <div class="cell-label">My Brain Type</div>
-            <div class="cell-sublabel">${this.escapeHtml(brainType.subtitle)}</div>
+            <div class="card-label">My Brain Type</div>
+            <div class="card-sub">${this.escapeHtml(brainHeadSub)}</div>
           </div>
         </div>
-        <div class="cell-title">${this.escapeHtml(brainType.title)}</div>
-        <div class="cell-body">${this.escapeHtml(brainType.description)}</div>
+        <div class="card-h2">${this.escapeHtml(brainType.title)}</div>
+        <p class="card-p">${this.escapeHtml(brainType.description)}</p>
       </div>
-      <div class="col-cell">
-        <div class="cell-header">
-          <img class="cell-icon" src="${tactileIconSrc}" alt="Tactile" />
+
+      <div class="info-card">
+        <div class="card-head">
+          <div class="icon-sq teal">${ICONS.hand}<span class="badge">B</span></div>
           <div>
-            <div class="cell-label">My Tactile Sense</div>
-            <div class="cell-sublabel">${this.escapeHtml(tactileSense.subtitle)}</div>
+            <div class="card-label">My Tactile Sense</div>
+            <div class="card-sub">${this.escapeHtml(tactileHeadSub)}</div>
           </div>
         </div>
-        <div class="cell-title">${this.escapeHtml(tactileSense.title)}</div>
-        <ul class="bullet-list">${bulletPoints}</ul>
+        <div class="card-h2">${this.escapeHtml(tactileSense.title)}</div>
+        <ul class="bullets">${bulletPoints}</ul>
       </div>
     </div>
-  </div>
 
-  <!-- ── Fun Tools + My Toolkit ── -->
-  <div class="card">
-    <div class="two-col">
-      <div class="col-cell green-bg">
-        <div class="cell-header">
-          <img class="cell-icon" src="${toolsIconSrc}" alt="Tools" />
-          <div>
-            <div class="cell-label">My Favourite Fun Tools</div>
-            <div class="cell-sublabel">${this.escapeHtml(favouriteTools.subtitle)}</div>
-          </div>
+    <!-- Favourite Fun Tools -->
+    <div class="fun-card">
+      <div class="card-head">
+        <div class="icon-sq green">${ICONS.star}<span class="badge">C</span></div>
+        <div>
+          <div class="card-label">My Favourite Fun Tools</div>
+          <div class="card-sub">${this.escapeHtml(favouriteTools.subtitle)}</div>
         </div>
-        <div class="tools-section-title">You chose these as YOUR all-time faves</div>
-        <div class="tag-wrap">${toolTags}</div>
       </div>
-      <div class="col-cell purple-bg">
-        <div class="cell-header">
-          <img class="cell-icon" src="${toolkitIconSrc}" alt="Toolkit" />
-          <div>
-            <div class="cell-label">My Toolkit</div>
-            <div class="cell-sublabel">Your body uses different tools at different times</div>
-          </div>
-        </div>
-        <div class="cell-title">${this.escapeHtml(toolkitInfo.title)}</div>
-        <div class="cell-body">${this.escapeHtml(toolkitInfo.description)}</div>
-        <div class="needs-title">Your body might need:</div>
-        <div>${needTags}</div>
-      </div>
+      <div class="fun-h2">You chose these as YOUR all-time faves</div>
+      <div class="tags">${toolTags}</div>
     </div>
-  </div>
 
-  <!-- ── Final Toolkit images ── -->
-  <div class="final-card">
-    <div class="final-header">
-      <div class="final-icon">&#127827;</div>
+    <!-- Final Toolkit -->
+    <div class="final-card">
+      <div class="card-head">
+        <div class="icon-sq purple">${ICONS.target}</div>
+        <div>
+          <div class="final-label">Final Toolkit</div>
+          <div class="card-sub">From Screen 5 Quiz Result &middot; how well you know your tools</div>
+        </div>
+      </div>
+      <div class="toolkit-row">
+        <span class="toolkit-name">${this.escapeHtml(toolkitInfo.title)}</span>
+        <span class="primary-badge">Primary Tool</span>
+      </div>
+      <div class="grid">${imageGrid}</div>
+    </div>
+
+    <!-- Superstar -->
+    <div class="star-card">
+      <div class="star-emoji">&#127881;</div>
       <div>
-        <div class="final-title">Final Toolkit</div>
-        <div class="final-subtitle">From Screen 5 Quiz Result: how well you know your tools</div>
+        <div class="star-title">You're a Busy Brain Superstar! &#11088;&#10024;</div>
+        <p class="star-body">
+          You now know your brain type, your sensory profile, and your personal toolkit.
+          Stick this on your fridge or in your bedroom. Whenever you feel big feelings,
+          look at your toolkit and pick a tool. You've totally got this! &#128153;
+        </p>
       </div>
     </div>
-    <div class="toolkit-row">
-      <span class="toolkit-name">${this.escapeHtml(toolkitInfo.title)}</span>
-      <span class="primary-badge">Primary Tool</span>
+
+    <!-- Page footer -->
+    <div class="page-foot">
+      <span>busy-brains.com.au &middot; Busy Brains Child's Workbook &middot; My Personal Guide</span>
+      <span class="dots"><i></i><i></i><i></i><i></i><i></i></span>
     </div>
-    <div class="img-grid">${imageGrid}</div>
+
   </div>
-
-  <!-- ── Footer card ── -->
-  <div class="footer-card">
-    <div class="footer-emoji">&#129504;&#10024;</div>
-    <div>
-      <div class="footer-title">You're a Busy Brain Superstar! &#128100; &#10024;</div>
-      <div class="footer-body">
-        You now know your brain type, your sensory profile, AND your personal toolkit.
-        Stick this on your fridge! Whenever you feel big feelings, look at your toolkit
-        and pick a tool. You've totally got this! &#128153;
-      </div>
-    </div>
-  </div>
-
 </div>
-
-<div class="page-footer">
-  Busy Brain Institute &middot; Busy Brains Child's Workbook &middot; My Personal Guide
-</div>
-
 </body>
 </html>`;
   }
