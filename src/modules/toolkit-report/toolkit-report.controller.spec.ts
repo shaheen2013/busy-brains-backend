@@ -2,9 +2,13 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { ToolkitReportController } from "./toolkit-report.controller";
 import { ToolkitReportService } from "./toolkit-report.service";
 
+import { User as UserEntity } from "../users/entities/user.entity";
+
 const mockToolkitReportService = {
   generatePdf: jest.fn(),
 };
+
+const mockUser = { id: "user-1" } as UserEntity;
 
 describe("ToolkitReportController", () => {
   let controller: ToolkitReportController;
@@ -41,7 +45,7 @@ describe("ToolkitReportController", () => {
       service.generatePdf.mockResolvedValue(pdfBuffer);
       const res = createMockResponse();
 
-      await controller.downloadReport(res);
+      await controller.downloadReport(mockUser, "child-1", res);
 
       expect(service.generatePdf).toHaveBeenCalledTimes(1);
     });
@@ -51,7 +55,7 @@ describe("ToolkitReportController", () => {
       service.generatePdf.mockResolvedValue(pdfBuffer);
       const res = createMockResponse();
 
-      await controller.downloadReport(res);
+      await controller.downloadReport(mockUser, "child-1", res);
 
       expect(res.setHeader).toHaveBeenCalledWith(
         "Content-Type",
@@ -64,7 +68,7 @@ describe("ToolkitReportController", () => {
       service.generatePdf.mockResolvedValue(pdfBuffer);
       const res = createMockResponse();
 
-      await controller.downloadReport(res);
+      await controller.downloadReport(mockUser, "child-1", res);
 
       expect(res.setHeader).toHaveBeenCalledWith(
         "Content-Disposition",
@@ -77,7 +81,7 @@ describe("ToolkitReportController", () => {
       service.generatePdf.mockResolvedValue(pdfBuffer);
       const res = createMockResponse();
 
-      await controller.downloadReport(res);
+      await controller.downloadReport(mockUser, "child-1", res);
 
       expect(res.setHeader).toHaveBeenCalledWith(
         "Content-Length",
@@ -90,7 +94,7 @@ describe("ToolkitReportController", () => {
       service.generatePdf.mockResolvedValue(pdfBuffer);
       const res = createMockResponse();
 
-      await controller.downloadReport(res);
+      await controller.downloadReport(mockUser, "child-1", res);
 
       expect(res.end).toHaveBeenCalledWith(pdfBuffer);
     });
@@ -99,9 +103,9 @@ describe("ToolkitReportController", () => {
       service.generatePdf.mockRejectedValue(new Error("puppeteer error"));
       const res = createMockResponse();
 
-      await expect(controller.downloadReport(res)).rejects.toThrow(
-        "puppeteer error",
-      );
+      await expect(
+        controller.downloadReport(mockUser, "child-1", res),
+      ).rejects.toThrow("puppeteer error");
     });
 
     it("should set all three required headers before calling res.end", async () => {
@@ -109,7 +113,7 @@ describe("ToolkitReportController", () => {
       service.generatePdf.mockResolvedValue(pdfBuffer);
       const res = createMockResponse();
 
-      await controller.downloadReport(res);
+      await controller.downloadReport(mockUser, "child-1", res);
 
       const headerCalls = res.setHeader.mock.calls.map(
         ([name]: [string]) => name,

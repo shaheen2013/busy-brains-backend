@@ -1,24 +1,43 @@
-import { Injectable } from "@nestjs/common";
+import { ForbiddenException, Injectable } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
 import { readFileSync } from "fs";
 import { join } from "path";
 import puppeteer from "puppeteer";
+import { Child } from "../children/entities/child.entity";
+import { DashboardService } from "../dashboard/dashboard.service";
 import {
-  ToolkitType,
-  ToolkitTypeData,
+  BrainFlag,
+  ImageGroup,
+  ReportModel,
+  TactileFlag,
+  ToolkitFlag,
   ToolkitImage,
-  isBalanced,
 } from "./toolkit-report.types";
-import { TOOLKIT_DATA } from "./toolkit-report.constants";
+import {
+  BRAIN_CONTENT,
+  IMAGE_SETS,
+  TACTILE_CONTENT,
+  TOOLKIT_CONTENT,
+  TOOLKIT_IMAGE_GROUPS,
+} from "./toolkit-report.constants";
+
+interface SavedToolkitGroup {
+  list?: { title?: string }[];
+  toolFlag?: string;
+}
 
 @Injectable()
 export class ToolkitReportService {
-  // Change these to test different types / names before DB integration
-  private readonly toolkitType: ToolkitType = "balanced";
-  private readonly childName = "Tuhin";
+  constructor(
+    private readonly dashboardService: DashboardService,
+    @InjectRepository(Child)
+    private readonly childRepository: Repository<Child>,
+  ) {}
 
-  async generatePdf(): Promise<Buffer> {
-    const data = TOOLKIT_DATA[this.toolkitType];
-    const html = this.buildHtml(this.childName, data);
+  async generatePdf(userId: string, childId: string): Promise<Buffer> {
+    const model = await this.buildReportModel(userId, childId);
+    const html = this.buildHtml(model);
 
     const executablePath =
       process.env.PUPPETEER_EXECUTABLE_PATH ||
@@ -52,6 +71,162 @@ export class ToolkitReportService {
     }
   }
 
+  // -------------------------------------------------------------------------
+  // Build the report model from the child's real progress data.
+  // -------------------------------------------------------------------------
+  private async buildReportModel(
+    userId: string,
+    childId: string,
+  ): Promise<ReportModel> {
+    const child = await this.childRepository.findOne({
+      where: { id: childId, userId },
+    });
+    if (!child) throw new ForbiddenException("Child not found");
+
+    const dashboard = await this.dashboardService.getDashboard(
+      userId,
+      childId,
+      [],
+    );
+
+    const brain = (dashboard.brain_data ?? {}) as {
+      type?: string;
+      counts?: Record<string, number>;
+    };
+    const tactile = (dashboard.tactile_data ?? {}) as {
+      type?: string;
+      counts?: Record<string, number>;
+    };
+    const favouriteToolsData = (dashboard.favourite_tools_data ?? {}) as {
+      data?: Record<string, unknown> | null;
+    };
+    const finalToolkitData = (dashboard.final_toolkit_data ?? {}) as {
+      data?: Record<string, unknown> | null;
+    };
+
+    return {
+      childName: child.name,
+      brainType: this.resolveBrainType(brain),
+      tactileSense: this.resolveTactileSense(tactile),
+      favouriteTools: this.resolveFavouriteTools(favouriteToolsData.data),
+      ...this.resolveToolkit(finalToolkitData.data),
+    };
+  }
+
+  /** Letters with the highest (non-zero) count; [] when nothing answered. */
+  private winningFlags(counts: Record<string, number> | undefined): string[] {
+    const entries = Object.entries(counts ?? {}).filter(([, c]) => c > 0);
+    if (entries.length === 0) return [];
+    const max = Math.max(...entries.map(([, c]) => c));
+    return entries
+      .filter(([, c]) => c === max)
+      .map(([letter]) => letter)
+      .sort();
+  }
+
+  private resolveBrainType(brain: {
+    type?: string;
+    counts?: Record<string, number>;
+  }): ReportModel["brainType"] {
+    const winners = this.winningFlags(brain.counts);
+    const flag: BrainFlag =
+      winners.length === 1 ? (winners[0] as BrainFlag) : "MIX";
+    const content = BRAIN_CONTENT[flag] ?? BRAIN_CONTENT.MIX;
+    return {
+      title: this.cleanType(brain.type) ?? "Still discovering your brain type",
+      subtitle: content.subtitle,
+      description: content.description,
+    };
+  }
+
+  private resolveTactileSense(tactile: {
+    type?: string;
+    counts?: Record<string, number>;
+  }): ReportModel["tactileSense"] {
+    const winners = this.winningFlags(tactile.counts);
+    const single = winners.length === 1;
+    const flag: TactileFlag = single ? (winners[0] as TactileFlag) : "MIX";
+
+    const bulletPoints = single
+      ? TACTILE_CONTENT[flag].bulletPoints
+      : winners.length > 1
+        ? this.dedupe(
+            winners.flatMap(
+              (w) => TACTILE_CONTENT[w as TactileFlag]?.bulletPoints ?? [],
+            ),
+          )
+        : TACTILE_CONTENT.MIX.bulletPoints;
+
+    return {
+      title:
+        this.cleanType(tactile.type) ?? "Still discovering your tactile sense",
+      subtitle: (TACTILE_CONTENT[flag] ?? TACTILE_CONTENT.MIX).subtitle,
+      bulletPoints,
+    };
+  }
+
+  private resolveFavouriteTools(
+    data: Record<string, unknown> | null | undefined,
+  ): ReportModel["favouriteTools"] {
+    const groups =
+      (data?.module_5_quest_1_saved_toolkit as SavedToolkitGroup[]) ?? [];
+    const tools = this.dedupe(
+      groups.flatMap((group) =>
+        (group.list ?? [])
+          .map((item) => item.title?.trim())
+          .filter((title): title is string => !!title),
+      ),
+    );
+    return {
+      subtitle: "You picked these yourself — great taste!",
+      tools,
+    };
+  }
+
+  private resolveToolkit(data: Record<string, unknown> | null | undefined): {
+    toolkitInfo: ReportModel["toolkitInfo"];
+    images: ToolkitImage[];
+  } {
+    const counts = (data?.module_5_quest_3_screen_2_quiz_counts ??
+      {}) as Record<string, number>;
+    const winners = this.winningFlags(counts);
+    const single = winners.length === 1;
+    const flag: ToolkitFlag = single ? (winners[0] as ToolkitFlag) : "MIX";
+    const content = TOOLKIT_CONTENT[flag] ?? TOOLKIT_CONTENT.MIX;
+
+    // Single winner -> that category's images. Tie -> the tied categories'
+    // images combined. No answers -> the balanced fallback set.
+    let groups: ImageGroup[];
+    if (single) {
+      groups = TOOLKIT_IMAGE_GROUPS[flag];
+    } else if (winners.length > 1) {
+      groups = this.dedupe(
+        winners.flatMap((w) => TOOLKIT_IMAGE_GROUPS[w as ToolkitFlag] ?? []),
+      ) as ImageGroup[];
+    } else {
+      groups = content.imageGroups;
+    }
+
+    return {
+      toolkitInfo: {
+        title: content.title,
+        description: content.description,
+        needs: content.needs,
+      },
+      images: groups.flatMap((group) => IMAGE_SETS[group] ?? []),
+    };
+  }
+
+  /** Drop placeholder "unknown" type strings produced when a quiz is unstarted. */
+  private cleanType(type: string | undefined): string | undefined {
+    if (!type || type.toLowerCase() === "unknown") return undefined;
+    return type;
+  }
+
+  private dedupe(values: string[]): string[] {
+    return [...new Set(values)];
+  }
+
   private loadAsset(relativePath: string): string {
     const fullPath = join(__dirname, "assets", relativePath);
     const ext = relativePath.split(".").pop();
@@ -82,20 +257,15 @@ export class ToolkitReportService {
       .join("");
   }
 
-  private resolveImages(data: ToolkitTypeData): ToolkitImage[] {
-    if (isBalanced(data)) {
-      const [type1, type2] = data.combinedTypes;
-      return [
-        ...(TOOLKIT_DATA[type1] as { images: ToolkitImage[] }).images,
-        ...(TOOLKIT_DATA[type2] as { images: ToolkitImage[] }).images,
-      ];
-    }
-    return data.images;
-  }
-
-  private buildHtml(childName: string, data: ToolkitTypeData): string {
-    const { brainType, tactileSense, favouriteTools, toolkitInfo } = data;
-    const images = this.resolveImages(data);
+  private buildHtml(model: ReportModel): string {
+    const {
+      childName,
+      brainType,
+      tactileSense,
+      favouriteTools,
+      toolkitInfo,
+      images,
+    } = model;
 
     const logoSrc = this.loadAsset("logo.svg");
     const heroSrc = this.loadAsset("hero-child.svg");

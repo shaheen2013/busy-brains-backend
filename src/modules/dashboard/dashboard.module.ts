@@ -20,5 +20,6 @@ import { UserPlan } from "../subscriptions/entities/user-plan.entity";
   ],
   controllers: [DashboardController],
   providers: [DashboardService],
+  exports: [DashboardService],
 })
 export class DashboardModule {}

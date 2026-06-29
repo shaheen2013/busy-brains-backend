@@ -1,26 +1,32 @@
-import { Controller, Get, Res } from "@nestjs/common";
+import { Controller, Get, Param, Res } from "@nestjs/common";
 import {
+  ApiBearerAuth,
   ApiTags,
   ApiOperation,
   ApiProduces,
   ApiResponse,
 } from "@nestjs/swagger";
 import type { Response } from "express";
-import { Public } from "../auth/decorators/public.decorator";
+import { User } from "../auth/decorators/user.decorator";
+import { User as UserEntity } from "../users/entities/user.entity";
 import { ToolkitReportService } from "./toolkit-report.service";
 
 @ApiTags("Toolkit Report")
+@ApiBearerAuth("Clerk-Bearer")
 @Controller("child-toolkit-report")
 export class ToolkitReportController {
   constructor(private readonly toolkitReportService: ToolkitReportService) {}
 
-  @Get()
-  @Public()
-  @ApiOperation({ summary: "Download child toolkit report as PDF" })
+  @Get(":childId")
+  @ApiOperation({ summary: "Download a child's toolkit report as PDF" })
   @ApiProduces("application/pdf")
   @ApiResponse({ status: 200, description: "Returns the toolkit report PDF" })
-  async downloadReport(@Res() res: Response): Promise<void> {
-    const pdf = await this.toolkitReportService.generatePdf();
+  async downloadReport(
+    @User() user: UserEntity,
+    @Param("childId") childId: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const pdf = await this.toolkitReportService.generatePdf(user.id, childId);
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",

@@ -1,9 +1,20 @@
 import {
+  BrainFlag,
+  BrainContent,
+  TactileFlag,
+  TactileContent,
+  ToolkitFlag,
+  ToolkitContent,
   ToolkitImage,
-  ToolkitType,
-  ToolkitTypeData,
+  ImageGroup,
 } from "./toolkit-report.types";
 
+// ---------------------------------------------------------------------------
+// Toolkit grid images.
+//
+// One set per tool category. A child's "Final Toolkit" grid is built from the
+// category/categories that win their Module 5 Quest 3 toolkit quiz.
+// ---------------------------------------------------------------------------
 const MOVEMENT_IMAGES: ToolkitImage[] = [
   {
     imageFile: "movement/1.svg",
@@ -163,172 +174,142 @@ const CALM_AND_COMFORT_IMAGES: ToolkitImage[] = [
   },
 ];
 
-const MOVEMENT_DATA: ToolkitTypeData = {
-  brainType: {
-    title: "Mover Brain",
-    subtitle: "Always on the go — loves action and energy!",
-    description:
-      "Your brain loves to move! You think best when your body is active. Running, jumping, shaking, and pushing things are all great ways to help your brain reset. Movement is your superpower — and that's totally amazing!",
-  },
-  tactileSense: {
-    title: "Active Touch Seeker",
-    subtitle: "your body loves big, active sensations!",
-    bulletPoints: [
-      "Your body craves movement and big touch sensations",
-      "Pushing, pulling, and jumping help you feel grounded",
-      "You often seek out rough textures or active play",
-      "- moving your body is a powerful tool for you!",
-    ],
-  },
-  favouriteTools: {
-    subtitle: "You picked these yourself — great taste!",
-    tools: [
-      "Jump on the spot",
-      "Shake arms and legs out",
-      "Wall push-ups",
-      "Star jumps",
-      "Animal walks",
-      "Run in place",
-      "Dance to music",
-      "Balance on one leg",
-    ],
-  },
-  toolkitInfo: {
-    title: "Movement Toolkit",
-    description:
-      "Your brain loves to move and your body needs active input to feel calm and focused. Movement tools like jumping, pushing, and running help your brain reset and recharge. Keep moving — it is your superpower!",
-    needs: ["movement", "energy release", "body input", "action"],
-  },
-  images: MOVEMENT_IMAGES,
+export const IMAGE_SETS: Record<ImageGroup, ToolkitImage[]> = {
+  movement: MOVEMENT_IMAGES,
+  rest_and_breathe: REST_AND_BREATHE_IMAGES,
+  calm_and_comfort: CALM_AND_COMFORT_IMAGES,
 };
 
-const REST_AND_BREATHE_DATA: ToolkitTypeData = {
-  brainType: {
-    title: "Quiet & Calm Brain",
-    subtitle: "Rest and breathe — your brain loves stillness!",
+// ---------------------------------------------------------------------------
+// Brain Type content — Module 1 Quest 5 quiz.
+// Flags: A = Mover, B = Cozy, C = Fidget, D = Quiet. MIX = a combo result.
+// Copy mirrors the frontend (data/module-1 + data/final-toolkit).
+// ---------------------------------------------------------------------------
+export const BRAIN_CONTENT: Record<BrainFlag, BrainContent> = {
+  A: {
+    subtitle: "Loves to move to feel calm and focused",
     description:
-      "Your brain works best when it has moments of quiet and breathing time. You might find it easier to think and feel calm after taking slow breaths or having a rest. Breathing exercises and quiet time are your superpower tools!",
+      "Your body loves to move! Jumping, running, and being active help your brain feel calm and focused.",
   },
-  tactileSense: {
-    title: "Sensory Calmer",
-    subtitle: "breathing and quiet spaces help you reset!",
-    bulletPoints: [
-      "Your body feels best with gentle, calming input",
-      "Slow breathing and stillness help your brain focus",
-      "Quiet spaces and soft sounds make you feel safe",
-      "- breathing deeply is a powerful tool for you!",
-    ],
-  },
-  favouriteTools: {
-    subtitle: "You picked these yourself — great taste!",
-    tools: [
-      "5 slow belly breaths",
-      "Guided breathing animation",
-      "Quiet corner time",
-      "Listen to calm music",
-      "Body scan",
-      "Chill time",
-      "Close eyes for 30 seconds",
-      "Stretch slowly",
-    ],
-  },
-  toolkitInfo: {
-    title: "Rest & Breathe Toolkit",
+  B: {
+    subtitle: "Feels best with comfort and cozy things",
     description:
-      "Your brain loves quiet and breathing tools. When you feel overwhelmed, slowing down and breathing helps your brain and body reset. These tools are your go-to for feeling calm and focused. You've got this!",
-    needs: ["calm", "breathing", "quiet", "stillness"],
+      "You feel better with comfort – hugs, blankets, or something soft to hold make you feel safe and calm.",
   },
-  images: REST_AND_BREATHE_IMAGES,
-};
-
-const CALM_AND_COMFORT_DATA: ToolkitTypeData = {
-  brainType: {
-    title: "Cozy Brain",
-    subtitle: "Comfort and warmth — the cozy way to reset!",
+  C: {
+    subtitle: "Keeps hands busy to help focus",
     description:
-      "Your brain loves comfort and touch! When you feel overwhelmed, cozy things like soft textures, warm hugs, and familiar objects help your brain feel safe and calm. You are a comfort expert — and that's a wonderful superpower!",
+      "Keeping your hands busy helps your brain focus – fiddling, drawing, or doodling is your superpower!",
   },
-  tactileSense: {
-    title: "Touch Explorer",
-    subtitle: "your body knows what it needs!",
-    bulletPoints: [
-      "Your body often wants MORE touch",
-      "Touch helps you focus & calm",
-      "You often look for touch when you feel tired or overwhelmed",
-      "- it can be a helpful tool for you!",
-    ],
-  },
-  favouriteTools: {
-    subtitle: "You picked these yourself — great taste!",
-    tools: [
-      "Hug a pillow or teddy",
-      "Wrap in a blanket",
-      "Squeeze putty or playdough",
-      "Firm hand or shoulder squeeze",
-      "Sit next to someone you trust",
-      "Play with some fidget tools",
-      "Headphones & music",
-      "Warm drink",
-    ],
-  },
-  toolkitInfo: {
-    title: "Calm & Comfort Toolkit",
+  D: {
+    subtitle: "Likes calm, quiet time to recharge",
     description:
-      "Your brain finds comfort in touch and cozy sensations. When you feel big feelings, reaching for something soft, warm, or familiar helps your brain feel safe and settled. Your cozy tools are always there for you!",
-    needs: ["comfort", "touch", "warmth", "safety"],
+      "You like calm spaces and time alone. Quiet moments help you recharge and feel ready again.",
   },
-  images: CALM_AND_COMFORT_IMAGES,
-};
-
-// Change combinedTypes to any two SingleToolkitType values to alter the combination
-const BALANCED_DATA: ToolkitTypeData = {
-  combinedTypes: ["rest_and_breathe", "calm_and_comfort"],
-  brainType: {
-    title: "Mover + Cozy Brain Combo",
+  MIX: {
     subtitle: "the best of both worlds!",
     description:
-      "Not every Busy Brain fits in one box! Sometimes you feel like moving, sometimes you want quiet, sometimes you need something cozy or fidgety. Your brain can be different on different days or in different places — and that's totally okay. Knowing what feels right for you in certain situations helps you (and your grown-ups) understand what your Busy Brain needs.",
+      "Not every Busy Brain fits in one box! Sometimes you feel like moving, sometimes you want quiet, sometimes you need something cozy or fidgety. Your brain can be different on different days or in different places – and that's totally okay. Knowing what feels right for you in certain situations, helps you (and your grown-ups) understand what your Busy Brain needs.",
   },
-  tactileSense: {
-    title: "Touch Explorer",
-    subtitle: "your body knows what it needs!",
+};
+
+// ---------------------------------------------------------------------------
+// Tactile Sense content — Module 4 Quest 2 quiz.
+// Flags: A = Touch Explorer, B = Touch Detective, C = Touch on Your Terms.
+// Bullet points mirror the frontend (data/module-4/quest-2).
+// ---------------------------------------------------------------------------
+export const TACTILE_CONTENT: Record<TactileFlag, TactileContent> = {
+  A: {
+    subtitle: "Loves touch to feel calm and focused",
     bulletPoints: [
       "Your body often wants MORE touch",
       "Touch helps you focus & calm",
-      "You often look for touch when you feel tired or overwhelmed",
-      "- it can be a helpful tool for you!",
+      "You often look for touch when you feel tired or overwhelmed - it can be a helpful tool for you!",
     ],
   },
-  favouriteTools: {
-    subtitle: "You picked these yourself — great taste!",
-    tools: [
-      "Squeeze putty or playdough",
-      "Sit next to someone you trust",
-      "Talk to someone you like",
-      "Draw or colour",
-      "Jump on the spot",
-      "5 slow belly breaths",
-      "Read a favourite book",
-      "Shake arms and legs out",
-      "Wrap in a blanket",
-      "Hug a pillow or teddy",
-      "Board games or cards",
-      "Guided breathing animation",
-      "Wall push-ups",
-      "Chill time",
+  B: {
+    subtitle: "Notices when touch feels too much",
+    bulletPoints: [
+      'Your body sometimes says "too much" to touch.',
+      "You don't like unexpected or non-chosen touch.",
+      "Clothing, tags, or bumps can feel tricky.",
+      "Too much touch can drain your energy.",
     ],
   },
-  toolkitInfo: {
+  C: {
+    subtitle: "Chooses what touch feels right",
+    bulletPoints: [
+      "Your body doesn't always want the same thing.",
+      "Sometimes you love messy play, hugs, or fidgets.",
+      "Other times… it feels like too much.",
+      "Listening to your body helps you choose what feels right.",
+    ],
+  },
+  MIX: {
+    subtitle: "your body knows what it needs!",
+    bulletPoints: [
+      "Your body needs different kinds of touch at different times.",
+      "Sometimes you want more touch, sometimes less.",
+      "Listening to your body helps you choose what feels right.",
+    ],
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Final Toolkit content — Module 5 Quest 3 quiz.
+// Flags: A = Movement, B = Calm & Comfort, C = Rest & Breathe. MIX = Balanced.
+// `imageGroups` selects which grid images appear for a single-winner result.
+// Copy mirrors the frontend (data/module-5/quest-3).
+// ---------------------------------------------------------------------------
+export const TOOLKIT_CONTENT: Record<ToolkitFlag, ToolkitContent> = {
+  A: {
+    title: "Movement Toolkit",
+    description:
+      "When your energy builds up, your body isn't being \"too much\" — it's letting you know it needs movement. Movement tools help your body release energy and feel more in control.",
+    needs: ["jumping", "pushing", "crashing", "stretching", "animal walks"],
+    imageGroups: ["movement"],
+  },
+  B: {
+    title: "Calm & Comfort Toolkit",
+    description:
+      "These tools give your body comfort when things feel too much or too big. They help your body feel safe, stay grounded, and focus without overwhelm.",
+    needs: [
+      "fidgets",
+      "headphones",
+      "soft things",
+      "weighted items",
+      "cozy spaces",
+      "a big cuddle from a safe person",
+    ],
+    imageGroups: ["calm_and_comfort"],
+  },
+  C: {
+    title: "Rest & Breathe Toolkit",
+    description:
+      'Sometimes your brain and body go into "too fast" mode. These tools help your body slow down, feel calm, and feel ready again.',
+    needs: [
+      "deep breathing",
+      "lying down",
+      "quiet time",
+      "quiet play like books or lego",
+    ],
+    imageGroups: ["rest_and_breathe"],
+  },
+  MIX: {
     title: "Balanced Toolkit",
     description:
       "Your brain is flexible and can use different kinds of tools depending on how you feel. Sometimes you might need to move, sometimes you might need to feel calm, and sometimes you might need quiet or breathing.",
     needs: ["movement", "calm", "breathing", "comfort", "creativity"],
+    // For a balanced result the grid is built from the tied categories;
+    // this fallback is used only when the winners can't be resolved.
+    imageGroups: ["movement", "rest_and_breathe", "calm_and_comfort"],
   },
 };
 
-export const TOOLKIT_DATA: Record<ToolkitType, ToolkitTypeData> = {
-  movement: MOVEMENT_DATA,
-  rest_and_breathe: REST_AND_BREATHE_DATA,
-  calm_and_comfort: CALM_AND_COMFORT_DATA,
-  balanced: BALANCED_DATA,
+// Maps a single toolkit flag to its grid image group(s).
+export const TOOLKIT_IMAGE_GROUPS: Record<ToolkitFlag, ImageGroup[]> = {
+  A: ["movement"],
+  B: ["calm_and_comfort"],
+  C: ["rest_and_breathe"],
+  MIX: ["movement", "rest_and_breathe", "calm_and_comfort"],
 };
