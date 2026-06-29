@@ -427,7 +427,7 @@ export class ToolkitReportService {
   .tag { font-size: 9.5px; font-weight: 600; padding: 5px 12px; border-radius: 20px; border: 1px solid; }
 
   /* ── Final toolkit ── */
-  .final-card { border: 1px solid #e9d5ff; border-radius: 20px; padding: 20px; background: #ffffff; }
+  .final-card { border: 1px solid #6CC5C640; border-radius: 20px; padding: 20px; background: #6CC5C618; }
   .final-label { font-size: 16px; font-weight: 900; color: #7c3aed; }
   .toolkit-row { display: flex; align-items: center; gap: 9px; margin: 4px 0 14px; }
   .toolkit-name { font-size: 13px; font-weight: 800; color: #1e293b; }
