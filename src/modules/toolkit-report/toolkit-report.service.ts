@@ -535,8 +535,10 @@ export class ToolkitReportService {
           <div class="card-sub">${this.escapeHtml(favouriteTools.subtitle)}</div>
         </div>
       </div>
-      <div class="fun-h2">You chose these as YOUR all-time faves</div>
-      <div class="tags">${toolTags}</div>
+      <div style="padding: 16px;">
+        <div class="fun-h2">You chose these as YOUR all-time faves</div>
+        <div class="tags">${toolTags}</div>
+      </div>
     </div>
 
     <!-- Final Toolkit -->
