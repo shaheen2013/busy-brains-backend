@@ -35,4 +35,19 @@ export class ToolkitReportController {
     res.setHeader("Content-Length", pdf.length);
     res.end(pdf);
   }
+
+  @Get(":childId/preview")
+  @ApiOperation({ summary: "Preview a child's toolkit report as HTML" })
+  @ApiProduces("text/html")
+  @ApiResponse({ status: 200, description: "Returns the toolkit report HTML" })
+  async previewReport(
+    @User() user: UserEntity,
+    @Param("childId") childId: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const html = await this.toolkitReportService.buildHtml(user.id, childId);
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.setHeader("Cache-Control", "no-store");
+    res.end(html);
+  }
 }
