@@ -295,9 +295,9 @@ export class ToolkitReportService {
         const src = this.loadAsset(`images/${img.imageFile}`);
         const accent = GROUP_ACCENT[img.group];
         return `
-          <div class="cell" style="border-color:${accent}">
-            <img class="cell-img" src="${src}" alt="${this.escapeHtml(img.label)}" />
-            <div class="cell-label">${this.escapeHtml(img.label)}</div>
+          <div class="border-[1.5px] border-dashed rounded-[14px] px-1.5 pt-2.5 pb-[9px] flex flex-col items-center bg-white" style="border-color:${accent}">
+            <img class="w-full h-20 object-contain mb-[7px]" src="${src}" alt="${this.escapeHtml(img.label)}" />
+            <div class="text-[8px] font-bold text-[#334155] text-center leading-[1.3]">${this.escapeHtml(img.label)}</div>
           </div>`;
       })
       .join("");
@@ -313,12 +313,15 @@ export class ToolkitReportService {
     const toolTags = favouriteTools.tools
       .map((tool) => {
         const c = TAG_COLORS[tool.flag] ?? DEFAULT_TAG;
-        return `<span class="tag" style="background:${c.bg};border-color:${c.border};color:${c.text}">${this.escapeHtml(tool.title)}</span>`;
+        return `<span class="text-[${c.text}] bg-[${c.bg}] border border-[${c.border}] text-[9.5px] font-semibold px-3 py-[5px] rounded-[20px]">${this.escapeHtml(tool.title)}</span>`;
       })
       .join("");
 
     const bulletPoints = tactileSense.bulletPoints
-      .map((p) => `<li>${this.escapeHtml(p)}</li>`)
+      .map(
+        (p) =>
+          `<li class="text-[10.5px] text-[#475569] leading-[1.55] pl-3.5 relative mb-0.5 before:content-['•'] before:absolute before:left-0.5 before:text-[#94a3b8] before:font-bold">${this.escapeHtml(p)}</li>`,
+      )
       .join("");
 
     const imageGrid = this.buildImageGrid(model.images);
@@ -335,6 +338,53 @@ export class ToolkitReportService {
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Nunito+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          nunito: ['"Nunito"', '"Noto Color Emoji"', 'sans-serif'],
+          'nunito-sans': ['"Nunito Sans"', 'sans-serif'],
+        },
+        colors: {
+          'bb-slate': '#1e293b',
+          'bb-slate-light': '#475569',
+          'bb-slate-muted': '#64748b',
+          'bb-slate-faint': '#94a3b8',
+          'bb-slate-ghost': '#cbd5e1',
+          'bb-teal': '#22b8c9',
+          'bb-teal-dark': '#0e9ca8',
+          'bb-teal-light': '#2cc0ce',
+          'bb-teal-bg': '#f0f9f9',
+          'bb-teal-border': '#bbe4e5',
+          'bb-teal-border-strong': '#6cc5c6',
+          'bb-purple': '#7c3aed',
+          'bb-purple-light': '#ede7ff',
+          'bb-purple-bg': '#faf8ff',
+          'bb-purple-border': '#e9d5ff',
+          'bb-yellow': '#fbbf24',
+          'bb-yellow-bg': '#ffd525',
+          'bb-yellow-border': '#ffd52544',
+          'bb-green': '#34c759',
+          'bb-green-bg': '#f2fbee',
+          'bb-green-border': '#bbf7d0',
+          'bb-orange': '#e8694b',
+          'bb-orange-bg': '#fff1ed',
+          'bb-orange-border': '#fbd3c8',
+          'bb-cyan': '#34c0ce',
+          'bb-cyan-bg': '#ecfeff',
+          'bb-cyan-border': '#a5e8ec',
+          'bb-violet-bg': '#f5f3ff',
+          'bb-violet-border': '#ddd6fe',
+          'bb-gray-bg': '#f1f5f9',
+          'bb-gray-border': '#e2e8f0',
+        },
+      },
+    },
+  }
+</script>
+
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -345,224 +395,115 @@ export class ToolkitReportService {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  .emoji { font-family: "Noto Color Emoji", sans-serif;}
-  .page { padding-bottom: 28px; }
-  .nunito-sans {
-    font-family: "Nunito Sans", sans-serif;
-  }
-
-  /* ── Top bar ── */
-  .topbar { display: flex; justify-content: space-between; align-items: flex-start; }
-  .logo-box { padding: 0px; }
-  .logo { height: 40px; display: block; }
-  .top-title {
-    font-size: 22px; font-weight: 800; color: #1e293b;
-    padding: 24px 40px 0 0; letter-spacing: -0.3px;
-  }
-
-  /* ── Content column ── */
-  .wrap {
-    max-width: 700px; margin: 18px auto 0; padding: 0 18px;
-    display: flex; flex-direction: column; gap: 14px;
-  }
-
-  /* ── Hero ── */
-  .hero {
-    background: linear-gradient(120deg, #ede9fe 0%, #f3eefe 55%, #fdeef6 100%);
-    border: 1px solid #ece3fb;
-    border-radius: 22px;
-    padding: 20px 24px;
-    display: flex; justify-content: space-between; align-items: center;
-    position: relative; overflow: hidden;
-  }
-  .hero-badge {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: #ffffff; border: 1px solid #ece3fb;
-    color: #6b7280; font-size: 9px; font-weight: 600;
-    padding: 3px 10px; border-radius: 20px; margin-bottom: 10px;
-  }
-  .hero-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #22b8c9; }
-  .hero-title { font-size: 23px; font-weight: 900; color: #1e293b; line-height: 1.2; letter-spacing: -0.4px; }
-  .hero-title .accent { color: #22b8c9; }
-  .hero-sub { font-size: 10.5px; color: #64748b; margin-top: 7px; }
-  .hero-img { width: 96px; height: 96px; object-fit: contain; flex-shrink: 0; }
-
-  /* ── Section icon squares + letter badge ── */
-  .card-head { display: flex; align-items: center; gap: 11px; margin-bottom: 12px; }
-
-  .icon-sq {
-    position: relative; width: 42px; height: 42px; border-radius: 13px;
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  }
-  .icon-sq svg { width: 22px; height: 22px; }
-  .icon-sq.yellow { background: #fbbf24; }
-  .icon-sq.teal { background: #2cc0ce; }
-  .icon-sq.green { background: #34c759; }
-  .icon-sq.purple { background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%); }
-  .icon-sq .badge {
-    position: absolute; bottom: -5px; right: -5px;
-    width: 17px; height: 17px; border-radius: 50%;
-    background: #34c759; border: 2px solid #ffffff;
-    color: #ffffff; font-size: 8px; font-weight: 800;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .card-label { font-size: 13px; font-weight: 800; color: #1e293b; }
-  .card-sub { font-size: 9.5px; color: #94a3b8; margin-top: 2px; }
-  .card-h2 { font-size: 14px; font-weight: 800; color: #1e293b; margin-bottom: 7px; }
-  .card-p { font-size: 10.5px; color: #475569; line-height: 1.6; }
-  .cards-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .info-card { border: 1px solid #BBE4E5; border-radius: 18px; background: #fff; }
-  .info-card.brain { border-color: #FFD52544; }
-  .brain .card-head { background: #FFD525; border-radius: 18px 18px 0 0; padding: 16px; }
-  .tactile .card-head { background: #F0F9F9; border-radius: 18px 18px 0 0; padding: 16px; }
-  .bullets { list-style: none; padding: 0; }
-  .bullets li {
-    font-size: 10.5px; color: #475569; line-height: 1.55;
-    padding-left: 14px; position: relative; margin-bottom: 2px;
-  }
-  .bullets li::before { content: '•'; position: absolute; left: 2px; color: #94a3b8; font-weight: 700; }
-
-  /* ── Fun tools ── */
-  .fun-card { border: 1px solid #bbf7d0; border-radius: 18px; }
-  .fun-card .card-head { padding: 16px; border-radius: 18px 18px 0 0; background: #F2FBEE; }
-  .fun-h2 { font-size: 12.5px; font-weight: 800; color: #1e293b; margin-bottom: 11px; }
-  .tags { display: flex; flex-wrap: wrap; gap: 7px; }
-  .tag { font-size: 9.5px; font-weight: 600; padding: 5px 12px; border-radius: 20px; border: 1px solid; }
-
-  /* ── Final toolkit ── */
-  .final-card { border: 1px solid #6CC5C640; border-radius: 20px; padding: 20px; background: #6CC5C618; }
-  .final-label { font-size: 16px; font-weight: 900; color: #7c3aed; }
-  .toolkit-row { display: flex; align-items: center; gap: 9px; margin: 4px 0 14px; }
-  .toolkit-name { font-size: 13px; font-weight: 800; color: #1e293b; }
-  .primary-badge {
-    background: #ede7ff; color: #7c3aed;
-    font-size: 9px; font-weight: 700; padding: 3px 11px; border-radius: 14px;
-  }
-  .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 11px; }
-  .cell {
-    border: 1.5px dashed; border-radius: 14px;
-    padding: 10px 6px 9px;
-    display: flex; flex-direction: column; align-items: center;
-    background: #ffffff;
-  }
-  .cell-img { width: 100%; height: 80px; object-fit: contain; margin-bottom: 7px; }
-  .cell-label { font-size: 8px; font-weight: 700; color: #334155; text-align: center; line-height: 1.3; }
-
-  /* ── Superstar ── */
-  .star-card {
-    border: 1px solid #e9d5ff; border-radius: 18px; padding: 16px 20px;
-    background: #faf8ff; display: flex; align-items: center; gap: 14px;
-  }
-  .star-emoji { font-size: 34px; flex-shrink: 0; }
-  .star-title { font-size: 14px; font-weight: 800; color: #7c3aed; }
-  .star-body { font-size: 10px; color: #475569; line-height: 1.55; margin-top: 4px; }
-
-  /* ── Page footer ── */
-  .page-foot {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-top: 14px; padding-top: 12px; border-top: 1px dashed #e5e7eb;
-    font-size: 8.5px; color: #cbd5e1;
-  }
-  .dots { display: inline-flex; gap: 4px; }
-  .dots i { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
-  .dots i:nth-child(1) { background: #f87171; }
-  .dots i:nth-child(2) { background: #fbbf24; }
-  .dots i:nth-child(3) { background: #34d399; }
-  .dots i:nth-child(4) { background: #60a5fa; }
-  .dots i:nth-child(5) { background: #a78bfa; }
+  .emoji { font-family: "Noto Color Emoji", sans-serif; }
 </style>
 </head>
 <body>
-<div class="page">
+<div class="pb-7">
 
   <!-- Top bar -->
-  <div class="topbar">
-    <div class="logo-box"><img class="logo" src="${logoSrc}" alt="Busy Brains" /></div>
-    <div class="top-title">Busy Brains Child's Toolkit</div>
+  <div class="flex justify-between items-start">
+    <div class="p-0">
+      <img class="h-10 block" src="${logoSrc}" alt="Busy Brains" />
+    </div>
+    <div class="text-[22px] font-extrabold text-bb-slate pt-6 pr-10 pb-0 pl-0 tracking-[-0.3px]">Busy Brains Child's Toolkit</div>
   </div>
 
-  <div class="wrap">
+  <div class="max-w-[700px] mx-auto mt-[18px] mb-0 px-[18px] flex flex-col gap-3.5">
 
     <!-- Hero -->
-    <div class="hero">
+    <div class="bg-gradient-to-br from-[#ede9fe] via-[#f3eefe] to-[#fdeef6] border border-[#ece3fb] rounded-[22px] px-6 py-5 flex justify-between items-center relative overflow-hidden">
       <div>
-        <span class="hero-badge"><span class="dot"></span> Final Toolkit</span>
-        <div class="hero-title">
-          ${this.escapeHtml(childName)}'s Busy Brains <span class="accent">Complete Toolkit</span> &#127890;
+        <span class="inline-flex items-center gap-1.5 bg-white border border-[#ece3fb] text-[#6b7280] text-[9px] font-semibold px-2.5 py-[3px] rounded-[20px] mb-2.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-bb-teal"></span> Final Toolkit
+        </span>
+        <div class="text-[23px] font-black text-bb-slate leading-[1.2] tracking-[-0.4px]">
+          ${this.escapeHtml(childName)}'s Busy Brains <span class="text-bb-teal">Complete Toolkit</span> &#127890;
         </div>
-        <div class="hero-sub">Built from your favourites, quiz results &amp; sensory profile</div>
+        <div class="text-[10.5px] text-bb-slate-muted mt-[7px]">Built from your favourites, quiz results &amp; sensory profile</div>
       </div>
-      <img class="hero-img" src="${heroSrc}" alt="Child meditating" />
+      <img class="w-24 h-24 object-contain shrink-0" src="${heroSrc}" alt="Child meditating" />
     </div>
 
     <!-- Brain Type + Tactile Sense -->
-    <div class="cards-2">
-      <div class="info-card brain">
-        <div class="card-head">
-          <div class="icon-sq yellow">${ICONS.sprout}<span class="badge">A</span></div>
+    <div class="grid grid-cols-2 gap-3.5">
+      <div class="border border-bb-yellow-border rounded-[18px] bg-white">
+        <div class="flex items-center gap-[11px] mb-3 bg-bb-yellow-bg rounded-t-[18px] p-4">
+          <div class="relative w-[42px] h-[42px] rounded-[13px] flex items-center justify-center shrink-0 bg-bb-yellow">
+            ${ICONS.sprout}
+            <span class="absolute -bottom-[5px] -right-[5px] w-[17px] h-[17px] rounded-full bg-bb-green border-2 border-white text-white text-[8px] font-extrabold flex items-center justify-center">A</span>
+          </div>
           <div>
-            <div class="card-label">My Brain Type</div>
-            <div class="card-sub">${this.escapeHtml(brainHeadSub)}</div>
+            <div class="text-[13px] font-extrabold text-bb-slate">My Brain Type</div>
+            <div class="text-[9.5px] text-bb-slate-faint mt-0.5">${this.escapeHtml(brainHeadSub)}</div>
           </div>
         </div>
-        <div style="padding: 16px;">
-          <div class="card-h2">${this.escapeHtml(brainType.title)}</div>
-          <p class="card-p">${this.escapeHtml(brainType.description)}</p>
+        <div class="p-4">
+          <div class="text-sm font-extrabold text-bb-slate mb-[7px]">${this.escapeHtml(brainType.title)}</div>
+          <p class="text-[10.5px] text-bb-slate-light leading-[1.6]">${this.escapeHtml(brainType.description)}</p>
         </div>
       </div>
 
-      <div class="info-card tactile">
-        <div class="card-head">
-          <div class="icon-sq teal">${ICONS.hand}<span class="badge">B</span></div>
+      <div class="border border-bb-teal-border rounded-[18px] bg-white">
+        <div class="flex items-center gap-[11px] mb-3 bg-bb-teal-bg rounded-t-[18px] p-4">
+          <div class="relative w-[42px] h-[42px] rounded-[13px] flex items-center justify-center shrink-0 bg-bb-teal-light">
+            ${ICONS.hand}
+            <span class="absolute -bottom-[5px] -right-[5px] w-[17px] h-[17px] rounded-full bg-bb-green border-2 border-white text-white text-[8px] font-extrabold flex items-center justify-center">B</span>
+          </div>
           <div>
-            <div class="card-label">My Tactile Sense</div>
-            <div class="card-sub">${this.escapeHtml(tactileHeadSub)}</div>
+            <div class="text-[13px] font-extrabold text-bb-slate">My Tactile Sense</div>
+            <div class="text-[9.5px] text-bb-slate-faint mt-0.5">${this.escapeHtml(tactileHeadSub)}</div>
           </div>
         </div>
-          <div style="padding: 16px;">
-            <div class="card-h2">${this.escapeHtml(tactileSense.title)}</div>
-            <ul class="bullets">${bulletPoints}</ul>
-          </div>
+        <div class="p-4">
+          <div class="text-sm font-extrabold text-bb-slate mb-[7px]">${this.escapeHtml(tactileSense.title)}</div>
+          <ul class="list-none p-0">${bulletPoints}</ul>
         </div>
+      </div>
     </div>
 
     <!-- Favourite Fun Tools -->
-    <div class="fun-card">
-      <div class="card-head">
-        <div class="icon-sq green">${ICONS.star}<span class="badge">C</span></div>
+    <div class="border border-bb-green-border rounded-[18px]">
+      <div class="flex items-center gap-[11px] p-4 rounded-t-[18px] bg-bb-green-bg">
+        <div class="relative w-[42px] h-[42px] rounded-[13px] flex items-center justify-center shrink-0 bg-bb-green">
+          ${ICONS.star}
+          <span class="absolute -bottom-[5px] -right-[5px] w-[17px] h-[17px] rounded-full bg-bb-green border-2 border-white text-white text-[8px] font-extrabold flex items-center justify-center">C</span>
+        </div>
         <div>
-          <div class="card-label">My Favourite Fun Tools</div>
-          <div class="card-sub">${this.escapeHtml(favouriteTools.subtitle)}</div>
+          <div class="text-[13px] font-extrabold text-bb-slate">My Favourite Fun Tools</div>
+          <div class="text-[9.5px] text-bb-slate-faint mt-0.5">${this.escapeHtml(favouriteTools.subtitle)}</div>
         </div>
       </div>
-      <div style="padding: 16px;">
-        <div class="fun-h2">You chose these as YOUR all-time faves</div>
-        <div class="tags">${toolTags}</div>
+      <div class="p-4">
+        <div class="text-[12.5px] font-extrabold text-bb-slate mb-[11px]">You chose these as YOUR all-time faves</div>
+        <div class="flex flex-wrap gap-[7px]">${toolTags}</div>
       </div>
     </div>
 
     <!-- Final Toolkit -->
-    <div class="final-card">
-      <div class="card-head">
-        <div class="icon-sq purple">${ICONS.target}</div>
+    <div class="border border-bb-teal-border-strong/25 rounded-[20px] p-5 bg-bb-teal-border-strong/[0.09]">
+      <div class="flex items-center gap-[11px] mb-3">
+        <div class="relative w-[42px] h-[42px] rounded-[13px] flex items-center justify-center shrink-0 bg-gradient-to-br from-[#a855f7] to-[#ec4899]">
+          ${ICONS.target}
+        </div>
         <div>
-          <div class="final-label">Final Toolkit</div>
-          <div class="card-sub">From Screen 5 Quiz Result &middot; how well you know your tools</div>
+          <div class="text-base font-black text-bb-purple">Final Toolkit</div>
+          <div class="text-[9.5px] text-bb-slate-faint mt-0.5">From Screen 5 Quiz Result &middot; how well you know your tools</div>
         </div>
       </div>
-      <div class="toolkit-row">
-        <span class="toolkit-name">${this.escapeHtml(toolkitInfo.title)}</span>
-        <span class="primary-badge">Primary Tool</span>
+      <div class="flex items-center gap-[9px] my-1 mb-3.5">
+        <span class="text-[13px] font-extrabold text-bb-slate">${this.escapeHtml(toolkitInfo.title)}</span>
+        <span class="bg-bb-purple-light text-bb-purple text-[9px] font-bold px-[11px] py-[3px] rounded-[14px]">Primary Tool</span>
       </div>
-      <div class="grid">${imageGrid}</div>
+      <div class="grid grid-cols-5 gap-[11px]">${imageGrid}</div>
     </div>
 
     <!-- Superstar -->
-    <div class="star-card">
-      <div class="star-emoji">&#127881;</div>
+    <div class="border border-bb-purple-border rounded-[18px] px-5 py-4 bg-bb-purple-bg flex items-center gap-3.5">
+      <div class="text-[34px] shrink-0">&#127881;</div>
       <div>
-        <div class="star-title">You're a Busy Brain Superstar! &#11088;&#10024;</div>
-        <p class="star-body">
+        <div class="text-sm font-extrabold text-bb-purple">You're a Busy Brain Superstar! &#11088;&#10024;</div>
+        <p class="text-[10px] text-bb-slate-light leading-[1.55] mt-1">
           You now know your brain type, your sensory profile, and your personal toolkit.
           Stick this on your fridge or in your bedroom. Whenever you feel big feelings,
           look at your toolkit and pick a tool. You've totally got this!
@@ -571,9 +512,15 @@ export class ToolkitReportService {
     </div>
 
     <!-- Page footer -->
-    <div class="page-foot">
+    <div class="flex justify-between items-center mt-3.5 pt-3 border-t border-dashed border-[#e5e7eb] text-[8.5px] text-bb-slate-ghost">
       <span>busy-brains.com.au &middot; Busy Brains Child's Workbook &middot; My Personal Guide</span>
-      <span class="dots"><i></i><i></i><i></i><i></i><i></i></span>
+      <span class="inline-flex gap-1">
+        <i class="w-1.5 h-1.5 rounded-full inline-block bg-red-400"></i>
+        <i class="w-1.5 h-1.5 rounded-full inline-block bg-bb-yellow"></i>
+        <i class="w-1.5 h-1.5 rounded-full inline-block bg-emerald-400"></i>
+        <i class="w-1.5 h-1.5 rounded-full inline-block bg-blue-400"></i>
+        <i class="w-1.5 h-1.5 rounded-full inline-block bg-violet-400"></i>
+      </span>
     </div>
 
   </div>
