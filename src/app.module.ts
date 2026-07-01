@@ -21,6 +21,7 @@ import { DashboardModule } from "./modules/dashboard/dashboard.module";
 import { ParentResourcesModule } from "./modules/parent-resources/parent-resources.module";
 import { KitModule } from "./modules/kit/kit.module";
 import { ToolkitReportModule } from "./modules/toolkit-report/toolkit-report.module";
+import { FeedbackModule } from "./modules/feedback/feedback.module";
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { ToolkitReportModule } from "./modules/toolkit-report/toolkit-report.mod
     ParentResourcesModule,
     KitModule,
     ToolkitReportModule,
+    FeedbackModule,
   ],
   providers: [
     {
