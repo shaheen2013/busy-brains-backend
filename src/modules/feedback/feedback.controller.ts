@@ -28,4 +28,17 @@ export class FeedbackController {
   findOne(@User() user: UserEntity, @Param("childId") childId: string) {
     return this.feedbackService.findOne(user.id, childId);
   }
+
+  @Get("submitted")
+  @ApiOperation({
+    summary: "Check whether feedback has been submitted for a child",
+  })
+  async isSubmitted(
+    @User() user: UserEntity,
+    @Param("childId") childId: string,
+  ) {
+    return {
+      submitted: await this.feedbackService.isSubmitted(user.id, childId),
+    };
+  }
 }

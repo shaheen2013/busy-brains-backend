@@ -46,4 +46,12 @@ export class FeedbackService {
 
     return this.feedbackRepository.findOneBy({ childId });
   }
+
+  // Returns whether feedback has been submitted for this child.
+  async isSubmitted(userId: string, childId: string): Promise<boolean> {
+    await this.assertOwnedChild(userId, childId);
+
+    const count = await this.feedbackRepository.countBy({ childId });
+    return count > 0;
+  }
 }
