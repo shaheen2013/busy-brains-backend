@@ -32,4 +32,10 @@ export class ChildFeedback {
   // Set to the current time on every submit (create or update).
   @Column({ type: "timestamp" })
   submittedAt: Date;
+
+  @Column({ type: "varchar", nullable: true })
+  pdfUrl: string | null;
+
+  @Column({ type: "varchar", nullable: true })
+  pdfKey: string | null;
 }

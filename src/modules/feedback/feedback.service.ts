@@ -1,17 +1,21 @@
-import { ForbiddenException, Injectable } from "@nestjs/common";
+import { ForbiddenException, Injectable, Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Child } from "../children/entities/child.entity";
 import { ChildFeedback } from "./entities/child-feedback.entity";
 import { CreateFeedbackDto } from "./dto/create-feedback.dto";
+import { FeedbackReportService } from "../feedback-report/feedback-report.service";
 
 @Injectable()
 export class FeedbackService {
+  private readonly logger = new Logger(FeedbackService.name);
+
   constructor(
     @InjectRepository(Child)
     private readonly childRepository: Repository<Child>,
     @InjectRepository(ChildFeedback)
     private readonly feedbackRepository: Repository<ChildFeedback>,
+    private readonly feedbackReportService: FeedbackReportService,
   ) {}
 
   private async assertOwnedChild(userId: string, childId: string) {
@@ -22,6 +26,7 @@ export class FeedbackService {
 
   // Upsert: two feedback records per child (one by parent, one by child).
   // Re-submitting overwrites the existing payload for the given byChild value.
+  // For parent feedback (byChild=false), also generates a PDF report and uploads to S3.
   async upsert(
     userId: string,
     childId: string,
@@ -30,12 +35,31 @@ export class FeedbackService {
     await this.assertOwnedChild(userId, childId);
 
     const byChild = dto.byChild ?? false;
-    const existing = await this.feedbackRepository.findOneBy({ childId, byChild });
-    const entity = existing ?? this.feedbackRepository.create({ childId, byChild });
+    const existing = await this.feedbackRepository.findOneBy({
+      childId,
+      byChild,
+    });
+    const entity =
+      existing ?? this.feedbackRepository.create({ childId, byChild });
     entity.feedback = dto.feedback;
     entity.submittedAt = new Date();
 
-    return this.feedbackRepository.save(entity);
+    const saved = await this.feedbackRepository.save(entity);
+
+    // Generate PDF for parent feedback only
+    if (!byChild) {
+      try {
+        await this.feedbackReportService.generateAndUploadPdf(userId, childId);
+      } catch (err) {
+        this.logger.error(
+          `Failed to generate feedback PDF for child ${childId}`,
+          err,
+        );
+        // Don't fail the feedback submission if PDF generation fails
+      }
+    }
+
+    return saved;
   }
 
   // Returns the child's feedback record for the given byChild filter, or null if none submitted yet.
