@@ -61,6 +61,14 @@ export class CertificateReportService {
       await page.setViewport({ width: 1000, height: 700 });
       await page.setContent(html, { waitUntil: "load" });
 
+      // `load` doesn't wait for @font-face swaps, so measuring scrollHeight
+      // right away can undershoot the final layout once fonts finish
+      // rendering, overflowing content onto a second PDF page.
+      await page.evaluate(() => document.fonts.ready);
+      await page.evaluate(
+        () => new Promise((resolve) => requestAnimationFrame(resolve)),
+      );
+
       const contentHeight = await page.evaluate(
         () => document.documentElement.scrollHeight,
       );

@@ -33,6 +33,15 @@ export class ToolkitReportService {
       await page.setViewport({ width: 794, height: 1123 });
       await page.setContent(html, { waitUntil: "load" });
 
+      // `load` doesn't wait for @font-face swaps, so measuring scrollHeight
+      // right away can undershoot the final layout once fonts finish
+      // rendering — undershooting means the content overflows onto a second
+      // PDF page. Wait for fonts, then re-check height on the next frame.
+      await page.evaluate(() => document.fonts.ready);
+      await page.evaluate(
+        () => new Promise((resolve) => requestAnimationFrame(resolve)),
+      );
+
       const contentHeight = await page.evaluate(
         () => document.documentElement.scrollHeight,
       );
