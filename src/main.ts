@@ -1,7 +1,7 @@
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
+import { NestExpressApplication } from "@nestjs/platform-express";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
-import { json } from "express";
 import { AppModule } from "./app.module";
 
 /**
@@ -100,7 +100,7 @@ function createCorsOriginChecker(origins: string[] | undefined) {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true,
   });
 
@@ -126,7 +126,7 @@ async function bootstrap() {
 
   // Certificate download sends a large self-contained HTML payload
   // (inlined image data URIs) to be rendered server-side into a PDF.
-  app.use(json({ limit: "10mb" }));
+  app.useBodyParser("json", { limit: "10mb" });
 
   // Enable CORS
   app.enableCors({
