@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Res } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Res } from "@nestjs/common";
 import {
   ApiBearerAuth,
   ApiTags,
@@ -10,6 +10,7 @@ import type { Response } from "express";
 import { User } from "../auth/decorators/user.decorator";
 import { User as UserEntity } from "../users/entities/user.entity";
 import { CertificateReportService } from "./certificate-report.service";
+import { DownloadCertificateDto } from "./dto/download-certificate.dto";
 
 @ApiTags("Certificate Report")
 @ApiBearerAuth("Clerk-Bearer")
@@ -19,18 +20,23 @@ export class CertificateReportController {
     private readonly certificateReportService: CertificateReportService,
   ) {}
 
-  @Get(":childId")
-  @ApiOperation({ summary: "Download a child's Brain Boss certificate as PDF" })
+  @Post(":childId")
+  @ApiOperation({
+    summary:
+      "Render client-captured certificate HTML into a PDF and download it",
+  })
   @ApiProduces("application/pdf")
   @ApiResponse({ status: 200, description: "Returns the certificate PDF" })
   async downloadCertificate(
     @User() user: UserEntity,
     @Param("childId") childId: string,
+    @Body() body: DownloadCertificateDto,
     @Res() res: Response,
   ): Promise<void> {
-    const pdf = await this.certificateReportService.generatePdf(
+    const pdf = await this.certificateReportService.generatePdfFromHtml(
       user.id,
       childId,
+      body.html,
     );
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(

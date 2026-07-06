@@ -27,7 +27,24 @@ export class CertificateReportService {
 
   async generatePdf(userId: string, childId: string): Promise<Buffer> {
     const html = await this.buildHtml(userId, childId);
+    return this.renderPdfFromDocument(html);
+  }
 
+  /**
+   * Render a client-captured certificate HTML fragment (inline styles,
+   * inlined image data URIs) into a PDF. The child/completion checks are
+   * still enforced server-side; only the visual markup comes from the client.
+   */
+  async generatePdfFromHtml(
+    userId: string,
+    childId: string,
+    html: string,
+  ): Promise<Buffer> {
+    await this.assertCertificateAvailable(userId, childId);
+    return this.renderPdfFromDocument(this.wrapCapturedHtml(html));
+  }
+
+  private async renderPdfFromDocument(html: string): Promise<Buffer> {
     const executablePath =
       process.env.PUPPETEER_EXECUTABLE_PATH ||
       process.env.CHROME_BIN ||
@@ -57,6 +74,46 @@ export class CertificateReportService {
       return Buffer.from(pdf);
     } finally {
       await browser.close();
+    }
+  }
+
+  private wrapCapturedHtml(bodyHtml: string): string {
+    return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Nunito+Sans:wght@400;500;600;700;800;900&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Nunito", sans-serif;
+    background: #ffffff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+</style>
+</head>
+<body>
+${bodyHtml}
+</body>
+</html>`;
+  }
+
+  private async assertCertificateAvailable(
+    userId: string,
+    childId: string,
+  ): Promise<void> {
+    const child = await this.childRepository.findOne({
+      where: { id: childId, userId },
+    });
+    if (!child) throw new ForbiddenException("Child not found");
+
+    const completedAt = await this.getAdventureCompletedAt(childId);
+    if (!completedAt) {
+      throw new ForbiddenException("Certificate not yet available");
     }
   }
 

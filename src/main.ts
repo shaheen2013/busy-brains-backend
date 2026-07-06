@@ -1,6 +1,7 @@
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
+import { json } from "express";
 import { AppModule } from "./app.module";
 
 /**
@@ -122,6 +123,10 @@ async function bootstrap() {
   });
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+
+  // Certificate download sends a large self-contained HTML payload
+  // (inlined image data URIs) to be rendered server-side into a PDF.
+  app.use(json({ limit: "10mb" }));
 
   // Enable CORS
   app.enableCors({
