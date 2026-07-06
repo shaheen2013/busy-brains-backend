@@ -20,8 +20,8 @@ export class FeedbackService {
     return child;
   }
 
-  // Upsert: one feedback record per child. Re-submitting overwrites the
-  // existing payload and refreshes the submission time.
+  // Upsert: two feedback records per child (one by parent, one by child).
+  // Re-submitting overwrites the existing payload for the given byChild value.
   async upsert(
     userId: string,
     childId: string,
@@ -29,29 +29,40 @@ export class FeedbackService {
   ): Promise<ChildFeedback> {
     await this.assertOwnedChild(userId, childId);
 
-    const existing = await this.feedbackRepository.findOneBy({ childId });
-    const entity = existing ?? this.feedbackRepository.create({ childId });
+    const byChild = dto.byChild ?? false;
+    const existing = await this.feedbackRepository.findOneBy({ childId, byChild });
+    const entity = existing ?? this.feedbackRepository.create({ childId, byChild });
     entity.feedback = dto.feedback;
     entity.submittedAt = new Date();
 
     return this.feedbackRepository.save(entity);
   }
 
-  // Returns the child's single feedback record, or null if none submitted yet.
+  // Returns the child's feedback record for the given byChild filter, or null if none submitted yet.
   async findOne(
     userId: string,
     childId: string,
+    byChild?: boolean,
   ): Promise<ChildFeedback | null> {
     await this.assertOwnedChild(userId, childId);
 
-    return this.feedbackRepository.findOneBy({ childId });
+    return this.feedbackRepository.findOneBy(
+      byChild !== undefined ? { childId, byChild } : { childId },
+    );
   }
 
   // Returns whether feedback has been submitted for this child.
-  async isSubmitted(userId: string, childId: string): Promise<boolean> {
+  // If byChild is provided, checks only that specific record; otherwise checks any.
+  async isSubmitted(
+    userId: string,
+    childId: string,
+    byChild?: boolean,
+  ): Promise<boolean> {
     await this.assertOwnedChild(userId, childId);
 
-    const count = await this.feedbackRepository.countBy({ childId });
+    const count = await this.feedbackRepository.countBy(
+      byChild !== undefined ? { childId, byChild } : { childId },
+    );
     return count > 0;
   }
 }

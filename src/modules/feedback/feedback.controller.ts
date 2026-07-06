@@ -1,5 +1,10 @@
-import { Body, Controller, Get, Param, Post } from "@nestjs/common";
-import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common";
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from "@nestjs/swagger";
 import { FeedbackService } from "./feedback.service";
 import { CreateFeedbackDto } from "./dto/create-feedback.dto";
 import { User } from "../auth/decorators/user.decorator";
@@ -13,7 +18,8 @@ export class FeedbackController {
 
   @Post()
   @ApiOperation({
-    summary: "Submit JSON feedback for a child (upserts the single record)",
+    summary:
+      "Submit JSON feedback for a child (upserts the record for parent or child)",
   })
   create(
     @User() user: UserEntity,
@@ -25,20 +31,47 @@ export class FeedbackController {
 
   @Get()
   @ApiOperation({ summary: "Get the feedback record for a child (or null)" })
-  findOne(@User() user: UserEntity, @Param("childId") childId: string) {
-    return this.feedbackService.findOne(user.id, childId);
+  @ApiQuery({
+    name: "byChild",
+    required: false,
+    type: Boolean,
+    description:
+      "Filter by feedback submitted by the child (true) or parent (false)",
+  })
+  findOne(
+    @User() user: UserEntity,
+    @Param("childId") childId: string,
+    @Query("byChild") byChild?: string,
+  ) {
+    const parsed =
+      byChild === undefined ? undefined : byChild === "true" || byChild === "1";
+    return this.feedbackService.findOne(user.id, childId, parsed);
   }
 
   @Get("submitted")
   @ApiOperation({
     summary: "Check whether feedback has been submitted for a child",
   })
+  @ApiQuery({
+    name: "byChild",
+    required: false,
+    type: Boolean,
+    description:
+      "Filter by feedback submitted by the child (true) or parent (false)",
+  })
   async isSubmitted(
     @User() user: UserEntity,
     @Param("childId") childId: string,
+    @Query("byChild") byChild?: string,
   ) {
+    const parsed =
+      byChild === undefined ? undefined : byChild === "true" || byChild === "1";
     return {
-      submitted: await this.feedbackService.isSubmitted(user.id, childId),
+      submitted: await this.feedbackService.isSubmitted(
+        user.id,
+        childId,
+        parsed,
+      ),
     };
   }
 }

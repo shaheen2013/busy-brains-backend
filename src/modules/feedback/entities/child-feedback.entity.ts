@@ -8,9 +8,9 @@ import {
 } from "typeorm";
 import { Child } from "../../children/entities/child.entity";
 
-// One feedback record per child. Re-submitting upserts this row.
+// Two feedback records per child: one by parent (byChild=false) and one by child (byChild=true).
 @Entity("child_feedback")
-@Unique(["childId"])
+@Unique(["childId", "byChild"])
 export class ChildFeedback {
   @PrimaryGeneratedColumn("uuid")
   id: string;
@@ -24,6 +24,10 @@ export class ChildFeedback {
 
   @Column({ type: "jsonb" })
   feedback: Record<string, unknown>;
+
+  // True if the feedback was submitted by the child themselves; false (or null) if by the parent.
+  @Column({ type: "boolean", default: false })
+  byChild: boolean;
 
   // Set to the current time on every submit (create or update).
   @Column({ type: "timestamp" })

@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsObject } from "class-validator";
+import { IsBoolean, IsObject, IsOptional } from "class-validator";
 
 export class CreateFeedbackDto {
   @ApiProperty({
@@ -8,4 +8,14 @@ export class CreateFeedbackDto {
   })
   @IsObject()
   feedback: Record<string, unknown>;
+
+  @ApiProperty({
+    type: Boolean,
+    required: false,
+    default: false,
+    description: "Whether this feedback was submitted by the child (true) or parent (false)",
+  })
+  @IsOptional()
+  @IsBoolean()
+  byChild?: boolean;
 }
