@@ -159,7 +159,9 @@ export class FeedbackReportService {
    */
   private async uploadPdfToFeedback(
     feedback: ChildFeedback,
+    parentId: string,
     childId: string,
+    folderPrefix: string,
     filenamePrefix: string,
     pdfBuffer: Buffer,
   ): Promise<ChildFeedback> {
@@ -179,7 +181,7 @@ export class FeedbackReportService {
 
     const { key, url } = await this.s3Service.upload(
       file,
-      `feedback-reports/${childId}`,
+      `${folderPrefix}/${parentId}/${childId}`,
     );
 
     // Delete previous PDF if exists
@@ -220,7 +222,9 @@ export class FeedbackReportService {
     const pdfBuffer = await this.generatePdf(userId, childId);
     const saved = await this.uploadPdfToFeedback(
       feedback,
+      userId,
       childId,
+      "parent-feedback",
       "feedback-report",
       pdfBuffer,
     );
@@ -264,7 +268,9 @@ export class FeedbackReportService {
     const pdfBuffer = await this.generateChildPdf(userId, childId);
     const saved = await this.uploadPdfToFeedback(
       feedback,
+      userId,
       childId,
+      "child-feedback",
       "child-feedback-report",
       pdfBuffer,
     );
