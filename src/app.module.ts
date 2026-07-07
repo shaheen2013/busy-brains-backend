@@ -23,6 +23,7 @@ import { KitModule } from "./modules/kit/kit.module";
 import { ToolkitReportModule } from "./modules/toolkit-report/toolkit-report.module";
 import { CertificateReportModule } from "./modules/certificate-report/certificate-report.module";
 import { FeedbackModule } from "./modules/feedback/feedback.module";
+import { FeedbackReportModule } from "./modules/feedback-report/feedback-report.module";
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { FeedbackModule } from "./modules/feedback/feedback.module";
     ToolkitReportModule,
     CertificateReportModule,
     FeedbackModule,
+    FeedbackReportModule,
   ],
   providers: [
     {

@@ -382,7 +382,7 @@ export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
   <!-- Top bar -->
   <div class="flex justify-between items-start">
     <div class="p-0">
-      <img class="h-10 block" src="${logoSrc}" alt="Busy Brains" />
+      <img class="h-20 block" src="${logoSrc}" alt="Busy Brains" />
     </div>
     <div class="text-[22px] text-[#486284] font-extrabold text-bb-slate pr-10 pb-0 pl-0 tracking-[-0.3px] pt-[12px]">Busy Brains Child's Toolkit</div>
   </div>
@@ -410,7 +410,7 @@ export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
     <!-- Brain Type + Tactile Sense -->
     <div class="grid grid-cols-2 gap-3.5">
       <div class="border-[2px] border-[#FFD525] rounded-[18px] bg-white">
-        <div class="flex items-center gap-[11px] bg-bb-yellow-bg rounded-t-[16px] p-4 pb-6">
+        <div class="flex items-center gap-[11px] bg-[#FFF8D6] rounded-t-[16px] p-4 pb-6">
           <div class="relative w-[42px] h-[42px] rounded-[18px] flex items-center justify-center shrink-0 bg-bb-yellow">
             ${ICONS.sprout}
             <span class="absolute -bottom-[5px] -right-[5px] w-[17px] h-[17px] rounded-full bg-[#7A5800] border-2 border-white text-white text-[8px] font-extrabold flex items-center justify-center">A</span>

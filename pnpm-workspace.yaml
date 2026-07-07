@@ -1,0 +1,7 @@
+allowBuilds:
+  '@clerk/shared': true
+  '@nestjs/core': true
+  '@scarf/scarf': true
+  bcrypt: true
+  msgpackr-extract: true
+  puppeteer: true
