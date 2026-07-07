@@ -181,7 +181,7 @@ export class KitService {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           api_secret: apiKey,
-          email: "mdmarufbinsalim@gmail.com",
+          email: "hello@busy-brains.com.au",
           first_name: user.name,
           fields: {
             parent_name: user.name,
@@ -199,7 +199,7 @@ export class KitService {
     }
 
     this.logger.log(
-      `[Kit] Feedback report sent to mdmarufbinsalim@gmail.com for child "${childName}"`,
+      `[Kit] Feedback report sent to hello@busy-brains.com.au for child "${childName}"`,
     );
   }
 
@@ -235,7 +235,7 @@ export class KitService {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           api_secret: apiKey,
-          email: "mdmarufbinsalim@gmail.com",
+          email: "hello@busy-brains.com.au",
           first_name: user.name,
           fields: {
             parent_name: user.name,
@@ -253,7 +253,7 @@ export class KitService {
     }
 
     this.logger.log(
-      `[Kit] Child feedback report sent to mdmarufbinsalim@gmail.com for child "${childName}"`,
+      `[Kit] Child feedback report sent to hello@busy-brains.com.au for child "${childName}"`,
     );
   }
 
