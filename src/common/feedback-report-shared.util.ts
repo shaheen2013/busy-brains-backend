@@ -238,7 +238,7 @@ function buildOptionPill(text: string, selected: boolean): string {
 }
 
 function buildFreeTextBox(text: string): string {
-  return `<div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:12px;padding:12px 16px;font-size:14px;color:${COLOR_NAVY};font-style:italic;margin-top:8px;">"${escapeHtml(text)}"</div>`;
+  return `<div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:12px;padding:12px 16px;font-size:14px;color:${COLOR_NAVY};font-style:italic;margin-top:8px;">${escapeHtml(text)}</div>`;
 }
 
 function buildTypeBadge(label: string): string {
