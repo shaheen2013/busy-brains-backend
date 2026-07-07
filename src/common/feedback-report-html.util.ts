@@ -113,7 +113,10 @@ function getSingleSelectSelected(answers: FeedbackAnswer[]): string | null {
   return null;
 }
 
-function getSingleSelectWithFreeText(answers: FeedbackAnswer[]): { selected: string | null; freeText: string | null } {
+function getSingleSelectWithFreeText(answers: FeedbackAnswer[]): {
+  selected: string | null;
+  freeText: string | null;
+} {
   let selected: string | null = null;
   let freeText: string | null = null;
   for (const a of answers) {
@@ -133,7 +136,8 @@ function getSingleSelectWithFreeText(answers: FeedbackAnswer[]): { selected: str
 // ---------------------------------------------------------------------------
 
 function buildOptionPill(text: string, selected: boolean): string {
-  const base = "display:inline-block;padding:6px 14px;border-radius:9999px;font-size:13px;font-weight:500;margin:0 6px 6px 0;";
+  const base =
+    "display:inline-block;padding:6px 14px;border-radius:9999px;font-size:13px;font-weight:500;margin:0 6px 6px 0;";
   if (selected) {
     return `<span style="${base}background:#DCFCE7;color:#166534;border:1px solid #86EFAC;">✓ ${escapeHtml(text)}</span>`;
   }
@@ -141,7 +145,8 @@ function buildOptionPill(text: string, selected: boolean): string {
 }
 
 function buildTagOption(text: string, selected: boolean): string {
-  const base = "display:inline-block;padding:6px 14px;border-radius:9999px;font-size:13px;font-weight:500;margin:0 6px 6px 0;";
+  const base =
+    "display:inline-block;padding:6px 14px;border-radius:9999px;font-size:13px;font-weight:500;margin:0 6px 6px 0;";
   if (selected) {
     return `<span style="${base}background:#DCFCE7;color:#166534;border:1px solid #86EFAC;">✓ ${escapeHtml(text)}</span>`;
   }
@@ -152,10 +157,7 @@ function buildFreeTextBox(text: string): string {
   return `<div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:12px;padding:12px 16px;font-size:14px;color:#374151;font-style:italic;margin-top:8px;">"${escapeHtml(text)}"</div>`;
 }
 
-function buildQuestionBlock(
-  index: number,
-  question: FeedbackQuestion,
-): string {
+function buildQuestionBlock(index: number, question: FeedbackQuestion): string {
   const qType = question.questionType;
   const answers = question.answer || [];
   let body = "";
@@ -165,7 +167,9 @@ function buildQuestionBlock(
     const allOptions = answers
       .filter((a) => a.answerType !== "free_text_select_option")
       .map((a) => a.text || "");
-    const freeTextOption = answers.find((a) => a.answerType === "free_text_select_option");
+    const freeTextOption = answers.find(
+      (a) => a.answerType === "free_text_select_option",
+    );
     const freeTextLabel = freeTextOption?.text || "Other";
 
     body += `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">`;

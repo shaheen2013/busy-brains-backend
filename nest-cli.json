@@ -6,7 +6,8 @@
     "deleteOutDir": true,
     "assets": [
       { "include": "modules/toolkit-report/assets/**/*", "watchAssets": true },
-      { "include": "modules/certificate-report/assets/**/*", "watchAssets": true }
+      { "include": "modules/certificate-report/assets/**/*", "watchAssets": true },
+      { "include": "modules/feedback-report/assets/**/*", "watchAssets": true }
     ]
   }
 }
