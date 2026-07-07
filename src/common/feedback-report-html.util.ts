@@ -416,9 +416,7 @@ export function buildFeedbackReportHtml(
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <div style="display:flex;align-items:center;gap:12px;">
         <div style="width:40px;height:40px;border-radius:10px;background:${TINT_PURPLE_BG};display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:20px;">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0 20H20V5.96046e-06H0V20Z" fill="#16252E"/>
-          </svg>
+          👨‍👩‍👧
         </div>
         <div>
           <div style="font-size:18px;font-weight:800;color:${COLOR_NAVY};">Parent Reflection Submitted</div>
