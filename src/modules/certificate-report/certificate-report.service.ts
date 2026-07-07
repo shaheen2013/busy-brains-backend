@@ -78,10 +78,10 @@ export class CertificateReportService {
         width: "1000px",
         height: `${contentHeight}px`,
         margin: {
-          top: "0.5in",
-          right: "0.5in",
-          bottom: "0.5in",
-          left: "0.5in",
+          top: "0",
+          right: "0",
+          bottom: "0",
+          left: "0",
         },
       });
 
