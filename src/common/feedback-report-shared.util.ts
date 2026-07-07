@@ -242,13 +242,15 @@ function buildFreeTextBox(text: string): string {
 }
 
 function buildTypeBadge(label: string): string {
+  const badgeBase =
+    "font-size:11px;font-weight:600;padding:3px 10px;border-radius:9999px;white-space:nowrap;flex-shrink:0;";
   if (label === "Single choice") {
-    return `<span style="font-size:11px;font-weight:600;color:${COLOR_CORAL};background:${TINT_CORAL_BG};padding:3px 10px;border-radius:9999px;">${label}</span>`;
+    return `<span style="${badgeBase}color:${COLOR_CORAL};background:${TINT_CORAL_BG};">${label}</span>`;
   }
   if (label === "Multiple choice") {
-    return `<span style="font-size:11px;font-weight:600;color:${COLOR_PURPLE};background:${TINT_PURPLE_BG};padding:3px 10px;border-radius:9999px;">${label}</span>`;
+    return `<span style="${badgeBase}color:${COLOR_PURPLE};background:${TINT_PURPLE_BG};">${label}</span>`;
   }
-  return `<span style="font-size:11px;font-weight:600;color:#9CA3AF;background:#F3F4F6;padding:3px 10px;border-radius:9999px;">${label}</span>`;
+  return `<span style="${badgeBase}color:#9CA3AF;background:#F3F4F6;">${label}</span>`;
 }
 
 function buildQuestionHeader(
@@ -257,10 +259,10 @@ function buildQuestionHeader(
   typeLabel: string | null,
 ): string {
   return `
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:${TINT_PURPLE_BG};color:${COLOR_PURPLE};font-size:12px;font-weight:700;">${index}</span>
-        <span style="font-size:15px;font-weight:700;color:${COLOR_NAVY};">${escapeHtml(questionText)}</span>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px;">
+      <div style="display:flex;align-items:flex-start;gap:10px;min-width:0;flex:1;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:${TINT_PURPLE_BG};color:${COLOR_PURPLE};font-size:12px;font-weight:700;flex-shrink:0;">${index}</span>
+        <span style="font-size:15px;font-weight:700;color:${COLOR_NAVY};min-width:0;">${escapeHtml(questionText)}</span>
       </div>
       ${typeLabel ? buildTypeBadge(typeLabel) : ""}
     </div>
