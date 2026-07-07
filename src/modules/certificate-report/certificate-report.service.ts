@@ -74,9 +74,9 @@ export class CertificateReportService {
       );
 
       const pdf = await page.pdf({
+        printBackground: true,
         width: "1000px",
         height: `${contentHeight}px`,
-        printBackground: true,
         margin: {
           top: "0.5in",
           right: "0.5in",
