@@ -37,6 +37,7 @@ export interface AppConfig {
     accountDeletionOtpSequenceId: string;
     childDeletionOtpSequenceId: string;
     feedbackReportSequenceId: string;
+    childFeedbackReportSequenceId: string;
   };
   nodeEnv: string;
   port: number;
@@ -87,6 +88,8 @@ export default (): AppConfig => ({
     childDeletionOtpSequenceId:
       process.env.KIT_CHILD_DELETION_OTP_SEQUENCE_ID || "",
     feedbackReportSequenceId: process.env.KIT_FEEDBACK_REPORT_SEQUENCE_ID || "",
+    childFeedbackReportSequenceId:
+      process.env.KIT_CHILD_FEEDBACK_REPORT_SEQUENCE_ID || "",
   },
   nodeEnv: process.env.NODE_ENV || "development",
   port: parseInt(process.env.PORT || "3001", 10),

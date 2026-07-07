@@ -203,6 +203,60 @@ export class KitService {
     );
   }
 
+  async sendChildFeedbackReport(
+    userId: string,
+    childName: string,
+    pdfUrl: string,
+  ): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      this.logger.warn(
+        `User ${userId} not found — skipping child feedback report email`,
+      );
+      return;
+    }
+
+    const { apiKey, childFeedbackReportSequenceId } = this.configService.get(
+      "kit",
+      { infer: true },
+    );
+
+    if (!apiKey || !childFeedbackReportSequenceId) {
+      this.logger.warn(
+        "KIT_API_KEY or KIT_CHILD_FEEDBACK_REPORT_SEQUENCE_ID not configured — skipping",
+      );
+      return;
+    }
+
+    const response = await fetch(
+      `${KIT_API_BASE}/sequences/${childFeedbackReportSequenceId}/subscribe`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          api_secret: apiKey,
+          email: "mdmarufbinsalim@gmail.com",
+          first_name: user.name,
+          fields: {
+            parent_name: user.name,
+            parent_email: user.email,
+            child_name: childName,
+            pdf_url: pdfUrl,
+          },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`Kit API error (${response.status}): ${body}`);
+    }
+
+    this.logger.log(
+      `[Kit] Child feedback report sent to mdmarufbinsalim@gmail.com for child "${childName}"`,
+    );
+  }
+
   async subscribeToSequence(userId: string): Promise<void> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {

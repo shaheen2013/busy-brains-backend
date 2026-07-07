@@ -26,7 +26,8 @@ export class FeedbackService {
 
   // Upsert: two feedback records per child (one by parent, one by child).
   // Re-submitting overwrites the existing payload for the given byChild value.
-  // For parent feedback (byChild=false), also generates a PDF report and uploads to S3.
+  // Only a completed submission (not an interim autosave) generates a PDF
+  // report and uploads it to S3.
   async upsert(
     userId: string,
     childId: string,
@@ -35,6 +36,7 @@ export class FeedbackService {
     await this.assertOwnedChild(userId, childId);
 
     const byChild = dto.byChild ?? false;
+    const completed = dto.completed ?? true;
     const existing = await this.feedbackRepository.findOneBy({
       childId,
       byChild,
@@ -46,10 +48,19 @@ export class FeedbackService {
 
     const saved = await this.feedbackRepository.save(entity);
 
-    // Generate PDF for parent feedback only
-    if (!byChild) {
+    if (completed) {
       try {
-        await this.feedbackReportService.generateAndUploadPdf(userId, childId);
+        if (byChild) {
+          await this.feedbackReportService.generateAndUploadChildPdf(
+            userId,
+            childId,
+          );
+        } else {
+          await this.feedbackReportService.generateAndUploadPdf(
+            userId,
+            childId,
+          );
+        }
       } catch (err) {
         this.logger.error(
           `Failed to generate feedback PDF for child ${childId}`,
