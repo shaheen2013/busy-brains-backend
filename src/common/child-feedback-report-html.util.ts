@@ -109,7 +109,7 @@ export function buildChildFeedbackReportHtml(
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
         <div style="display:flex;align-items:center;gap:10px;">
           <div style="width:36px;height:36px;border-radius:50%;background:${TINT_PURPLE_BG};display:flex;align-items:center;justify-content:center;font-size:14px;overflow:hidden;">
-            ${buildAvatarCircle(childAvatarUrl, "🧒")}
+            ${buildAvatarCircle(childAvatarUrl, undefined)}
           </div>
           <div>
             <div style="font-size:11px;color:#9CA3AF;font-weight:500;">Child Name</div>
@@ -117,21 +117,33 @@ export function buildChildFeedbackReportHtml(
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
-          <div style="width:36px;height:36px;border-radius:50%;background:${TINT_PURPLE_BG};display:flex;align-items:center;justify-content:center;font-size:14px;">🕐</div>
+          <div style="width:36px;height:36px;border-radius:50%;background:${TINT_PURPLE_BG};display:flex;align-items:center;justify-content:center;font-size:14px;">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10 4.99958V9.99998L13.3336 11.6668M18.334 9.99998C18.334 14.6027 14.6028 18.334 10 18.334C5.39727 18.334 1.66602 14.6027 1.66602 9.99998C1.66602 5.39724 5.39727 1.66599 10 1.66599C14.6028 1.66599 18.334 5.39724 18.334 9.99998Z" stroke="#9C6AFF" stroke-linecap="round"/>
+          </svg>
+          </div>
           <div>
             <div style="font-size:11px;color:#9CA3AF;font-weight:500;">Submitted</div>
             <div style="font-size:14px;font-weight:700;color:${COLOR_NAVY};">${formatDate(submittedAt)}</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
-          <div style="width:36px;height:36px;border-radius:50%;background:${TINT_PURPLE_BG};display:flex;align-items:center;justify-content:center;font-size:14px;">📘</div>
+          <div style="width:36px;height:36px;border-radius:50%;background:${TINT_PURPLE_BG};display:flex;align-items:center;justify-content:center;font-size:14px;">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3.33398 16.2505V3.7495C3.33398 3.19692 3.55346 2.66698 3.94412 2.27624C4.33478 1.88551 4.86463 1.666 5.41711 1.666H15.8327C16.0537 1.666 16.2657 1.7538 16.4219 1.9101C16.5782 2.06639 16.666 2.27837 16.666 2.4994V17.5006C16.666 17.7216 16.5782 17.9336 16.4219 18.0899C16.2657 18.2462 16.0537 18.334 15.8327 18.334H5.41711C4.86463 18.334 4.33478 18.1145 3.94412 17.7238C3.55346 17.333 3.33398 16.8031 3.33398 16.2505ZM3.33398 16.2505C3.33398 15.6979 3.55346 15.168 3.94412 14.7772C4.33478 14.3865 4.86463 14.167 5.41711 14.167H16.666" stroke="#9C6AFF" stroke-linecap="round"/>
+          </svg>
+          </div>
           <div>
             <div style="font-size:11px;color:#9CA3AF;font-weight:500;">Module</div>
             <div style="font-size:14px;font-weight:700;color:${COLOR_NAVY};">${escapeHtml(moduleLabel)}</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
-          <div style="width:36px;height:36px;border-radius:50%;background:${TINT_PURPLE_BG};display:flex;align-items:center;justify-content:center;font-size:14px;">🏷️</div>
+          <div style="width:36px;height:36px;border-radius:50%;background:${TINT_PURPLE_BG};display:flex;align-items:center;justify-content:center;font-size:14px;">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9.30999 1.666C9.75201 1.66609 10.1759 1.84177 10.4884 2.15437L17.7424 9.40831C18.1188 9.7871 18.33 10.2994 18.33 10.8334C18.33 11.3674 18.1188 11.8798 17.7424 12.2585L12.2586 17.7423C11.8798 18.1187 11.3675 18.33 10.8334 18.33C10.2994 18.33 9.78712 18.1187 9.40833 17.7423L2.15439 10.4884C1.84178 10.1759 1.66611 9.752 1.66602 9.30997V3.33281C1.66602 2.89074 1.84162 2.46678 2.15421 2.1542C2.4668 1.84161 2.89076 1.666 3.33282 1.666H9.30999Z" stroke="#9C6AFF" stroke-linecap="round"/>
+          </svg>
+          </div>
           <div>
             <div style="font-size:11px;color:#9CA3AF;font-weight:500;">Response Type</div>
             <div style="font-size:14px;font-weight:700;color:${COLOR_NAVY};">${escapeHtml(responseTypeLabel)}</div>
@@ -147,7 +159,11 @@ export function buildChildFeedbackReportHtml(
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
-          <div style="width:36px;height:36px;border-radius:50%;background:${TINT_PURPLE_BG};display:flex;align-items:center;justify-content:center;font-size:14px;">✉️</div>
+          <div style="width:36px;height:36px;border-radius:50%;background:${TINT_PURPLE_BG};display:flex;align-items:center;justify-content:center;font-size:14px;">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15.5 4C16.8807 4 18 5.11929 18 6.5V14.5C18 15.8807 16.8807 17 15.5 17H4.5C3.11929 17 2 15.8807 2 14.5V6.5C2 5.11929 3.11929 4 4.5 4H15.5ZM17 7.961L10.2535 11.931C10.1231 12.0077 9.96661 12.0205 9.82751 11.9693L9.74649 11.931L3 7.963V14.5C3 15.3284 3.67157 16 4.5 16H15.5C16.3284 16 17 15.3284 17 14.5V7.961ZM15.5 5H4.5C3.67157 5 3 5.67157 3 6.5V6.802L10 10.9199L17 6.801V6.5C17 5.67157 16.3284 5 15.5 5Z" fill="#9C6AFF"/>
+          </svg>
+          </div>
           <div>
             <div style="font-size:11px;color:#9CA3AF;font-weight:500;">Parent Email</div>
             <div style="font-size:14px;font-weight:700;color:${COLOR_NAVY};">${escapeHtml(parentEmail)}</div>
