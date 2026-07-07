@@ -6,6 +6,7 @@ import { Child } from "../children/entities/child.entity";
 import { User } from "../users/entities/user.entity";
 import { ChildFeedback } from "../feedback/entities/child-feedback.entity";
 import { S3Service } from "../storage/s3.service";
+import { StorageService } from "../storage/storage.service";
 import { KitService } from "../kit/kit.service";
 import { buildFeedbackReportHtml } from "../../common/feedback-report-html.util";
 
@@ -21,6 +22,7 @@ export class FeedbackReportService {
     @InjectRepository(ChildFeedback)
     private readonly feedbackRepository: Repository<ChildFeedback>,
     private readonly s3Service: S3Service,
+    private readonly storageService: StorageService,
     private readonly kitService: KitService,
   ) {}
 
@@ -40,9 +42,14 @@ export class FeedbackReportService {
     });
     if (!feedback) throw new ForbiddenException("Parent feedback not found");
 
+    const resource = await this.storageService.getResource("user", userId);
+    const parentAvatarUrl =
+      resource?.documents.find((d) => d.label === "profile")?.url ?? null;
+
     return buildFeedbackReportHtml({
       assetsDir: __dirname + "/assets",
       parentName: child.user.name,
+      parentAvatarUrl,
       parentEmail: child.user.email,
       submittedAt: feedback.submittedAt,
       accountSince: child.user.createdAt,
