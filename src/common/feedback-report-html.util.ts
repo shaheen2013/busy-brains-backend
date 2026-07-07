@@ -2,6 +2,33 @@ import { readFileSync } from "fs";
 import { join } from "path";
 
 // ---------------------------------------------------------------------------
+// Brand palette
+// ---------------------------------------------------------------------------
+
+const COLOR_NAVY = "#34586E";
+const COLOR_WHITE = "#FFFFFF";
+const COLOR_PURPLE = "#9C6AFF";
+const COLOR_CORAL = "#F77F6A";
+const COLOR_YELLOW = "#FFEEA5";
+
+// Tints derived from the brand colors for soft backgrounds
+const TINT_PURPLE_BG = "#F1EBFF"; // light wash of COLOR_LIGHT_PURPLE
+const TINT_CORAL_BG = "#FDECE9"; // light wash of COLOR_CORAL
+const TINT_YELLOW_BG = "#FFF9E0"; // light wash of COLOR_YELLOW
+
+// Scale-answer accents (Often / Sometimes / Rarely / Not Yet)
+const SCALE_COLORS: Record<
+  string,
+  { bg: string; text: string; border: string }
+> = {
+  Often: { bg: "#DCFCE7", text: "#166534", border: "#86EFAC" },
+  Sometimes: { bg: "#DBEAFE", text: "#1D4ED8", border: "#93C5FD" },
+  Rarely: { bg: TINT_YELLOW_BG, text: "#92722A", border: COLOR_YELLOW },
+  "Not Yet": { bg: TINT_CORAL_BG, text: COLOR_CORAL, border: COLOR_CORAL },
+};
+const SCALE_OPTIONS = ["Often", "Sometimes", "Rarely", "Not Yet"];
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
@@ -29,6 +56,12 @@ interface FeedbackQuestion {
   questionType: string;
   answer: FeedbackAnswer[];
 }
+
+// A rendered item in the flattened question list: either a normal question
+// or a group of consecutive scale (Often/Sometimes/Rarely/Not Yet) questions.
+type ReportItem =
+  | { kind: "question"; question: FeedbackQuestion }
+  | { kind: "scaleGroup"; questions: FeedbackQuestion[] };
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -66,6 +99,37 @@ function formatMonthYear(date: Date): string {
     month: "short",
     year: "numeric",
   }).format(new Date(date));
+}
+
+function isScaleQuestion(question: FeedbackQuestion): boolean {
+  if (question.questionType !== "single_tag") return false;
+  const texts = (question.answer || []).map((a) => a.text);
+  return (
+    texts.length === SCALE_OPTIONS.length &&
+    SCALE_OPTIONS.every((opt, i) => texts[i] === opt)
+  );
+}
+
+// Groups consecutive scale questions (Often/Sometimes/Rarely/Not Yet) into a
+// single "Changes You Have Noticed" block; everything else stays as-is.
+function groupReportItems(questions: FeedbackQuestion[]): ReportItem[] {
+  const items: ReportItem[] = [];
+  let i = 0;
+  while (i < questions.length) {
+    const q = questions[i];
+    if (isScaleQuestion(q)) {
+      const group: FeedbackQuestion[] = [];
+      while (i < questions.length && isScaleQuestion(questions[i])) {
+        group.push(questions[i]);
+        i++;
+      }
+      items.push({ kind: "scaleGroup", questions: group });
+    } else {
+      items.push({ kind: "question", question: q });
+      i++;
+    }
+  }
+  return items;
 }
 
 // ---------------------------------------------------------------------------
@@ -144,20 +208,37 @@ function buildOptionPill(text: string, selected: boolean): string {
   return `<span style="${base}background:#F3F4F6;color:#9CA3AF;border:1px solid #E5E7EB;">${escapeHtml(text)}</span>`;
 }
 
-function buildTagOption(text: string, selected: boolean): string {
-  const base =
-    "display:inline-block;padding:6px 14px;border-radius:9999px;font-size:13px;font-weight:500;margin:0 6px 6px 0;";
-  if (selected) {
-    return `<span style="${base}background:#DCFCE7;color:#166534;border:1px solid #86EFAC;">✓ ${escapeHtml(text)}</span>`;
-  }
-  return `<span style="${base}background:#F3F4F6;color:#9CA3AF;border:1px solid #E5E7EB;">${escapeHtml(text)}</span>`;
-}
-
 function buildFreeTextBox(text: string): string {
-  return `<div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:12px;padding:12px 16px;font-size:14px;color:#374151;font-style:italic;margin-top:8px;">"${escapeHtml(text)}"</div>`;
+  return `<div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:12px;padding:12px 16px;font-size:14px;color:${COLOR_NAVY};font-style:italic;margin-top:8px;">"${escapeHtml(text)}"</div>`;
 }
 
-function buildQuestionBlock(index: number, question: FeedbackQuestion): string {
+function buildTypeBadge(label: string): string {
+  if (label === "Single choice") {
+    return `<span style="font-size:11px;font-weight:600;color:${COLOR_CORAL};background:${TINT_CORAL_BG};padding:3px 10px;border-radius:9999px;">${label}</span>`;
+  }
+  if (label === "Multiple choice") {
+    return `<span style="font-size:11px;font-weight:600;color:${COLOR_PURPLE};background:${TINT_PURPLE_BG};padding:3px 10px;border-radius:9999px;">${label}</span>`;
+  }
+  return `<span style="font-size:11px;font-weight:600;color:#9CA3AF;background:#F3F4F6;padding:3px 10px;border-radius:9999px;">${label}</span>`;
+}
+
+function buildQuestionHeader(
+  index: number,
+  questionText: string,
+  typeLabel: string | null,
+): string {
+  return `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:${TINT_PURPLE_BG};color:${COLOR_PURPLE};font-size:12px;font-weight:700;">${index}</span>
+        <span style="font-size:15px;font-weight:700;color:${COLOR_NAVY};">${escapeHtml(questionText)}</span>
+      </div>
+      ${typeLabel ? buildTypeBadge(typeLabel) : ""}
+    </div>
+  `;
+}
+
+function buildQuestionBody(question: FeedbackQuestion): string {
   const qType = question.questionType;
   const answers = question.answer || [];
   let body = "";
@@ -177,11 +258,7 @@ function buildQuestionBlock(index: number, question: FeedbackQuestion): string {
       const isSelected = opt === selected;
       body += buildOptionPill(opt, isSelected);
     }
-    if (freeText) {
-      body += buildOptionPill(freeTextLabel, true);
-    } else {
-      body += buildOptionPill(freeTextLabel, false);
-    }
+    body += buildOptionPill(freeTextLabel, !!freeText);
     body += `</div>`;
     if (freeText) {
       body += `<div style="margin-top:8px;font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px;">OTHER COUNTRY</div>`;
@@ -208,7 +285,7 @@ function buildQuestionBlock(index: number, question: FeedbackQuestion): string {
     body += `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">`;
     for (const a of answers) {
       if (!a.text) continue;
-      body += buildTagOption(a.text, a.text === selectedText);
+      body += buildOptionPill(a.text, a.text === selectedText);
     }
     body += `</div>`;
   } else if (qType === "free_text" || qType === "free_singletext") {
@@ -220,25 +297,63 @@ function buildQuestionBlock(index: number, question: FeedbackQuestion): string {
     }
   }
 
-  const typeLabel =
-    qType === "single_select" || qType === "single_select_with_free_text"
-      ? "Single choice"
-      : qType === "multi_select"
-        ? "Multiple choice"
-        : qType === "single_tag"
-          ? "Single choice"
-          : "Free text";
+  return body;
+}
 
+function typeLabelFor(qType: string): string | null {
+  if (qType === "single_select" || qType === "single_select_with_free_text") {
+    return "Single choice";
+  }
+  if (qType === "multi_select") return "Multiple choice";
+  if (qType === "single_tag") return "Single choice";
+  return null; // free text / free singletext: no badge
+}
+
+function buildStandardQuestionBlock(
+  index: number,
+  question: FeedbackQuestion,
+): string {
   return `
     <div style="margin-bottom:28px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#F3E8FF;color:#7C3AED;font-size:12px;font-weight:700;">${index}</span>
-          <span style="font-size:15px;font-weight:600;color:#1F2937;">${escapeHtml(question.question)}</span>
-        </div>
-        <span style="font-size:11px;font-weight:500;color:#9CA3AF;background:#F3F4F6;padding:3px 10px;border-radius:9999px;">${typeLabel}</span>
+      ${buildQuestionHeader(index, question.question, typeLabelFor(question.questionType))}
+      ${buildQuestionBody(question)}
+    </div>
+  `;
+}
+
+// Renders one row of the "Changes You Have Noticed" scale group: the row
+// label on the left, and the 4 fixed options (Often/Sometimes/Rarely/Not
+// Yet) on the right, with the selected one tinted per SCALE_COLORS.
+function buildScaleRow(question: FeedbackQuestion): string {
+  const selected = getSingleTagSelected(question.answer || []);
+  const pills = SCALE_OPTIONS.map((opt) => {
+    const isSelected = opt === selected;
+    const colors = SCALE_COLORS[opt];
+    const style = isSelected
+      ? `background:${colors.bg};color:${colors.text};border:1px solid ${colors.border};`
+      : `background:#F3F4F6;color:#9CA3AF;border:1px solid #E5E7EB;`;
+    return `<span style="display:inline-block;padding:5px 12px;border-radius:9999px;font-size:12px;font-weight:500;margin:0 6px 0 0;${style}">${isSelected ? "✓ " : ""}${opt}</span>`;
+  }).join("");
+
+  return `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #F3F4F6;">
+      <span style="font-size:14px;font-weight:600;color:${COLOR_NAVY};">${escapeHtml(question.question)}</span>
+      <div style="display:flex;flex-wrap:nowrap;flex-shrink:0;">${pills}</div>
+    </div>
+  `;
+}
+
+function buildScaleGroupBlock(
+  index: number,
+  questions: FeedbackQuestion[],
+): string {
+  const rows = questions.map((q) => buildScaleRow(q)).join("");
+  return `
+    <div style="margin-bottom:28px;">
+      ${buildQuestionHeader(index, "Changes You Have Noticed", "Multiple choice")}
+      <div style="margin-top:8px;">
+        ${rows}
       </div>
-      ${body}
     </div>
   `;
 }
@@ -279,8 +394,13 @@ export function buildFeedbackReportHtml(
     }
   }
 
-  const questionBlocks = allQuestions
-    .map((q, i) => buildQuestionBlock(i + 1, q))
+  const reportItems = groupReportItems(allQuestions);
+  const questionBlocks = reportItems
+    .map((item, i) =>
+      item.kind === "scaleGroup"
+        ? buildScaleGroupBlock(i + 1, item.questions)
+        : buildStandardQuestionBlock(i + 1, item.question),
+    )
     .join("\n");
 
   return `<!DOCTYPE html>
@@ -294,76 +414,76 @@ export function buildFeedbackReportHtml(
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: #F5F3FF;
-    color: #1F2937;
+    background: ${TINT_PURPLE_BG};
+    color: ${COLOR_NAVY};
     line-height: 1.5;
   }
 </style>
 </head>
 <body>
-<div style="max-width:794px;margin:0 auto;background:#F5F3FF;padding:32px 24px;">
+<div style="max-width:794px;margin:0 auto;background:${TINT_PURPLE_BG};padding:32px 24px;">
 
   <!-- Header Card -->
-  <div style="background:#FFFFFF;border-radius:20px;padding:24px;margin-bottom:24px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+  <div style="background:${COLOR_WHITE};border-radius:20px;padding:24px;margin-bottom:24px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <div style="display:flex;align-items:center;gap:12px;">
-        <div style="width:40px;height:40px;border-radius:10px;background:#F3E8FF;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+        <div style="width:40px;height:40px;border-radius:10px;background:${TINT_PURPLE_BG};display:flex;align-items:center;justify-content:center;overflow:hidden;">
           <img src="${logoDataUri}" style="width:28px;height:28px;" alt="logo">
         </div>
         <div>
-          <div style="font-size:18px;font-weight:800;color:#7C3AED;">Parent Reflection Submitted</div>
+          <div style="font-size:18px;font-weight:800;color:${COLOR_NAVY};">Parent Reflection Submitted</div>
           <div style="font-size:13px;color:#6B7280;">A parent has completed the Busy Brains feedback form</div>
         </div>
       </div>
-      <span style="font-size:12px;font-weight:600;color:#7C3AED;background:#F3E8FF;padding:6px 14px;border-radius:9999px;">Parent Feedback</span>
+      <span style="font-size:12px;font-weight:600;color:${COLOR_WHITE};background:${COLOR_PURPLE};padding:6px 14px;border-radius:9999px;">Parent Feedback</span>
     </div>
   </div>
 
   <!-- Submission Summary -->
   <div style="margin-bottom:24px;">
-    <div style="font-size:18px;font-weight:800;color:#1F2937;margin-bottom:16px;">Submission Summary</div>
-    <div style="background:#FFFFFF;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+    <div style="font-size:18px;font-weight:800;color:${COLOR_NAVY};margin-bottom:16px;">Submission Summary</div>
+    <div style="background:${COLOR_WHITE};border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
         <div style="display:flex;align-items:center;gap:10px;">
-          <div style="width:36px;height:36px;border-radius:50%;background:#F3E8FF;display:flex;align-items:center;justify-content:center;font-size:14px;">👤</div>
+          <div style="width:36px;height:36px;border-radius:50%;background:${TINT_PURPLE_BG};display:flex;align-items:center;justify-content:center;font-size:14px;">👤</div>
           <div>
             <div style="font-size:11px;color:#9CA3AF;font-weight:500;">Parents Name</div>
-            <div style="font-size:14px;font-weight:700;color:#1F2937;">${escapeHtml(parentName)}</div>
+            <div style="font-size:14px;font-weight:700;color:${COLOR_NAVY};">${escapeHtml(parentName)}</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
-          <div style="width:36px;height:36px;border-radius:50%;background:#F3E8FF;display:flex;align-items:center;justify-content:center;font-size:14px;">✉️</div>
+          <div style="width:36px;height:36px;border-radius:50%;background:${TINT_PURPLE_BG};display:flex;align-items:center;justify-content:center;font-size:14px;">✉️</div>
           <div>
             <div style="font-size:11px;color:#9CA3AF;font-weight:500;">Email</div>
-            <div style="font-size:14px;font-weight:700;color:#1F2937;">${escapeHtml(parentEmail)}</div>
+            <div style="font-size:14px;font-weight:700;color:${COLOR_NAVY};">${escapeHtml(parentEmail)}</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
-          <div style="width:36px;height:36px;border-radius:50%;background:#F3E8FF;display:flex;align-items:center;justify-content:center;font-size:14px;">🕐</div>
+          <div style="width:36px;height:36px;border-radius:50%;background:${TINT_PURPLE_BG};display:flex;align-items:center;justify-content:center;font-size:14px;">🕐</div>
           <div>
             <div style="font-size:11px;color:#9CA3AF;font-weight:500;">Submitted</div>
-            <div style="font-size:14px;font-weight:700;color:#1F2937;">${formatDate(submittedAt)}</div>
+            <div style="font-size:14px;font-weight:700;color:${COLOR_NAVY};">${formatDate(submittedAt)}</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
-          <div style="width:36px;height:36px;border-radius:50%;background:#F3E8FF;display:flex;align-items:center;justify-content:center;font-size:14px;">📅</div>
+          <div style="width:36px;height:36px;border-radius:50%;background:${TINT_PURPLE_BG};display:flex;align-items:center;justify-content:center;font-size:14px;">📅</div>
           <div>
             <div style="font-size:11px;color:#9CA3AF;font-weight:500;">Account Since</div>
-            <div style="font-size:14px;font-weight:700;color:#1F2937;">${formatMonthYear(accountSince)}</div>
+            <div style="font-size:14px;font-weight:700;color:${COLOR_NAVY};">${formatMonthYear(accountSince)}</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
-          <div style="width:36px;height:36px;border-radius:50%;background:#F3E8FF;display:flex;align-items:center;justify-content:center;font-size:14px;">👶</div>
+          <div style="width:36px;height:36px;border-radius:50%;background:${TINT_PURPLE_BG};display:flex;align-items:center;justify-content:center;font-size:14px;">👶</div>
           <div>
             <div style="font-size:11px;color:#9CA3AF;font-weight:500;">Child Name</div>
-            <div style="font-size:14px;font-weight:700;color:#1F2937;">${escapeHtml(childName)}</div>
+            <div style="font-size:14px;font-weight:700;color:${COLOR_NAVY};">${escapeHtml(childName)}</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
-          <div style="width:36px;height:36px;border-radius:50%;background:#F3E8FF;display:flex;align-items:center;justify-content:center;font-size:14px;">📊</div>
+          <div style="width:36px;height:36px;border-radius:50%;background:${TINT_PURPLE_BG};display:flex;align-items:center;justify-content:center;font-size:14px;">📊</div>
           <div>
             <div style="font-size:11px;color:#9CA3AF;font-weight:500;">Child Age</div>
-            <div style="font-size:14px;font-weight:700;color:#1F2937;">${childAge}</div>
+            <div style="font-size:14px;font-weight:700;color:${COLOR_NAVY};">${childAge}</div>
           </div>
         </div>
       </div>
@@ -372,27 +492,27 @@ export function buildFeedbackReportHtml(
 
   <!-- Full Parent Feedback -->
   <div style="margin-bottom:24px;">
-    <div style="font-size:18px;font-weight:800;color:#1F2937;margin-bottom:4px;">Full Parent Feedback</div>
+    <div style="font-size:18px;font-weight:800;color:${COLOR_NAVY};margin-bottom:4px;">Full Parent Feedback</div>
     <div style="font-size:13px;color:#6B7280;margin-bottom:16px;">All answers from the parent's submission below.</div>
-    <div style="background:#FFFFFF;border-radius:16px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+    <div style="background:${COLOR_WHITE};border-radius:16px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
       ${questionBlocks}
     </div>
   </div>
 
   <!-- Admin Review Notes -->
-  <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:16px;padding:20px;margin-bottom:24px;">
+  <div style="background:${TINT_YELLOW_BG};border:1px solid ${COLOR_YELLOW};border-radius:16px;padding:20px;margin-bottom:24px;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-      <div style="width:28px;height:28px;border-radius:50%;background:#FEF3C7;display:flex;align-items:center;justify-content:center;font-size:14px;">💡</div>
-      <div style="font-size:16px;font-weight:800;color:#92400E;">Admin Review Notes</div>
+      <div style="width:28px;height:28px;border-radius:50%;background:${COLOR_YELLOW};display:flex;align-items:center;justify-content:center;font-size:14px;">💡</div>
+      <div style="font-size:16px;font-weight:800;color:${COLOR_NAVY};">Admin Review Notes</div>
     </div>
-    <div style="font-size:13px;color:#92400E;line-height:1.6;">
+    <div style="font-size:13px;color:${COLOR_NAVY};line-height:1.6;">
       This parent reflection can help the Busy Brains team understand family context, observed changes, helpful program areas, and future improvement opportunities.
     </div>
   </div>
 
   <!-- Footer -->
   <div style="text-align:center;padding:16px 0;">
-    <div style="font-size:14px;font-weight:700;color:#1F2937;margin-bottom:4px;">Busy Brains Feedback System</div>
+    <div style="font-size:14px;font-weight:700;color:${COLOR_NAVY};margin-bottom:4px;">Busy Brains Feedback System</div>
     <div style="font-size:12px;color:#9CA3AF;">This email was generated automatically after a parent submitted the Parent Reflection form.</div>
     <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Please do not reply directly to this email.</div>
   </div>
