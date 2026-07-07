@@ -159,8 +159,7 @@ export function buildChildFeedbackReportHtml(
   <!-- Footer -->
   <div style="text-align:center;padding:16px 0;">
     <div style="font-size:14px;font-weight:700;color:${COLOR_NAVY};margin-bottom:4px;">Busy Brains Feedback System</div>
-    <div style="font-size:12px;color:#9CA3AF;">This email was generated automatically after a child submitted the ${escapeHtml(moduleLabel)} final quiz.</div>
-    <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Please do not reply directly to this email.</div>
+    
   </div>
 
 </div>
