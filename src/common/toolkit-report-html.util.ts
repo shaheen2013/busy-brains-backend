@@ -380,11 +380,8 @@ export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
 <div class="pb-7">
 
   <!-- Top bar -->
-  <div class="flex justify-between items-start">
-    <div class="p-0">
+  <div class="flex justify-center items-center pt-3 pb-3">
       <img class="h-20 block" src="${logoSrc}" alt="Busy Brains" />
-    </div>
-    <div class="text-[22px] text-[#486284] font-extrabold text-bb-slate pr-10 pb-0 pl-0 tracking-[-0.3px] pt-[12px]">Busy Brains Child's Toolkit</div>
   </div>
 
   <div class="max-w-[700px] mx-auto mt-[18px] mb-0 px-[18px] flex flex-col gap-3.5">
@@ -495,13 +492,12 @@ export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
 
     <!-- Page footer -->
     <div class="flex justify-between items-center mt-10 pt-3 border-t border-dashed border-[#6CC5C640] text-[8.5px] text-bb-slate-ghost">
-      <span>busy-brains.com.au &middot; Busy Brains Child's Workbook &middot; My Personal Guide</span>
+      <span>www.busy-brains.com.au</span>
       <span class="inline-flex gap-1">
-        <i class="w-1.5 h-1.5 rounded-full inline-block bg-red-400"></i>
-        <i class="w-1.5 h-1.5 rounded-full inline-block bg-bb-yellow"></i>
-        <i class="w-1.5 h-1.5 rounded-full inline-block bg-emerald-400"></i>
-        <i class="w-1.5 h-1.5 rounded-full inline-block bg-blue-400"></i>
-        <i class="w-1.5 h-1.5 rounded-full inline-block bg-violet-400"></i>
+        <i class="w-1.5 h-1.5 rounded-full inline-block bg-[#9C6AFF]"></i>
+        <i class="w-1.5 h-1.5 rounded-full inline-block bg-[#F77F6A]"></i>
+        <i class="w-1.5 h-1.5 rounded-full inline-block bg-[#FFD93B]"></i>
+        <i class="w-1.5 h-1.5 rounded-full inline-block bg-[#6CC5C6]"></i>
       </span>
     </div>
 
