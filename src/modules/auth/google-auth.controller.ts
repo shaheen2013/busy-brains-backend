@@ -8,6 +8,7 @@ import { Public } from "./decorators/public.decorator";
 import { UsersService } from "../users/users.service";
 import { PaymentService } from "../payment/payment.service";
 import { KitService } from "../kit/kit.service";
+import { PlanName } from "../subscriptions/entities/plan.entity";
 
 @Controller("auth/google")
 export class GoogleAuthController {
@@ -48,13 +49,21 @@ export class GoogleAuthController {
 
   @Public()
   @Get()
-  redirectToGoogle(@Res() res: Response) {
+  redirectToGoogle(@Res() res: Response, @Query("plan") plan?: string) {
     const url = this.oauth2Client.generateAuthUrl({
       access_type: "offline",
       scope: ["email", "profile"],
       prompt: "select_account",
+      // Carry the requested plan through the OAuth round-trip
+      ...(this.parsePlan(plan) ? { state: this.parsePlan(plan) } : {}),
     });
     res.redirect(url);
+  }
+
+  private parsePlan(plan?: string): PlanName | null {
+    return plan && Object.values(PlanName).includes(plan as PlanName)
+      ? (plan as PlanName)
+      : null;
   }
 
   @Public()
@@ -63,6 +72,7 @@ export class GoogleAuthController {
     @Query("code") code: string,
     @Query("error") error: string,
     @Res() res: Response,
+    @Query("state") state?: string,
   ) {
     if (error || !code) {
       this.logger.warn(`Google OAuth error: ${error}`);
@@ -145,9 +155,28 @@ export class GoogleAuthController {
         { userId: clerkUserId, expiresInSeconds: 120 },
       );
 
-      return res.redirect(
-        `${this.frontendUrl}/google-callback?token=${signInToken.token}`,
-      );
+      // If a plan was requested, open a Stripe Checkout session and hand the
+      // URL to the frontend so it can sign the user in and then send them there.
+      const planName = this.parsePlan(state);
+      let checkoutUrl: string | null = null;
+      if (planName) {
+        try {
+          const session = await this.paymentService.startPlan(dbUser, planName);
+          checkoutUrl = session.url || null;
+          this.logger.log(
+            `Checkout session created for ${clerkUserId} (${planName})`,
+          );
+        } catch (planErr: any) {
+          this.logger.error(
+            `Failed to create checkout session for ${clerkUserId} (${planName}): ${planErr.message}`,
+          );
+        }
+      }
+
+      const params = new URLSearchParams({ token: signInToken.token });
+      if (checkoutUrl) params.set("checkout", checkoutUrl);
+
+      return res.redirect(`${this.frontendUrl}/google-callback?${params}`);
     } catch (err: any) {
       this.logger.error(
         `Google OAuth callback failed: ${err.message}`,
