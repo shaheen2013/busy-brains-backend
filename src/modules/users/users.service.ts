@@ -91,7 +91,7 @@ export class UsersService {
           purchasedAt: null,
           createdAt: null,
           plan: null,
-          trialExpiredWithoutPurchase: new Date() >= trialWindowEnd,
+          sevenDayExpiredAfterSignup: new Date() >= trialWindowEnd,
         },
         profileImage,
       };
@@ -103,12 +103,11 @@ export class UsersService {
 
     const trialWindowEnd = new Date(userPlan.trialStartedAt ?? user.createdAt);
     trialWindowEnd.setDate(trialWindowEnd.getDate() + MODULE1_FREE_DAYS);
-    const trialExpiredWithoutPurchase =
-      !userPlan.purchasedAt && new Date() >= trialWindowEnd;
+    const sevenDayExpiredAfterSignup = new Date() >= trialWindowEnd;
 
     return {
       ...user,
-      activePlan: { ...userPlan, plan, trialExpiredWithoutPurchase },
+      activePlan: { ...userPlan, plan, sevenDayExpiredAfterSignup },
       profileImage,
     };
   }
