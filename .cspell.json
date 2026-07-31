@@ -11,7 +11,8 @@
     "bullmq",
     "postgres",
     "svix",
-    "msgpackr"
+    "msgpackr",
+    "dtos"
   ],
   "ignorePaths": [
     "node_modules/**",

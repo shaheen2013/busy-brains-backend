@@ -13,6 +13,7 @@ import { ChildScreen } from "../children/entities/child-screen.entity";
 import {
   FREE_ACCESS_EMAILS,
   MAX_MODULES,
+  MODULE1_FREE_DAYS,
   MODULE_UNLOCK_DAYS,
 } from "../../constants/modules.constants";
 import { moduleRegistry } from "../../constants/module-registry";
@@ -88,6 +89,10 @@ export class ModulesService {
     const baseDate = FREE_ACCESS_EMAILS.has(userEmail)
       ? new Date(Date.now() - 100 * 24 * 60 * 60 * 1000)
       : this.resolveBaseDate(userPlan ?? null);
+    const trialWindowEnd = this.resolveTrialWindowEnd(
+      userPlan,
+      child.createdAt,
+    );
 
     if (moduleNo !== undefined) {
       const prevChildModule =
@@ -104,6 +109,7 @@ export class ModulesService {
         moduleNo,
         baseDate,
         prevChildModule,
+        trialWindowEnd,
       );
 
       const childModule = await this.childModuleRepository.findOne({
@@ -214,6 +220,7 @@ export class ModulesService {
         i,
         baseDate,
         prevChildModule,
+        trialWindowEnd,
       );
       const record = moduleMap.get(i) ?? null;
       result[`module_${i}`] = {
@@ -232,13 +239,28 @@ export class ModulesService {
     return purchaseBase;
   }
 
+  private resolveTrialWindowEnd(
+    userPlan: UserPlan | null,
+    fallbackStart: Date,
+  ): Date {
+    const start = userPlan?.trialStartedAt ?? fallbackStart;
+    const end = new Date(start);
+    end.setDate(end.getDate() + MODULE1_FREE_DAYS);
+    return end;
+  }
+
   private resolveModuleStatus(
     moduleNo: number,
     baseDate: Date | null,
     prevChildModule: ChildModule | null,
+    trialWindowEnd: Date,
   ): { unlocked: boolean; accessible: boolean; unlockDate: Date | null } {
     if (moduleNo === 1) {
-      return { unlocked: true, accessible: true, unlockDate: null };
+      if (baseDate) {
+        return { unlocked: true, accessible: true, unlockDate: null };
+      }
+      const unlocked = new Date() < trialWindowEnd;
+      return { unlocked, accessible: unlocked, unlockDate: trialWindowEnd };
     }
 
     if (!baseDate) {
@@ -278,6 +300,10 @@ export class ModulesService {
     const baseDate = FREE_ACCESS_EMAILS.has(userEmail)
       ? new Date(Date.now() - 100 * 24 * 60 * 60 * 1000)
       : this.resolveBaseDate(userPlan ?? null);
+    const trialWindowEnd = this.resolveTrialWindowEnd(
+      userPlan,
+      child.createdAt,
+    );
 
     const childModules = await this.childModuleRepository.find({
       where: { childId: childId },
@@ -329,6 +355,7 @@ export class ModulesService {
         moduleNo,
         baseDate,
         prevChildModule,
+        trialWindowEnd,
       );
       const record = moduleMap.get(moduleNo) ?? null;
       module_list.push({
@@ -355,6 +382,7 @@ export class ModulesService {
           moduleNo,
           baseDate,
           prevChildModule,
+          trialWindowEnd,
         );
         const childModule = moduleMap.get(moduleNo);
         const quests = childModule
@@ -398,6 +426,7 @@ export class ModulesService {
           moduleNo,
           baseDate,
           prevChildModule,
+          trialWindowEnd,
         );
         const childModule = moduleMap.get(moduleNo);
         const quests = childModule
