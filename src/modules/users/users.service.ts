@@ -17,6 +17,7 @@ import { AppConfig } from "../../config/app.config";
 import { VerificationService } from "./verification.service";
 import { VerificationType } from "./entities/verification-token.entity";
 import { KitService } from "../kit/kit.service";
+import { MODULE1_FREE_DAYS } from "../../constants/modules.constants";
 
 @Injectable()
 export class UsersService {
@@ -74,13 +75,42 @@ export class UsersService {
     const profileImage =
       resource?.documents.find((d) => d.label === "profile")?.url ?? null;
 
-    if (!userPlan) return { ...user, activePlan: null, profileImage };
+    if (!userPlan) {
+      const trialWindowEnd = new Date(user.createdAt);
+      trialWindowEnd.setDate(trialWindowEnd.getDate() + MODULE1_FREE_DAYS);
+      return {
+        ...user,
+        activePlan: {
+          id: null,
+          userId: null,
+          planId: null,
+          isTrial: false,
+          trialStartedAt: null,
+          trialEndsAt: null,
+          isActive: false,
+          purchasedAt: null,
+          createdAt: null,
+          plan: null,
+          trialExpiredWithoutPurchase: new Date() >= trialWindowEnd,
+        },
+        profileImage,
+      };
+    }
 
     const plan = userPlan.isTrial
       ? { name: "TRIAL", trialEndsAt: userPlan.trialEndsAt }
       : userPlan.plan;
 
-    return { ...user, activePlan: { ...userPlan, plan }, profileImage };
+    const trialWindowEnd = new Date(userPlan.trialStartedAt ?? user.createdAt);
+    trialWindowEnd.setDate(trialWindowEnd.getDate() + MODULE1_FREE_DAYS);
+    const trialExpiredWithoutPurchase =
+      !userPlan.purchasedAt && new Date() >= trialWindowEnd;
+
+    return {
+      ...user,
+      activePlan: { ...userPlan, plan, trialExpiredWithoutPurchase },
+      profileImage,
+    };
   }
 
   async updateUser(

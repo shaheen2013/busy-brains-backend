@@ -1,6 +1,12 @@
 export const MAX_MODULES = 6;
 
 /**
+ * Days module 1 stays free (from trial start / signup) before it locks
+ * for users who haven't purchased a plan.
+ */
+export const MODULE1_FREE_DAYS = 7;
+
+/**
  * Days after purchasedAt before each module unlocks.
  * Index 0 = module 1 (always free), index 1 = module 2, etc.
  */
