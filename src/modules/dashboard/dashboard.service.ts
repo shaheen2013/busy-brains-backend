@@ -344,8 +344,8 @@ export class DashboardService {
       questsByModuleId,
       screensByQuestId,
       5,
-      1,
       2,
+      1,
     );
 
     const realLifeToolsData = this.resolveScreenData(
@@ -353,8 +353,8 @@ export class DashboardService {
       questsByModuleId,
       screensByQuestId,
       5,
-      2,
-      2,
+      1,
+      3,
     );
 
     const finalToolkitData = this.resolveScreenData(

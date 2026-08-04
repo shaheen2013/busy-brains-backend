@@ -176,7 +176,7 @@ function resolveFavouriteTools(
   data: Record<string, unknown> | null | undefined,
 ): ReportModel["favouriteTools"] {
   const groups =
-    (data?.module_5_quest_1_saved_toolkit as SavedToolkitGroup[]) ?? [];
+    (data?.module_5_quest_2_saved_toolkit as SavedToolkitGroup[]) ?? [];
   const seen = new Set<string>();
   const tools: FavouriteTool[] = [];
   for (const group of groups) {

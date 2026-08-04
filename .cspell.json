@@ -12,7 +12,12 @@
     "postgres",
     "svix",
     "msgpackr",
-    "dtos"
+    "dtos",
+    "favourite",
+    "favourites",
+    "noto",
+    "unstarted",
+    "tuhin"
   ],
   "ignorePaths": [
     "node_modules/**",
