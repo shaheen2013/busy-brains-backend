@@ -7,8 +7,8 @@ export const MAX_MODULES = 6;
 export const MODULE1_FREE_DAYS = 7;
 
 /**
- * Days after purchasedAt before each module unlocks.
- * Index 0 = module 1 (always free), index 1 = module 2, etc.
+ * Days after purchasedAt before each module unlocks. All modules require
+ * a purchased plan; this only controls the weekly stagger once purchased.
  */
 
 const DEVELOPMENT = {
@@ -22,11 +22,11 @@ const DEVELOPMENT = {
 
 const PRODUCTION = {
   1: 0,
-  2: 0,
+  2: 7,
   3: 14,
-  4: 28,
-  5: 42,
-  6: 56,
+  4: 21,
+  5: 28,
+  6: 35,
 };
 
 const developmentMode = process.env.NODE_ENV === "staging";

@@ -186,7 +186,7 @@ describe("ModulesService", () => {
   });
 
   // -----------------------------------------------------------------------
-  // getAccessStatus — module 1 always accessible
+  // getAccessStatus — module 1 requires a purchased plan like other modules
   // -----------------------------------------------------------------------
   describe("getAccessStatus — module 1", () => {
     beforeEach(() => {
@@ -195,7 +195,31 @@ describe("ModulesService", () => {
       childModuleRepo.findOne.mockResolvedValue(null);
     });
 
-    it("returns module_1 as unlocked and accessible regardless of baseDate", async () => {
+    it("returns module_1 as locked and inaccessible without a purchased plan", async () => {
+      const result = await service.getAccessStatus(
+        userId,
+        userEmail,
+        childId,
+        1,
+      );
+
+      expect(result).toMatchObject({
+        module_1: {
+          unlocked: false,
+          accessible: false,
+          unlockDate: null,
+        },
+      });
+    });
+
+    it("returns module_1 as unlocked and accessible once a plan is purchased", async () => {
+      userPlanRepo.findOne.mockResolvedValue({
+        id: "up-1",
+        userId,
+        isActive: true,
+        purchasedAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      });
+
       const result = await service.getAccessStatus(
         userId,
         userEmail,
@@ -207,7 +231,6 @@ describe("ModulesService", () => {
         module_1: {
           unlocked: true,
           accessible: true,
-          unlockDate: null,
         },
       });
     });
@@ -335,7 +358,7 @@ describe("ModulesService", () => {
       }
     });
 
-    it("module_1 is always unlocked/accessible even without a plan", async () => {
+    it("module_1 is locked/inaccessible when there is no plan", async () => {
       childRepo.findOne.mockResolvedValue(mockChild);
       userPlanRepo.findOne.mockResolvedValue(null);
       childModuleRepo.find.mockResolvedValue([]);
@@ -346,11 +369,11 @@ describe("ModulesService", () => {
         childId,
       )) as any;
 
-      expect(result.module_1.unlocked).toBe(true);
-      expect(result.module_1.accessible).toBe(true);
+      expect(result.module_1.unlocked).toBe(false);
+      expect(result.module_1.accessible).toBe(false);
     });
 
-    it("modules 2-6 are locked when there is no user plan", async () => {
+    it("all modules 1-6 are locked when there is no user plan", async () => {
       childRepo.findOne.mockResolvedValue(mockChild);
       userPlanRepo.findOne.mockResolvedValue(null);
       childModuleRepo.find.mockResolvedValue([]);
@@ -361,7 +384,7 @@ describe("ModulesService", () => {
         childId,
       )) as any;
 
-      for (let i = 2; i <= 6; i++) {
+      for (let i = 1; i <= 6; i++) {
         expect(result[`module_${i}`].unlocked).toBe(false);
         expect(result[`module_${i}`].accessible).toBe(false);
       }
@@ -374,7 +397,12 @@ describe("ModulesService", () => {
   describe("getAccessStatus — quest level", () => {
     it("returns quest_1 as accessible when module is accessible", async () => {
       childRepo.findOne.mockResolvedValue(mockChild);
-      userPlanRepo.findOne.mockResolvedValue(null);
+      userPlanRepo.findOne.mockResolvedValue({
+        id: "up-1",
+        userId,
+        isActive: true,
+        purchasedAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      });
       const mockChildModule = { id: "cm-1", moduleNo: 1, isCompleted: false };
       childModuleRepo.findOne
         .mockResolvedValueOnce(mockChildModule) // current module
@@ -396,7 +424,12 @@ describe("ModulesService", () => {
 
     it("returns quest_2 as inaccessible when quest_1 is not completed", async () => {
       childRepo.findOne.mockResolvedValue(mockChild);
-      userPlanRepo.findOne.mockResolvedValue(null);
+      userPlanRepo.findOne.mockResolvedValue({
+        id: "up-1",
+        userId,
+        isActive: true,
+        purchasedAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      });
       const mockChildModule = { id: "cm-1", moduleNo: 1, isCompleted: false };
 
       childModuleRepo.findOne.mockResolvedValueOnce(mockChildModule);
@@ -424,7 +457,12 @@ describe("ModulesService", () => {
   describe("getAccessStatus — screen level", () => {
     it("returns screen status nested under module and quest", async () => {
       childRepo.findOne.mockResolvedValue(mockChild);
-      userPlanRepo.findOne.mockResolvedValue(null);
+      userPlanRepo.findOne.mockResolvedValue({
+        id: "up-1",
+        userId,
+        isActive: true,
+        purchasedAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      });
       const mockChildModule = { id: "cm-1", moduleNo: 1, isCompleted: false };
       const mockChildQuest = {
         id: "cq-1",
@@ -501,9 +539,34 @@ describe("ModulesService", () => {
       expect(list[0]).toMatchObject({
         module: 1,
         status: "initialized",
+        accessible: false,
+        unlocked: false,
+        isCompleted: false,
+      });
+    });
+
+    it("returns module_1 as unlocked/accessible in module_list once a plan is purchased", async () => {
+      childRepo.findOne.mockResolvedValue(mockChild);
+      userPlanRepo.findOne.mockResolvedValue({
+        id: "up-1",
+        userId,
+        isActive: true,
+        purchasedAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      });
+      childModuleRepo.find.mockResolvedValue([]);
+
+      const result = await service.getAccessList(
+        userId,
+        userEmail,
+        childId,
+        [],
+      );
+      const list = result.module_list as any[];
+
+      expect(list[0]).toMatchObject({
+        module: 1,
         accessible: true,
         unlocked: true,
-        isCompleted: false,
       });
     });
 

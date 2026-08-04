@@ -249,18 +249,18 @@ describe("DashboardService", () => {
       expect(result.module_progress).toHaveLength(6);
     });
 
-    it("module_1 in module_progress is always accessible", async () => {
+    it("module_1 in module_progress is locked when no user plan exists", async () => {
       const result = (await service.getDashboard(userId, childId, [])) as any;
 
       const module1 = result.module_progress.find((m: any) => m.module === 1);
-      expect(module1.accessible).toBe(true);
-      expect(module1.unlocked).toBe(true);
+      expect(module1.accessible).toBe(false);
+      expect(module1.unlocked).toBe(false);
     });
 
-    it("modules 2-6 are locked when no user plan exists", async () => {
+    it("all modules 1-6 are locked when no user plan exists", async () => {
       const result = (await service.getDashboard(userId, childId, [])) as any;
 
-      for (let i = 2; i <= 6; i++) {
+      for (let i = 1; i <= 6; i++) {
         const m = result.module_progress.find((mod: any) => mod.module === i);
         expect(m.unlocked).toBe(false);
         expect(m.accessible).toBe(false);
@@ -593,9 +593,30 @@ describe("DashboardService", () => {
       expect(first).toHaveProperty("unlockedAt");
     });
 
-    it("quest 1 of module 1 is accessible (module 1 always unlocked)", async () => {
+    it("quest 1 of module 1 is locked when no user plan exists", async () => {
       childRepo.findOne.mockResolvedValue(mockChild);
       userPlanRepo.findOne.mockResolvedValue(null);
+      childModuleRepo.find.mockResolvedValue([]);
+      childQuestRepo.find.mockResolvedValue([]);
+      childScreenRepo.find.mockResolvedValue([]);
+
+      const result = (await service.getDashboard(userId, childId, [
+        "quest",
+      ])) as any;
+      const questProgress = result.quest_progress as any[];
+
+      const m1q1 = questProgress.find(
+        (q: any) => q.module === 1 && q.quest === 1,
+      );
+      expect(m1q1.accessible).toBe(false);
+      expect(m1q1.unlocked).toBe(false);
+    });
+
+    it("quest 1 of module 1 is accessible once a plan is purchased", async () => {
+      childRepo.findOne.mockResolvedValue(mockChild);
+      userPlanRepo.findOne.mockResolvedValue({
+        purchasedAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      } as any);
       childModuleRepo.find.mockResolvedValue([]);
       childQuestRepo.find.mockResolvedValue([]);
       childScreenRepo.find.mockResolvedValue([]);

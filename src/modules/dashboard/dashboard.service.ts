@@ -611,18 +611,16 @@ export class DashboardService {
     baseDate: Date | null,
     prevChildModule: ChildModule | null,
   ) {
-    if (moduleNo === 1) {
-      return { unlocked: true, accessible: true, unlockDate: null };
-    }
     if (!baseDate) {
       return { unlocked: false, accessible: false, unlockDate: null };
     }
-    const delayDays = MODULE_UNLOCK_DAYS[moduleNo] ?? (moduleNo - 2) * 14;
+    const delayDays = MODULE_UNLOCK_DAYS[moduleNo] ?? (moduleNo - 1) * 7;
     const unlockDate = new Date(baseDate);
     unlockDate.setDate(unlockDate.getDate() + delayDays);
     const unlocked = new Date() >= unlockDate;
     if (!unlocked) return { unlocked: false, accessible: false, unlockDate };
-    const accessible = prevChildModule?.isCompleted ?? false;
+    const accessible =
+      moduleNo === 1 ? true : (prevChildModule?.isCompleted ?? false);
     return { unlocked, accessible, unlockDate };
   }
 }
