@@ -50,7 +50,7 @@ const SAMPLE_DASHBOARD: DashboardData = {
   favourite_tools_data: {
     status: "completed",
     data: {
-      module_5_quest_1_saved_toolkit: [
+      module_5_quest_2_saved_toolkit: [
         {
           toolFlag: "movement",
           list: [
