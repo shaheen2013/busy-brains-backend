@@ -59,4 +59,11 @@ export const PARENT_RESOURCES: ParentResource[] = [
       "https://busy-brains-backend.s3.ap-southeast-2.amazonaws.com/Parent+Guidebooks/BBParentGuidebooksYourChildsBusyBrainTypePlusToolkitMatch.pdf",
     size: "1.4 MB",
   },
+  {
+    title: "Parent Scripting Resource",
+    module: 0,
+    download_url:
+      "https://busy-brains-backend.s3.ap-southeast-2.amazonaws.com/Parent+Guidebooks/BB+Parent+Scripting+Resource_20260810_141210_0000.pdf",
+    size: "1.3 MB",
+  },
 ];
