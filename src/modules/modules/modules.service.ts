@@ -13,7 +13,7 @@ import { ChildScreen } from "../children/entities/child-screen.entity";
 import {
   FREE_ACCESS_EMAILS,
   MAX_MODULES,
-  MODULE_UNLOCK_DAYS,
+  getModuleUnlockDays,
 } from "../../constants/modules.constants";
 import { moduleRegistry } from "../../constants/module-registry";
 
@@ -88,6 +88,7 @@ export class ModulesService {
     const baseDate = FREE_ACCESS_EMAILS.has(userEmail)
       ? new Date(Date.now() - 100 * 24 * 60 * 60 * 1000)
       : this.resolveBaseDate(userPlan ?? null);
+    const unlockDays = getModuleUnlockDays(userEmail);
 
     if (moduleNo !== undefined) {
       const prevChildModule =
@@ -104,6 +105,7 @@ export class ModulesService {
         moduleNo,
         baseDate,
         prevChildModule,
+        unlockDays,
       );
 
       const childModule = await this.childModuleRepository.findOne({
@@ -214,6 +216,7 @@ export class ModulesService {
         i,
         baseDate,
         prevChildModule,
+        unlockDays,
       );
       const record = moduleMap.get(i) ?? null;
       result[`module_${i}`] = {
@@ -236,12 +239,13 @@ export class ModulesService {
     moduleNo: number,
     baseDate: Date | null,
     prevChildModule: ChildModule | null,
+    unlockDays: Record<number, number>,
   ): { unlocked: boolean; accessible: boolean; unlockDate: Date | null } {
     if (!baseDate) {
       return { unlocked: false, accessible: false, unlockDate: null };
     }
 
-    const delayDays = MODULE_UNLOCK_DAYS[moduleNo] ?? (moduleNo - 1) * 7;
+    const delayDays = unlockDays[moduleNo] ?? (moduleNo - 1) * 7;
     const unlockDate = new Date(baseDate);
     unlockDate.setDate(unlockDate.getDate() + delayDays);
 
@@ -275,6 +279,7 @@ export class ModulesService {
     const baseDate = FREE_ACCESS_EMAILS.has(userEmail)
       ? new Date(Date.now() - 100 * 24 * 60 * 60 * 1000)
       : this.resolveBaseDate(userPlan ?? null);
+    const unlockDays = getModuleUnlockDays(userEmail);
 
     const childModules = await this.childModuleRepository.find({
       where: { childId: childId },
@@ -326,6 +331,7 @@ export class ModulesService {
         moduleNo,
         baseDate,
         prevChildModule,
+        unlockDays,
       );
       const record = moduleMap.get(moduleNo) ?? null;
       module_list.push({
@@ -352,6 +358,7 @@ export class ModulesService {
           moduleNo,
           baseDate,
           prevChildModule,
+          unlockDays,
         );
         const childModule = moduleMap.get(moduleNo);
         const quests = childModule
@@ -395,6 +402,7 @@ export class ModulesService {
           moduleNo,
           baseDate,
           prevChildModule,
+          unlockDays,
         );
         const childModule = moduleMap.get(moduleNo);
         const quests = childModule

@@ -43,3 +43,25 @@ export const FREE_ACCESS_EMAILS = new Set([
   "mdmarufbinsalimbhuiyan@gmail.com",
   "aileenk00@gmail.com",
 ]);
+
+/**
+ * Manually approved case-by-case exceptions: users confirmed (by checking
+ * payment_history) to have paid before MODULE_UNLOCK_DAYS's staggered wait
+ * shipped, who'd otherwise be stuck waiting on module 2 for a rule that
+ * didn't exist when they bought. Their module 2 unlocks instantly instead
+ * of following the standard MODULE_UNLOCK_DAYS[2] delay. Modules 3+ are
+ * unaffected. Add an email here only after confirming a succeeded purchase
+ * in payment_history — this is not a general grandfather clause.
+ */
+export const MODULE2_INSTANT_UNLOCK_EMAILS = new Set([
+  "caskeggs@gmail.com",
+  "kellyabasford@gmail.com",
+  "sonya_furner@hotmail.com",
+]);
+
+/** Resolves the per-module unlock-delay schedule to use for a given user. */
+export function getModuleUnlockDays(userEmail: string): Record<number, number> {
+  return MODULE2_INSTANT_UNLOCK_EMAILS.has(userEmail)
+    ? { ...MODULE_UNLOCK_DAYS, 2: 0 }
+    : MODULE_UNLOCK_DAYS;
+}
