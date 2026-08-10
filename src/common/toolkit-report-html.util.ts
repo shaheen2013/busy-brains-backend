@@ -11,6 +11,7 @@ import {
 } from "../modules/toolkit-report/toolkit-report.types";
 import {
   BRAIN_CONTENT,
+  FAVOURITE_TOOL_IMAGES,
   IMAGE_SETS,
   TACTILE_CONTENT,
   TOOLKIT_CONTENT,
@@ -184,7 +185,11 @@ function resolveFavouriteTools(
       const title = item.title?.trim();
       if (!title || seen.has(title)) continue;
       seen.add(title);
-      tools.push({ title, flag: group.toolFlag ?? "" });
+      tools.push({
+        title,
+        flag: group.toolFlag ?? "",
+        imageFile: FAVOURITE_TOOL_IMAGES[title] ?? "",
+      });
     }
   }
   return {
@@ -278,6 +283,28 @@ function buildImageGrid(assetsDir: string, images: GridImage[]): string {
     .join("");
 }
 
+function buildFavouriteToolsGrid(
+  assetsDir: string,
+  tools: FavouriteTool[],
+): string {
+  return tools
+    .map((tool) => {
+      const accent = (TAG_COLORS[tool.flag] ?? DEFAULT_TAG).border;
+      const img = tool.imageFile
+        ? loadAsset(assetsDir, `images/${tool.imageFile}`)
+        : null;
+      const imageEl = img
+        ? `<img class="w-full h-20 object-contain mb-[7px]" src="${img}" alt="${escapeHtml(tool.title)}" />`
+        : `<div class="w-full h-20 mb-[7px]"></div>`;
+      return `
+          <div class="border-[1.5px] border-dashed rounded-[14px] px-1.5 pt-2.5 pb-[9px] flex flex-col items-center bg-white" style="border-color:${accent}">
+            ${imageEl}
+            <div class="text-[8px] font-bold text-[#334155] text-center leading-[1.3]">${escapeHtml(tool.title)}</div>
+          </div>`;
+    })
+    .join("");
+}
+
 export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
   const { assetsDir, childName, dashboard } = options;
 
@@ -287,12 +314,10 @@ export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
   const logoSrc = loadAsset(assetsDir, "logo.svg");
   const heroSrc = loadAsset(assetsDir, "hero-child.svg");
 
-  const toolTags = favouriteTools.tools
-    .map((tool) => {
-      const c = TAG_COLORS[tool.flag] ?? DEFAULT_TAG;
-      return `<span class="text-[${c.text}] bg-[${c.bg}] border border-[${c.border}] text-[9.5px] font-semibold px-3 py-[5px] rounded-[20px]">${escapeHtml(tool.title)}</span>`;
-    })
-    .join("");
+  const favouriteToolsGrid = buildFavouriteToolsGrid(
+    assetsDir,
+    favouriteTools.tools,
+  );
 
   const bulletPoints = tactileSense.bulletPoints
     .map(
@@ -455,7 +480,7 @@ export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
       </div>
       <div class="p-4">
         <div class="text-[12.5px] font-extrabold text-bb-slate mb-[11px]">You chose these as YOUR all-time faves</div>
-        <div class="flex flex-wrap gap-[7px]">${toolTags}</div>
+        <div class="grid grid-cols-5 gap-[11px]">${favouriteToolsGrid}</div>
       </div>
     </div>
 

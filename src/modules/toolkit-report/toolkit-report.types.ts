@@ -28,10 +28,12 @@ export interface ToolkitContent {
   imageGroups: ImageGroup[];
 }
 
-// A favourite tool plus the category it came from (drives tag colour).
+// A favourite tool plus the category it came from (drives tag colour) and
+// the illustration to render for it in the grid.
 export interface FavouriteTool {
   title: string;
   flag: string;
+  imageFile: string; // relative to assets/images/, "" if no match found
 }
 
 // A grid tile: the image, its label, and the category accent for its border.

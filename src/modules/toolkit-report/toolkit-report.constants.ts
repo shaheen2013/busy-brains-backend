@@ -151,6 +151,65 @@ export const IMAGE_SETS: Record<ImageGroup, ToolkitImage[]> = {
 };
 
 // ---------------------------------------------------------------------------
+// Favourite Tools images — Module 5 Quest 2 Screen 1.
+//
+// Keyed by the exact tool title as saved in module_5_quest_2_saved_toolkit,
+// mirroring the frontend's data/module-5/quest-1/backpackItems.tsx titles.
+// ---------------------------------------------------------------------------
+export const FAVOURITE_TOOL_IMAGES: Record<string, string> = {
+  // Move My Body
+  "Jump on the spot": "favourite-tools/jumponthespot.svg",
+  "Wall push-ups": "favourite-tools/wallpushups.svg",
+  "Animal walks": "favourite-tools/animalwalks.svg",
+  "Dance to one song": "favourite-tools/dancetoonesong.svg",
+  "Play a ball game": "favourite-tools/playaballgame.svg",
+  "Run a lap outside": "favourite-tools/runalapoutside.svg",
+  "Stretch tall, then curl small":
+    "favourite-tools/stretchtallthencurlsmall.svg",
+  "Shake arms and legs out": "favourite-tools/shakearmsandlegsout.svg",
+  Swing: "favourite-tools/swing.svg",
+  "Make up an obstacle course": "favourite-tools/makeupanobstaclecourse.svg",
+  // Breathe & Rest
+  "5 slow belly breaths": "favourite-tools/5slowbellybreaths.svg",
+  "Close eyes for 30 seconds": "favourite-tools/closeeyesfor30seconds.svg",
+  "Notice 3 sounds around you": "favourite-tools/notice3soundsaroundyou.svg",
+  "Guided breathing animation": "favourite-tools/guidedbreathinganimation.svg",
+  "Stretch slowly": "favourite-tools/stretchslowly.svg",
+  "Quiet corner time": "favourite-tools/quietcornertime.svg",
+  "Listen to music that makes you feel good":
+    "favourite-tools/listentomusicthatmakesyoufeelgood.svg",
+  "Body scan": "favourite-tools/bodyscan.svg",
+  "Chill time": "favourite-tools/chilltime.svg",
+  "Drink water slowly": "favourite-tools/drinkwaterslowly.svg",
+  // Fun & Recharge
+  "Draw or colour": "favourite-tools/draworcolour.svg",
+  "Lego or building": "favourite-tools/legoorbuilding.svg",
+  "Play with a pet": "favourite-tools/playwithapet.svg",
+  "Read a favourite book": "favourite-tools/readafavouritebook.svg",
+  "Sing loudly or listen to music":
+    "favourite-tools/singloudlyorlistentomusic.svg",
+  "Make an obstacle course": "favourite-tools/makeanobstaclecourse.svg",
+  "Talk to someone you like": "favourite-tools/talktosomeoneyoulike.svg",
+  "Play outside": "favourite-tools/playoutside.svg",
+  "Go on an adventure": "favourite-tools/goonanadventure.svg",
+  "Board games or cards": "favourite-tools/boardgamesorcards.svg",
+  // Cozy & Comfort
+  "Hug a pillow or teddy": "favourite-tools/hugapilloworteddy.svg",
+  "Wrap in a blanket": "favourite-tools/wrapinablanket.svg",
+  "Squeeze putty or playdough": "favourite-tools/squeezeputtyorplaydough.svg",
+  "Firm hand or shoulder squeeze":
+    "favourite-tools/firmhandorshouldersqueeze.svg",
+  "Sit next to someone you trust":
+    "favourite-tools/sitnexttosomeoneyoutrust.svg",
+  "Play with some fidget tools": "favourite-tools/playithsomefidgettools.svg",
+  "Body sock": "favourite-tools/bodysock.svg",
+  "Choose headphones & some music":
+    "favourite-tools/chooseheadphones&somemusic.svg",
+  "Warm drink": "favourite-tools/warmdrink.svg",
+  "Pat your pet": "favourite-tools/patyourpet.svg",
+};
+
+// ---------------------------------------------------------------------------
 // Brain Type content — Module 1 Quest 5 quiz.
 // Flags: A = Mover, B = Cozy, C = Fidget, D = Quiet. MIX = a combo result.
 // Copy mirrors the frontend (data/module-1 + data/final-toolkit).
