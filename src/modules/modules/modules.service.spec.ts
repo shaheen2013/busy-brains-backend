@@ -79,6 +79,8 @@ jest.mock("../../constants/modules.constants", () => ({
   MAX_MODULES: 6,
   MODULE_UNLOCK_DAYS: { 1: 0, 2: 0, 3: 14, 4: 28, 5: 42, 6: 56 },
   FREE_ACCESS_EMAILS: new Set(),
+  MODULE2_INSTANT_UNLOCK_EMAILS: new Set(),
+  getModuleUnlockDays: () => ({ 1: 0, 2: 0, 3: 14, 4: 28, 5: 42, 6: 56 }),
 }));
 
 const createMockRepository = () => ({
