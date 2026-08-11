@@ -51,6 +51,7 @@ export interface ReportModel {
     title: string;
     subtitle: string;
     description: string;
+    bulletPoints: string[];
   };
   tactileSense: {
     title: string;

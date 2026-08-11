@@ -209,6 +209,13 @@ export const FAVOURITE_TOOL_IMAGES: Record<string, string> = {
   "Pat your pet": "favourite-tools/patyourpet.svg",
 };
 
+// Shown in place of the brain-type description when the quiz hasn't been
+// completed yet, mirroring the tactile sense's "not yet discovered" bullets.
+export const BRAIN_TYPE_UNDISCOVERED_BULLETS = [
+  "Your brain type is discovered by completing the Module 1 quiz.",
+  "Once discovered, you'll see what helps you feel calm and focused.",
+];
+
 // ---------------------------------------------------------------------------
 // Brain Type content — Module 1 Quest 5 quiz.
 // Flags: A = Mover, B = Cozy, C = Fidget, D = Quiet. MIX = a combo result.

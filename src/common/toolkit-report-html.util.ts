@@ -11,6 +11,7 @@ import {
 } from "../modules/toolkit-report/toolkit-report.types";
 import {
   BRAIN_CONTENT,
+  BRAIN_TYPE_UNDISCOVERED_BULLETS,
   FAVOURITE_TOOL_IMAGES,
   IMAGE_SETS,
   TACTILE_CONTENT,
@@ -143,6 +144,7 @@ function resolveBrainType(brain: {
       title: cleanType(brain.type) ?? "Still discovering your brain type",
       subtitle: "",
       description: "",
+      bulletPoints: BRAIN_TYPE_UNDISCOVERED_BULLETS,
     };
   }
   const flag: BrainFlag =
@@ -152,6 +154,7 @@ function resolveBrainType(brain: {
     title: cleanType(brain.type) ?? "Still discovering your brain type",
     subtitle: content.subtitle,
     description: content.description,
+    bulletPoints: [],
   };
 }
 
@@ -327,12 +330,16 @@ export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
     favouriteTools.tools,
   );
 
-  const bulletPoints = tactileSense.bulletPoints
-    .map(
-      (p) =>
-        `<li class="text-[10.5px] text-[#475569] leading-[1.55] pl-3.5 relative mb-0.5 before:content-['•'] before:absolute before:left-0.5 before:text-[#94a3b8] before:font-bold">${escapeHtml(p)}</li>`,
-    )
-    .join("");
+  const renderBullets = (points: string[]): string =>
+    points
+      .map(
+        (p) =>
+          `<li class="text-[10.5px] text-[#475569] leading-[1.55] pl-3.5 relative mb-0.5 before:content-['•'] before:absolute before:left-0.5 before:text-[#94a3b8] before:font-bold">${escapeHtml(p)}</li>`,
+      )
+      .join("");
+
+  const brainBulletPoints = renderBullets(brainType.bulletPoints);
+  const bulletPoints = renderBullets(tactileSense.bulletPoints);
 
   const imageGrid = buildImageGrid(assetsDir, model.images);
 
@@ -452,7 +459,11 @@ export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
         </div>
         <div class="p-4">
           <div class="text-sm font-extrabold text-bb-slate mb-[7px]">${escapeHtml(brainType.title)}</div>
-          <p class="text-[10.5px] text-bb-slate-light leading-[1.6]">${escapeHtml(brainType.description)}</p>
+          ${
+            brainType.description
+              ? `<p class="text-[10.5px] text-bb-slate-light leading-[1.6]">${escapeHtml(brainType.description)}</p>`
+              : `<ul class="list-none p-0">${brainBulletPoints}</ul>`
+          }
         </div>
       </div>
 
