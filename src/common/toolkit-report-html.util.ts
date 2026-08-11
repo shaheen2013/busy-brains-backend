@@ -188,6 +188,7 @@ function resolveFavouriteTools(
   const seen = new Set<string>();
   const tools: FavouriteTool[] = [];
   for (const group of groups) {
+    if (group.toolFlag !== "fun") continue;
     for (const item of group.list ?? []) {
       const title = item.title?.trim();
       if (!title || seen.has(title)) continue;
