@@ -138,6 +138,13 @@ function resolveBrainType(brain: {
   counts?: Record<string, number>;
 }): ReportModel["brainType"] {
   const winners = winningFlags(brain.counts);
+  if (winners.length === 0) {
+    return {
+      title: cleanType(brain.type) ?? "Still discovering your brain type",
+      subtitle: "",
+      description: "",
+    };
+  }
   const flag: BrainFlag =
     winners.length === 1 ? (winners[0] as BrainFlag) : "MIX";
   const content = BRAIN_CONTENT[flag] ?? BRAIN_CONTENT.MIX;
