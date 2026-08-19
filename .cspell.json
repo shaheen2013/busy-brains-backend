@@ -17,7 +17,12 @@
     "favourites",
     "noto",
     "unstarted",
-    "tuhin"
+    "tuhin",
+    "Grotesk",
+    "Menlo",
+    "Segoe",
+    "lede",
+    "busybrains"
   ],
   "ignorePaths": [
     "node_modules/**",

@@ -3,6 +3,8 @@ import { ValidationPipe } from "@nestjs/common";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import { AppModule } from "./app.module";
+import { docsAuthMiddleware } from "./config/docs-auth/docs-auth.middleware";
+import { docsUiCss, docsUiScript } from "./config/docs-auth/swagger-ui-brand";
 
 /**
  * Normalize origin input (string | string[]) -> string[]
@@ -99,16 +101,38 @@ function createCorsOriginChecker(origins: string[] | undefined) {
   };
 }
 
+const API_VERSION = "1.0.0";
+
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true,
   });
 
+  // Gate every Swagger route behind the docs sign-in. config/env.ts makes the
+  // credentials mandatory in production, so prod docs are never anonymous;
+  // locally they stay open unless DOCS_USER/DOCS_PASSWORD are set.
+  const docsUser = process.env.DOCS_USER;
+  const docsPassword = process.env.DOCS_PASSWORD;
+  const nodeEnv = process.env.NODE_ENV ?? "development";
+  if (docsUser && docsPassword) {
+    app.use(
+      docsAuthMiddleware({
+        user: docsUser,
+        password: docsPassword,
+        // Mixing the password in means rotating it signs everyone out.
+        secret: `${process.env.CLERK_SECRET_KEY ?? ""}:${docsPassword}`,
+        environment: nodeEnv,
+        version: API_VERSION,
+        secureCookie: nodeEnv === "production",
+      }),
+    );
+  }
+
   // Swagger/OpenAPI setup
   const config = new DocumentBuilder()
     .setTitle("Busy Brains API")
     .setDescription("Busy Brains platform API documentation")
-    .setVersion("1.0.0")
+    .setVersion(API_VERSION)
     .addBearerAuth(
       { type: "http", scheme: "bearer", bearerFormat: "JWT" },
       "Clerk-Bearer",
@@ -117,6 +141,9 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup("api/docs", app, document, {
+    customSiteTitle: "Busy Brains API docs",
+    customCss: docsUiCss,
+    customJsStr: docsUiScript("/api/docs"),
     swaggerOptions: {
       persistAuthorization: true,
     },
