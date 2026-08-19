@@ -18,7 +18,12 @@
     "noto",
     "unstarted",
     "tuhin",
-    "whsec"
+    "whsec",
+    "Grotesk",
+    "Menlo",
+    "Segoe",
+    "lede",
+    "busybrains"
   ],
   "ignorePaths": [
     "node_modules/**",
