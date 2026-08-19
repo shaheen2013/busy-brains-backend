@@ -123,7 +123,8 @@ async function bootstrap() {
         secret: `${process.env.CLERK_SECRET_KEY ?? ""}:${docsPassword}`,
         environment: nodeEnv,
         version: API_VERSION,
-        secureCookie: nodeEnv === "production",
+        // Every deployed environment (production, staging) terminates TLS.
+        secureCookie: nodeEnv !== "development" && nodeEnv !== "test",
       }),
     );
   }

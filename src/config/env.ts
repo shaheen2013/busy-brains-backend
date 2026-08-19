@@ -49,17 +49,16 @@ export class EnvironmentVariables {
   @IsNotEmpty()
   STRIPE_PUBLISHABLE_KEY: string;
 
-  // Credentials for the /api/docs sign-in page. Optional here so local and
-  // test boots stay frictionless; validate() below makes them mandatory in
-  // production, where the docs must never be publicly readable.
+  // Credentials for the /api/docs sign-in page. Required in every environment
+  // — the docs must never be readable anonymously, local included.
   @IsString()
-  @IsOptional()
-  DOCS_USER?: string;
+  @IsNotEmpty()
+  DOCS_USER: string;
 
   @IsString()
-  @IsOptional()
+  @IsNotEmpty()
   @MinLength(8)
-  DOCS_PASSWORD?: string;
+  DOCS_PASSWORD: string;
 
   @IsString()
   @IsOptional()
@@ -85,17 +84,6 @@ export function validate(config: Record<string, unknown>) {
         .map((e) => Object.values(e.constraints ?? {}).join(", "))
         .join("; "),
     );
-  }
-
-  if (validated.NODE_ENV === "production") {
-    const missing = (["DOCS_USER", "DOCS_PASSWORD"] as const).filter(
-      (key) => !validated[key],
-    );
-    if (missing.length > 0) {
-      throw new Error(
-        `${missing.join(", ")} required in production to protect /api/docs`,
-      );
-    }
   }
 
   return config;
