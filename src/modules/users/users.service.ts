@@ -10,6 +10,10 @@ import { ConfigService } from "@nestjs/config";
 import { createClerkClient } from "@clerk/backend";
 import { User } from "./entities/user.entity";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
+import {
+  WeeklySubscription,
+  WeeklySubscriptionStatus,
+} from "../subscriptions/entities/weekly-subscription.entity";
 import { UpdateUserDto } from "./dtos/update-user.dto";
 import { UpdatePasswordDto } from "./dtos/update-password.dto";
 import { StorageService } from "../storage/storage.service";
@@ -26,6 +30,8 @@ export class UsersService {
     private userRepository: Repository<User>,
     @InjectRepository(UserPlan)
     private userPlanRepository: Repository<UserPlan>,
+    @InjectRepository(WeeklySubscription)
+    private weeklySubscriptionRepository: Repository<WeeklySubscription>,
     private configService: ConfigService<AppConfig>,
     private storageService: StorageService,
     private verificationService: VerificationService,
@@ -75,39 +81,95 @@ export class UsersService {
     const profileImage =
       resource?.documents.find((d) => d.label === "profile")?.url ?? null;
 
-    if (!userPlan) {
-      const trialWindowEnd = new Date(user.createdAt);
+    // A one-time plan (trial or purchased) takes precedence if active.
+    if (userPlan) {
+      const plan = userPlan.isTrial
+        ? { name: "TRIAL", trialEndsAt: userPlan.trialEndsAt }
+        : userPlan.plan;
+
+      const trialWindowEnd = new Date(
+        userPlan.trialStartedAt ?? user.createdAt,
+      );
       trialWindowEnd.setDate(trialWindowEnd.getDate() + MODULE1_FREE_DAYS);
+      const sevenDayExpiredAfterSignup = new Date() >= trialWindowEnd;
+
       return {
         ...user,
         activePlan: {
-          id: null,
-          userId: null,
-          planId: null,
-          isTrial: false,
-          trialStartedAt: null,
-          trialEndsAt: null,
-          isActive: false,
-          purchasedAt: null,
-          createdAt: null,
-          plan: null,
-          sevenDayExpiredAfterSignup: new Date() >= trialWindowEnd,
+          type: "one_time" as const,
+          ...userPlan,
+          plan,
+          sevenDayExpiredAfterSignup,
         },
         profileImage,
       };
     }
 
-    const plan = userPlan.isTrial
-      ? { name: "TRIAL", trialEndsAt: userPlan.trialEndsAt }
-      : userPlan.plan;
+    // No one-time plan — fall back to an active/paid-off weekly recurring subscription.
+    const weeklySubscription = await this.weeklySubscriptionRepository.findOne({
+      where: [
+        { userId: id, status: WeeklySubscriptionStatus.ACTIVE },
+        { userId: id, status: WeeklySubscriptionStatus.PAST_DUE },
+        { userId: id, status: WeeklySubscriptionStatus.PAID_OFF },
+      ],
+      relations: { weeklyPlan: true },
+      order: { createdAt: "DESC" },
+    });
 
-    const trialWindowEnd = new Date(userPlan.trialStartedAt ?? user.createdAt);
+    const trialWindowEnd = new Date(
+      weeklySubscription?.startedAt ?? user.createdAt,
+    );
     trialWindowEnd.setDate(trialWindowEnd.getDate() + MODULE1_FREE_DAYS);
     const sevenDayExpiredAfterSignup = new Date() >= trialWindowEnd;
 
+    if (weeklySubscription) {
+      return {
+        ...user,
+        activePlan: {
+          type: "weekly_recurring" as const,
+          id: weeklySubscription.id,
+          userId: weeklySubscription.userId,
+          isTrial: false,
+          trialStartedAt: null,
+          trialEndsAt: null,
+          isActive:
+            weeklySubscription.status !== WeeklySubscriptionStatus.PAST_DUE,
+          purchasedAt: weeklySubscription.startedAt,
+          createdAt: weeklySubscription.createdAt,
+          plan: null,
+          weeklySubscription: {
+            id: weeklySubscription.id,
+            tier: weeklySubscription.weeklyPlan.tier,
+            status: weeklySubscription.status,
+            cyclesPaid: weeklySubscription.cyclesPaid,
+            totalCycles: weeklySubscription.totalCycles,
+            currentPeriodEnd: weeklySubscription.currentPeriodEnd,
+            paidOffAt: weeklySubscription.paidOffAt,
+          },
+          sevenDayExpiredAfterSignup,
+        },
+        profileImage,
+      };
+    }
+
+    // No plan of any kind.
     return {
       ...user,
-      activePlan: { ...userPlan, plan, sevenDayExpiredAfterSignup },
+      activePlan: {
+        type: "none" as const,
+        id: null,
+        userId: null,
+        planId: null,
+        isTrial: false,
+        trialStartedAt: null,
+        trialEndsAt: null,
+        isActive: false,
+        purchasedAt: null,
+        createdAt: null,
+        plan: null,
+        weeklySubscription: null,
+        sevenDayExpiredAfterSignup,
+      },
       profileImage,
     };
   }

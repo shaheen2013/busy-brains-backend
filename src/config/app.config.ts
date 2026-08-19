@@ -22,6 +22,7 @@ export interface AppConfig {
     publishableKey: string;
     webhookSecret: string;
     upgradePriceId: string;
+    weeklyUpgradeDiffAmount: number;
   };
 
   s3: {
@@ -71,6 +72,10 @@ export default (): AppConfig => ({
     publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
     webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
     upgradePriceId: process.env.STRIPE_PRICE_UPGRADE,
+    weeklyUpgradeDiffAmount: parseInt(
+      process.env.STRIPE_WEEKLY_UPGRADE_DIFF_AMOUNT || "1600",
+      10,
+    ),
   },
   s3: {
     region: process.env.AWS_REGION || "us-east-1",

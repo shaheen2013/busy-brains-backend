@@ -24,6 +24,8 @@ import { ToolkitReportModule } from "./modules/toolkit-report/toolkit-report.mod
 import { CertificateReportModule } from "./modules/certificate-report/certificate-report.module";
 import { FeedbackModule } from "./modules/feedback/feedback.module";
 import { FeedbackReportModule } from "./modules/feedback-report/feedback-report.module";
+import { WeeklySubscriptionModule } from "./modules/weekly-subscription/weekly-subscription.module";
+import { PaymentMethodModule } from "./modules/payment-method/payment-method.module";
 
 @Module({
   imports: [
@@ -52,6 +54,8 @@ import { FeedbackReportModule } from "./modules/feedback-report/feedback-report.
     CertificateReportModule,
     FeedbackModule,
     FeedbackReportModule,
+    WeeklySubscriptionModule,
+    PaymentMethodModule,
   ],
   providers: [
     {

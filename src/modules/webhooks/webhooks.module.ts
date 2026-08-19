@@ -7,9 +7,15 @@ import { ClerkWebhooksService } from "./clerk-webhooks.service";
 import { StripeWebhooksService } from "./stripe-webhooks.service";
 import { PaymentModule } from "../payment/payment.module";
 import { KitModule } from "../kit/kit.module";
+import { WeeklySubscriptionModule } from "../weekly-subscription/weekly-subscription.module";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User]), PaymentModule, KitModule],
+  imports: [
+    TypeOrmModule.forFeature([User]),
+    PaymentModule,
+    KitModule,
+    WeeklySubscriptionModule,
+  ],
   controllers: [ClerkWebhookController, StripeWebhookController],
   providers: [ClerkWebhooksService, StripeWebhooksService],
 })

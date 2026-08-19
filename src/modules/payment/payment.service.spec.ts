@@ -19,6 +19,7 @@ import { PaymentService } from "./payment.service";
 import { Plan, PlanName } from "../subscriptions/entities/plan.entity";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
 import { PaymentHistory } from "../subscriptions/entities/payment-history.entity";
+import { WeeklyPaymentHistory } from "../subscriptions/entities/weekly-payment-history.entity";
 import { User } from "../users/entities/user.entity";
 
 const createMockRepository = () => ({
@@ -41,6 +42,7 @@ describe("PaymentService", () => {
   let planRepo: ReturnType<typeof createMockRepository>;
   let userPlanRepo: ReturnType<typeof createMockRepository>;
   let paymentHistoryRepo: ReturnType<typeof createMockRepository>;
+  let weeklyPaymentHistoryRepo: ReturnType<typeof createMockRepository>;
   let userRepo: ReturnType<typeof createMockRepository>;
   let configService: { get: jest.Mock };
 
@@ -70,6 +72,8 @@ describe("PaymentService", () => {
     planRepo = createMockRepository();
     userPlanRepo = createMockRepository();
     paymentHistoryRepo = createMockRepository();
+    weeklyPaymentHistoryRepo = createMockRepository();
+    weeklyPaymentHistoryRepo.find.mockResolvedValue([]);
     userRepo = createMockRepository();
 
     configService = {
@@ -88,6 +92,10 @@ describe("PaymentService", () => {
         {
           provide: getRepositoryToken(PaymentHistory),
           useValue: paymentHistoryRepo,
+        },
+        {
+          provide: getRepositoryToken(WeeklyPaymentHistory),
+          useValue: weeklyPaymentHistoryRepo,
         },
         { provide: getRepositoryToken(User), useValue: userRepo },
         { provide: ConfigService, useValue: configService },
@@ -840,7 +848,7 @@ describe("PaymentService", () => {
   // ---------------------------------------------------------------------------
 
   describe("getPaymentHistory", () => {
-    it("should return payment history with plan relations for a given userId", async () => {
+    it("should return merged one-time payment history with plan relations for a given userId", async () => {
       const history = [
         {
           id: "ph-1",
@@ -848,6 +856,8 @@ describe("PaymentService", () => {
           amount: 4900,
           currency: "usd",
           status: "succeeded",
+          createdAt: new Date("2026-01-01"),
+          invoicePdfUrl: null,
           plan: { name: PlanName.SOLO_EXPLORER },
         },
       ];
@@ -860,7 +870,23 @@ describe("PaymentService", () => {
         relations: { plan: true },
         order: { createdAt: "DESC" },
       });
-      expect(result).toBe(history);
+      expect(result).toEqual([
+        {
+          id: "ph-1",
+          type: "one_time",
+          amount: 4900,
+          currency: "usd",
+          status: "succeeded",
+          createdAt: history[0].createdAt,
+          invoicePdfUrl: null,
+          planName: PlanName.SOLO_EXPLORER,
+          weeklyTier: null,
+          cycleNumber: null,
+          isPayoff: false,
+          isUpgrade: false,
+          upgradeFromTier: null,
+        },
+      ]);
     });
 
     it("should return an empty array when there is no history", async () => {

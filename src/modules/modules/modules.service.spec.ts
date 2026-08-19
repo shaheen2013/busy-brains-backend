@@ -3,6 +3,7 @@ import { getRepositoryToken } from "@nestjs/typeorm";
 import { BadRequestException, ForbiddenException } from "@nestjs/common";
 import { ModulesService } from "./modules.service";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
+import { WeeklySubscription } from "../subscriptions/entities/weekly-subscription.entity";
 import { Child } from "../children/entities/child.entity";
 import { ChildModule } from "../children/entities/child-module.entity";
 import { ChildQuest } from "../children/entities/child-quest.entity";
@@ -100,6 +101,7 @@ describe("ModulesService", () => {
   let service: ModulesService;
 
   let userPlanRepo: ReturnType<typeof createMockRepository>;
+  let weeklySubscriptionRepo: ReturnType<typeof createMockRepository>;
   let childRepo: ReturnType<typeof createMockRepository>;
   let childModuleRepo: ReturnType<typeof createMockRepository>;
   let childQuestRepo: ReturnType<typeof createMockRepository>;
@@ -119,6 +121,8 @@ describe("ModulesService", () => {
 
   beforeEach(async () => {
     userPlanRepo = createMockRepository();
+    weeklySubscriptionRepo = createMockRepository();
+    weeklySubscriptionRepo.findOne.mockResolvedValue(null);
     childRepo = createMockRepository();
     childModuleRepo = createMockRepository();
     childQuestRepo = createMockRepository();
@@ -128,6 +132,10 @@ describe("ModulesService", () => {
       providers: [
         ModulesService,
         { provide: getRepositoryToken(UserPlan), useValue: userPlanRepo },
+        {
+          provide: getRepositoryToken(WeeklySubscription),
+          useValue: weeklySubscriptionRepo,
+        },
         { provide: getRepositoryToken(Child), useValue: childRepo },
         { provide: getRepositoryToken(ChildModule), useValue: childModuleRepo },
         { provide: getRepositoryToken(ChildQuest), useValue: childQuestRepo },

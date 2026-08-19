@@ -20,6 +20,7 @@ jest.mock("@clerk/backend", () => ({
 import { UsersService } from "./users.service";
 import { User } from "./entities/user.entity";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
+import { WeeklySubscription } from "../subscriptions/entities/weekly-subscription.entity";
 import { StorageService } from "../storage/storage.service";
 import { VerificationService } from "./verification.service";
 import { VerificationType } from "./entities/verification-token.entity";
@@ -43,6 +44,7 @@ describe("UsersService", () => {
   let service: UsersService;
   let userRepo: ReturnType<typeof createMockRepository>;
   let userPlanRepo: ReturnType<typeof createMockRepository>;
+  let weeklySubscriptionRepo: ReturnType<typeof createMockRepository>;
   let configService: jest.Mocked<ConfigService>;
   let storageService: jest.Mocked<StorageService>;
   let verificationService: jest.Mocked<VerificationService>;
@@ -78,6 +80,8 @@ describe("UsersService", () => {
 
     userRepo = createMockRepository();
     userPlanRepo = createMockRepository();
+    weeklySubscriptionRepo = createMockRepository();
+    weeklySubscriptionRepo.findOne.mockResolvedValue(null);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -89,6 +93,10 @@ describe("UsersService", () => {
         {
           provide: getRepositoryToken(UserPlan),
           useValue: userPlanRepo,
+        },
+        {
+          provide: getRepositoryToken(WeeklySubscription),
+          useValue: weeklySubscriptionRepo,
         },
         {
           provide: ConfigService,

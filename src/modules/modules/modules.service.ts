@@ -6,6 +6,10 @@ import {
 import { InjectRepository } from "@nestjs/typeorm";
 import { In, Repository } from "typeorm";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
+import {
+  WeeklySubscription,
+  WeeklySubscriptionStatus,
+} from "../subscriptions/entities/weekly-subscription.entity";
 import { Child } from "../children/entities/child.entity";
 import { ChildModule } from "../children/entities/child-module.entity";
 import { ChildQuest } from "../children/entities/child-quest.entity";
@@ -48,6 +52,8 @@ export class ModulesService {
   constructor(
     @InjectRepository(UserPlan)
     private readonly userPlanRepository: Repository<UserPlan>,
+    @InjectRepository(WeeklySubscription)
+    private readonly weeklySubscriptionRepository: Repository<WeeklySubscription>,
     @InjectRepository(Child)
     private readonly childRepository: Repository<Child>,
     @InjectRepository(ChildModule)
@@ -84,10 +90,14 @@ export class ModulesService {
     const userPlan = await this.userPlanRepository.findOne({
       where: { userId, isActive: true },
     });
+    const weeklySubscription = await this.weeklySubscriptionRepository.findOne({
+      where: { userId },
+      order: { createdAt: "DESC" },
+    });
 
     const baseDate = FREE_ACCESS_EMAILS.has(userEmail)
       ? new Date(Date.now() - 100 * 24 * 60 * 60 * 1000)
-      : this.resolveBaseDate(userPlan ?? null);
+      : this.resolveBaseDate(userPlan ?? null, weeklySubscription ?? null);
     const unlockDays = getModuleUnlockDays(userEmail);
 
     if (moduleNo !== undefined) {
@@ -229,10 +239,21 @@ export class ModulesService {
     return result;
   }
 
-  private resolveBaseDate(userPlan: UserPlan | null): Date | null {
-    if (!userPlan?.purchasedAt) return null;
-    const purchaseBase = userPlan.purchasedAt;
-    return purchaseBase;
+  private resolveBaseDate(
+    userPlan: UserPlan | null,
+    weeklySubscription: WeeklySubscription | null,
+  ): Date | null {
+    const dates: Date[] = [];
+    if (userPlan?.purchasedAt) dates.push(userPlan.purchasedAt);
+    if (
+      weeklySubscription?.startedAt &&
+      (weeklySubscription.status === WeeklySubscriptionStatus.ACTIVE ||
+        weeklySubscription.status === WeeklySubscriptionStatus.PAID_OFF)
+    ) {
+      dates.push(weeklySubscription.startedAt);
+    }
+    if (dates.length === 0) return null;
+    return dates.reduce((earliest, d) => (d < earliest ? d : earliest));
   }
 
   private resolveModuleStatus(
@@ -276,9 +297,13 @@ export class ModulesService {
     const userPlan = await this.userPlanRepository.findOne({
       where: { userId, isActive: true },
     });
+    const weeklySubscription = await this.weeklySubscriptionRepository.findOne({
+      where: { userId },
+      order: { createdAt: "DESC" },
+    });
     const baseDate = FREE_ACCESS_EMAILS.has(userEmail)
       ? new Date(Date.now() - 100 * 24 * 60 * 60 * 1000)
-      : this.resolveBaseDate(userPlan ?? null);
+      : this.resolveBaseDate(userPlan ?? null, weeklySubscription ?? null);
     const unlockDays = getModuleUnlockDays(userEmail);
 
     const childModules = await this.childModuleRepository.find({

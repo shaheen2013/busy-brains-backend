@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { PaymentService } from "../payment/payment.service";
 import { KitService } from "../kit/kit.service";
+import { WeeklySubscriptionService } from "../weekly-subscription/weekly-subscription.service";
 import type {
   CheckoutSessionCompletedEvent,
   PaymentIntentSucceededEvent,
@@ -16,6 +17,7 @@ export class StripeWebhooksService {
   constructor(
     private readonly paymentService: PaymentService,
     private readonly kitService: KitService,
+    private readonly weeklySubscriptionService: WeeklySubscriptionService,
   ) {}
 
   async handleCheckoutCompleted(event: any) {
@@ -61,7 +63,21 @@ export class StripeWebhooksService {
   }
 
   async handleInvoicePaymentSucceeded(event: any) {
-    const invoice = (event as InvoicePaymentSucceededEvent).data.object;
+    const invoice = (event as InvoicePaymentSucceededEvent).data.object as any;
+
+    if (invoice.subscription) {
+      await this.weeklySubscriptionService.handleInvoicePaymentSucceeded(
+        typeof invoice.subscription === "string"
+          ? invoice.subscription
+          : invoice.subscription.id,
+        invoice.id,
+        invoice.amount_paid ?? 0,
+        invoice.currency ?? "usd",
+      );
+      this.logger.log(`invoice.payment_succeeded (weekly): ${invoice.id}`);
+      return;
+    }
+
     await this.paymentService.handleInvoicePaid(
       invoice.id,
       invoice.invoice_pdf,
@@ -70,7 +86,47 @@ export class StripeWebhooksService {
   }
 
   async handleInvoicePaymentFailed(event: any) {
-    const invoice = (event as InvoicePaymentFailedEvent).data.object;
+    const invoice = (event as InvoicePaymentFailedEvent).data.object as any;
+
+    if (invoice.subscription) {
+      const failureReason =
+        invoice.last_finalization_error?.message ??
+        invoice.payment_intent?.last_payment_error?.message ??
+        null;
+      await this.weeklySubscriptionService.handleInvoicePaymentFailed(
+        typeof invoice.subscription === "string"
+          ? invoice.subscription
+          : invoice.subscription.id,
+        invoice.id,
+        invoice.amount_due ?? 0,
+        invoice.currency ?? "usd",
+        failureReason,
+      );
+    }
+
     this.logger.log(`invoice.payment_failed: ${invoice.id}`);
+  }
+
+  async handleSubscriptionUpdated(event: any) {
+    const subscription = event.data.object;
+    const currentPeriodEnd = subscription.current_period_end
+      ? new Date(subscription.current_period_end * 1000)
+      : null;
+    await this.weeklySubscriptionService.handleSubscriptionUpdated(
+      subscription.id,
+      subscription.status,
+      currentPeriodEnd,
+    );
+    this.logger.log(
+      `customer.subscription.updated: ${subscription.id} (${subscription.status})`,
+    );
+  }
+
+  async handleSubscriptionDeleted(event: any) {
+    const subscription = event.data.object;
+    await this.weeklySubscriptionService.handleSubscriptionDeleted(
+      subscription.id,
+    );
+    this.logger.log(`customer.subscription.deleted: ${subscription.id}`);
   }
 }
