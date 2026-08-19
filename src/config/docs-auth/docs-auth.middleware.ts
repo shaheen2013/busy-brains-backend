@@ -47,6 +47,42 @@ function recordFailure(ip: string): void {
   else attempts.set(ip, { count: 1, firstAt: Date.now() });
 }
 
+/** Caps what we will buffer from a sign-in POST; a form this size is already absurd. */
+const MAX_FORM_BYTES = 16 * 1024;
+
+/**
+ * Reads the urlencoded sign-in form straight off the request.
+ *
+ * Nest registers its body parsers inside `app.init()`, which runs on `listen()`
+ * — after `app.use()` has already put this middleware on the stack. So
+ * `req.body` is not populated here and cannot be relied on; we parse it
+ * ourselves and fall back to `req.body` when some earlier parser did win.
+ */
+async function readFormBody(req: Request): Promise<Record<string, string>> {
+  const parsed = req.body as Record<string, unknown> | undefined;
+  if (parsed && typeof parsed === "object" && Object.keys(parsed).length > 0) {
+    return Object.fromEntries(
+      Object.entries(parsed).map(([key, value]) => [
+        key,
+        value == null ? "" : String(value as string | number | boolean),
+      ]),
+    );
+  }
+
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of req) {
+    const buffer = chunk as Buffer;
+    size += buffer.length;
+    if (size > MAX_FORM_BYTES) break;
+    chunks.push(buffer);
+  }
+
+  return Object.fromEntries(
+    new URLSearchParams(Buffer.concat(chunks).toString("utf8")),
+  );
+}
+
 function basicCredentials(
   header: string | undefined,
 ): { user: string; pass: string } | null {
@@ -98,7 +134,7 @@ export function docsAuthMiddleware(options: DocsAuthOptions) {
         }),
       );
 
-  return (req: Request, res: Response, nextFn: NextFunction) => {
+  return async (req: Request, res: Response, nextFn: NextFunction) => {
     if (!req.path.startsWith(prefix)) return nextFn();
 
     const sessionUser = readSession(
@@ -112,11 +148,10 @@ export function docsAuthMiddleware(options: DocsAuthOptions) {
       if (req.method !== "POST")
         return sendLogin(res, safeNext(req.query.next), 200);
 
-      const body = (req.body ?? {}) as Record<string, unknown>;
+      const body = await readFormBody(req);
       const target = safeNext(body.next);
-      const submittedUser = typeof body.user === "string" ? body.user : "";
-      const submittedPass =
-        typeof body.password === "string" ? body.password : "";
+      const submittedUser = body.user ?? "";
+      const submittedPass = body.password ?? "";
       const ip = req.ip ?? "unknown";
 
       const limit = throttle(ip);
