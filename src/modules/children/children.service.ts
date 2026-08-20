@@ -20,7 +20,6 @@ import { UpdateChildDto } from "./dto/update-child.dto";
 import { moduleRegistry } from "../../constants/module-registry";
 import { Position } from "../../types/position";
 
-const TRIAL_MAX_CHILDREN = 1;
 const BUDDY_CUSTOMIZATION_KEY = "buddy_customization";
 
 type AvatarData = {
@@ -74,13 +73,13 @@ export class ChildrenService {
       relations: { plan: true },
     });
 
-    if (!userPlan) {
-      throw new ForbiddenException("An active plan or trial is required");
+    if (!userPlan || userPlan.isTrial) {
+      throw new ForbiddenException(
+        "An active paid plan is required to add a child",
+      );
     }
 
-    const maxChildren = userPlan.isTrial
-      ? TRIAL_MAX_CHILDREN
-      : (userPlan.plan?.maxChildren ?? 0);
+    const maxChildren = userPlan.plan?.maxChildren ?? 0;
 
     const childCount = await this.childRepository.countBy({ userId });
 
