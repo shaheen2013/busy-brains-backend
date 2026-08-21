@@ -10,6 +10,11 @@ import { ChildModule } from "./entities/child-module.entity";
 import { ChildQuest } from "./entities/child-quest.entity";
 import { ChildScreen } from "./entities/child-screen.entity";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
+import {
+  WeeklySubscription,
+  WeeklySubscriptionStatus,
+} from "../subscriptions/entities/weekly-subscription.entity";
+import { WeeklyPlanTier } from "../subscriptions/entities/weekly-plan.entity";
 import { User } from "../users/entities/user.entity";
 import { S3Service } from "../storage/s3.service";
 import { KitService } from "../kit/kit.service";
@@ -60,6 +65,8 @@ export class ChildrenService {
     private readonly childScreenRepository: Repository<ChildScreen>,
     @InjectRepository(UserPlan)
     private readonly userPlanRepository: Repository<UserPlan>,
+    @InjectRepository(WeeklySubscription)
+    private readonly weeklySubscriptionRepository: Repository<WeeklySubscription>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly s3Service: S3Service,
@@ -73,13 +80,31 @@ export class ChildrenService {
       relations: { plan: true },
     });
 
-    if (!userPlan || userPlan.isTrial) {
-      throw new ForbiddenException(
-        "An active paid plan is required to add a child",
-      );
-    }
+    let maxChildren: number;
 
-    const maxChildren = userPlan.plan?.maxChildren ?? 0;
+    if (userPlan && !userPlan.isTrial) {
+      maxChildren = userPlan.plan?.maxChildren ?? 0;
+    } else {
+      // No active one-time paid plan — fall back to an active/paid-off weekly
+      // recurring subscription (past_due does not count, matches module unlock rules).
+      const weeklySubscription =
+        await this.weeklySubscriptionRepository.findOne({
+          where: [
+            { userId, status: WeeklySubscriptionStatus.ACTIVE },
+            { userId, status: WeeklySubscriptionStatus.PAID_OFF },
+          ],
+          relations: { weeklyPlan: true },
+        });
+
+      if (!weeklySubscription) {
+        throw new ForbiddenException(
+          "An active paid plan is required to add a child",
+        );
+      }
+
+      maxChildren =
+        weeklySubscription.weeklyPlan.tier === WeeklyPlanTier.FAMILY ? 3 : 1;
+    }
 
     const childCount = await this.childRepository.countBy({ userId });
 

@@ -152,6 +152,7 @@ describe("StripeWebhooksService", () => {
           payment_intent: "pi_test_456",
           amount_total: 9900,
           currency: "usd",
+          promotionCodeId: null,
         },
       );
     });

@@ -64,7 +64,10 @@ const sampleDashboard = () => ({
     data: {
       module_5_quest_2_saved_toolkit: [
         {
-          toolFlag: "movement",
+          // The favourite-tools report section only ever renders the "fun"
+          // toolFlag group — other groups (movement, restBreath, calmComfort)
+          // are intentionally excluded, see resolveFavouriteTools().
+          toolFlag: "fun",
           list: [{ title: "5 slow belly breaths" }, { title: "Wall push-ups" }],
         },
       ],
@@ -158,7 +161,9 @@ describe("ToolkitReportService", () => {
 
     it("should evaluate scrollHeight for content height", async () => {
       await service.generatePdf("user-1", "child-1");
-      expect(mockEvaluateFn).toHaveBeenCalledTimes(1);
+      // 3 evaluate() calls: wait for document.fonts.ready, wait a frame for
+      // @font-face swaps to settle, then measure document.documentElement.scrollHeight.
+      expect(mockEvaluateFn).toHaveBeenCalledTimes(3);
     });
 
     it("should generate a pdf with width 794px and print background", async () => {

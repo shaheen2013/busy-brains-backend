@@ -23,7 +23,9 @@
     "Menlo",
     "Segoe",
     "lede",
-    "busybrains"
+    "busybrains",
+    "behaviour",
+    "upserts"
   ],
   "ignorePaths": [
     "node_modules/**",
