@@ -422,7 +422,11 @@ export class WeeklySubscriptionService {
       }),
     );
 
+    // Both the FK column and the loaded relation object must be updated —
+    // TypeORM's save() writes the relation object's id back over a
+    // manually-set weeklyPlanId if the (stale) relation is still attached.
     sub.weeklyPlanId = familyPlan.id;
+    sub.weeklyPlan = familyPlan;
     sub.status = WeeklySubscriptionStatus.ACTIVE;
     await this.weeklySubscriptionRepository.save(sub);
 
@@ -498,7 +502,11 @@ export class WeeklySubscriptionService {
     sub.status = WeeklySubscriptionStatus.PAID_OFF;
     sub.paidOffAt = new Date();
     sub.cyclesPaid = sub.totalCycles;
+    // Both the FK column and the loaded relation object must be updated —
+    // TypeORM's save() writes the relation object's id back over a
+    // manually-set weeklyPlanId if the (stale) relation is still attached.
     sub.weeklyPlanId = payoffPlan.id;
+    sub.weeklyPlan = payoffPlan;
     await this.weeklySubscriptionRepository.save(sub);
 
     try {
