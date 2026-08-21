@@ -22,14 +22,11 @@ export class WeeklySubscriptionController {
 
   @Post("start")
   @ApiOperation({
-    summary: "Start a new weekly recurring subscription (Single or Family)",
+    summary:
+      "Start a new weekly recurring subscription (Single or Family) via a Stripe Checkout Session",
   })
   start(@User() user: UserEntity, @Body() dto: StartWeeklySubscriptionDto) {
-    return this.weeklySubscriptionService.start(
-      user,
-      dto.tier,
-      dto.paymentMethodId,
-    );
+    return this.weeklySubscriptionService.start(user, dto.tier);
   }
 
   @Post("payoff")

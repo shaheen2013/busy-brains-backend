@@ -21,8 +21,30 @@ export class StripeWebhooksService {
   ) {}
 
   async handleCheckoutCompleted(event: any) {
-    const session = (event as CheckoutSessionCompletedEvent).data.object;
-    const { userId, planName } = session.metadata ?? {};
+    const session = (event as CheckoutSessionCompletedEvent).data.object as any;
+    const { userId, planName, type } = session.metadata ?? {};
+
+    if (type === "weekly_start") {
+      await this.weeklySubscriptionService.handleStartCheckoutCompleted(
+        session,
+      );
+      this.logger.log(`weekly_start checkout completed: ${session.id}`);
+      return;
+    }
+    if (type === "weekly_upgrade") {
+      await this.weeklySubscriptionService.handleUpgradeCheckoutCompleted(
+        session,
+      );
+      this.logger.log(`weekly_upgrade checkout completed: ${session.id}`);
+      return;
+    }
+    if (type === "weekly_payoff") {
+      await this.weeklySubscriptionService.handlePayoffCheckoutCompleted(
+        session,
+      );
+      this.logger.log(`weekly_payoff checkout completed: ${session.id}`);
+      return;
+    }
 
     if (!userId || !planName) {
       this.logger.warn(

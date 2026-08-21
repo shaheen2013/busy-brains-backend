@@ -28,8 +28,6 @@ import { VerificationService } from "../users/verification.service";
 import { VerificationType } from "../users/entities/verification-token.entity";
 import { KitService } from "../kit/kit.service";
 
-type StripeTypes = InstanceType<typeof Stripe>;
-
 const ACTIVE_STATUSES = [
   WeeklySubscriptionStatus.ACTIVE,
   WeeklySubscriptionStatus.PAST_DUE,
@@ -78,11 +76,16 @@ export class WeeklySubscriptionService {
     });
   }
 
+  /**
+   * Every weekly money-moving action (start/upgrade/payoff) goes through
+   * Stripe Checkout, same as the one-time plan flow — Stripe hosts card
+   * collection/selection, and whichever card is used there becomes the
+   * customer's new default payment method (see handle*CheckoutCompleted below).
+   */
   async start(
     user: User,
     tier: WeeklyPlanTier,
-    paymentMethodId?: string,
-  ): Promise<{ weeklySubscriptionId: string; clientSecret?: string }> {
+  ): Promise<{ sessionId: string; url: string }> {
     const existing = await this.getActiveSubscription(user.id);
     if (existing) {
       throw new ConflictException(
@@ -94,96 +97,38 @@ export class WeeklySubscriptionService {
     if (!plan) throw new NotFoundException(`Weekly plan "${tier}" not found`);
 
     const stripeCustomerId = await this.ensureStripeCustomer(user);
+    const baseUrl = this.configService.get("frontendUrl", { infer: true });
 
-    if (paymentMethodId) {
-      await this.stripe.paymentMethods.attach(paymentMethodId, {
-        customer: stripeCustomerId,
-      });
-      await this.stripe.customers.update(stripeCustomerId, {
-        invoice_settings: { default_payment_method: paymentMethodId },
-      });
-    }
-
-    // Stripe only auto-attempts a "default_incomplete" subscription's first
-    // invoice when a payment method is set on the SUBSCRIPTION itself — the
-    // customer's invoice_settings.default_payment_method is not enough on
-    // its own, so without this the subscription just sits incomplete forever.
-    let subscriptionPaymentMethodId = paymentMethodId;
-    if (!subscriptionPaymentMethodId) {
-      const customer = (await this.stripe.customers.retrieve(stripeCustomerId, {
-        expand: ["invoice_settings.default_payment_method"],
-      })) as any;
-      const defaultPm = customer?.deleted
-        ? null
-        : (customer?.invoice_settings?.default_payment_method ?? null);
-      subscriptionPaymentMethodId =
-        typeof defaultPm === "string" ? defaultPm : defaultPm?.id;
-    }
-
-    if (!subscriptionPaymentMethodId) {
-      throw new BadRequestException("No default payment method on file");
-    }
-
-    const subscription = await this.stripe.subscriptions.create({
+    const session = await this.stripe.checkout.sessions.create({
+      mode: "subscription",
+      line_items: [{ price: plan.stripePriceId, quantity: 1 }],
+      client_reference_id: user.id,
       customer: stripeCustomerId,
-      items: [{ price: plan.stripePriceId }],
       metadata: {
+        type: "weekly_start",
         userId: user.id,
         weeklyPlanId: plan.id,
-        totalCycles: String(plan.totalCycles),
       },
-      default_payment_method: subscriptionPaymentMethodId,
-      payment_behavior: "default_incomplete",
-      payment_settings: { save_default_payment_method: "on_subscription" },
+      // Checkout automatically saves the card used as the new subscription's
+      // default payment method — no extra config needed for that part.
+      subscription_data: {
+        metadata: {
+          userId: user.id,
+          weeklyPlanId: plan.id,
+          totalCycles: String(plan.totalCycles),
+        },
+      },
+      success_url: `${baseUrl}/panel/subscription?complete=true`,
+      cancel_url: `${baseUrl}/panel/subscription`,
     });
 
-    const saved = await this.weeklySubscriptionRepository.save(
-      this.weeklySubscriptionRepository.create({
-        userId: user.id,
-        weeklyPlanId: plan.id,
-        stripeSubscriptionId: subscription.id,
-        status: WeeklySubscriptionStatus.INCOMPLETE,
-        totalCycles: plan.totalCycles,
-      }),
-    );
-
-    // `default_incomplete` creates the subscription's first invoice with a
-    // PaymentIntent shell but does NOT confirm/attempt it — Stripe's own
-    // auto-attempt is not synchronous/guaranteed here, so explicitly pay the
-    // invoice ourselves right away rather than leaving it to sit "open"
-    // forever with nothing to trigger a charge attempt.
-    const invoiceId =
-      typeof subscription.latest_invoice === "string"
-        ? subscription.latest_invoice
-        : subscription.latest_invoice?.id;
-
-    let clientSecret: string | undefined;
-    if (invoiceId) {
-      try {
-        await this.stripe.invoices.pay(invoiceId);
-      } catch (err: any) {
-        const paymentIntent = err?.raw?.payment_intent ?? err?.payment_intent;
-        if (paymentIntent?.status === "requires_action") {
-          clientSecret = paymentIntent.client_secret ?? undefined;
-        } else {
-          this.logger.warn(
-            `Failed to pay invoice ${invoiceId} for new weekly subscription ${subscription.id}: ${err instanceof Error ? err.message : err}`,
-          );
-        }
-      }
-    }
-
-    return { weeklySubscriptionId: saved.id, clientSecret };
+    return { sessionId: session.id, url: session.url ?? "" };
   }
 
   async payoff(
     user: User,
     targetTier?: WeeklyPlanTier,
-  ): Promise<{
-    weeklySubscriptionId: string;
-    amountCharged: number;
-    status: "paid_off";
-  }> {
+  ): Promise<{ sessionId: string; url: string }> {
     const sub = await this.getActiveSubscription(user.id);
     if (!sub)
       throw new NotFoundException("No active weekly subscription found");
@@ -214,74 +159,40 @@ export class WeeklySubscriptionService {
       throw new NotFoundException(`Weekly plan "${targetTier}" not found`);
 
     const remainingAmount = remainingCycles * payoffPlan.weeklyPrice;
-    const user_ = await this.userRepository.findOne({ where: { id: user.id } });
-    const stripeCustomerId = await this.ensureStripeCustomer(user_);
+    const stripeCustomerId = await this.ensureStripeCustomer(user);
+    const baseUrl = this.configService.get("frontendUrl", { infer: true });
 
-    const customer = (await this.stripe.customers.retrieve(
-      stripeCustomerId,
-    )) as any;
-    const defaultPaymentMethod: string | null = customer?.deleted
-      ? null
-      : (customer?.invoice_settings?.default_payment_method ?? null);
-    if (!defaultPaymentMethod) {
-      throw new BadRequestException("No default payment method on file");
-    }
-
-    let paymentIntent: Awaited<
-      ReturnType<StripeTypes["paymentIntents"]["create"]>
-    >;
-    try {
-      paymentIntent = await this.stripe.paymentIntents.create({
-        customer: stripeCustomerId,
-        payment_method: defaultPaymentMethod,
-        amount: remainingAmount,
-        currency: payoffPlan.currency,
-        off_session: true,
-        confirm: true,
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Card declined";
-      throw new BadRequestException(`Payoff charge failed: ${message}`);
-    }
-
-    await this.weeklyPaymentHistoryRepository.save(
-      this.weeklyPaymentHistoryRepository.create({
+    const session = await this.stripe.checkout.sessions.create({
+      mode: "payment",
+      line_items: [
+        {
+          price_data: {
+            currency: payoffPlan.currency,
+            unit_amount: remainingAmount,
+            product_data: {
+              name: `Pay in full — ${payoffPlan.tier} 6-Week Journey`,
+            },
+          },
+          quantity: 1,
+        },
+      ],
+      client_reference_id: user.id,
+      customer: stripeCustomerId,
+      payment_intent_data: { setup_future_usage: "off_session" },
+      metadata: {
+        type: "weekly_payoff",
+        userId: user.id,
         weeklySubscriptionId: sub.id,
-        stripePaymentIntentId: paymentIntent.id,
-        cycleNumber: null,
-        amount: remainingAmount,
-        currency: payoffPlan.currency,
-        status: WeeklyPaymentStatus.SUCCEEDED,
-        type: WeeklyPaymentType.PAYOFF,
-        fromTier:
-          payoffPlan.tier !== sub.weeklyPlan.tier ? sub.weeklyPlan.tier : null,
-        toTier:
-          payoffPlan.tier !== sub.weeklyPlan.tier ? payoffPlan.tier : null,
-      }),
-    );
-
-    sub.status = WeeklySubscriptionStatus.PAID_OFF;
-    sub.paidOffAt = new Date();
-    sub.cyclesPaid = sub.totalCycles;
-    sub.weeklyPlanId = payoffPlan.id;
-    await this.weeklySubscriptionRepository.save(sub);
-
-    await this.stripe.subscriptions.cancel(sub.stripeSubscriptionId, {
-      prorate: false,
+        targetTier: payoffPlan.tier,
+      },
+      success_url: `${baseUrl}/panel/subscription?complete=true`,
+      cancel_url: `${baseUrl}/panel/subscription`,
     });
 
-    return {
-      weeklySubscriptionId: sub.id,
-      amountCharged: remainingAmount,
-      status: "paid_off",
-    };
+    return { sessionId: session.id, url: session.url ?? "" };
   }
 
-  async upgrade(user: User): Promise<{
-    weeklySubscriptionId: string;
-    amountCharged: number;
-    newTier: WeeklyPlanTier;
-  }> {
+  async upgrade(user: User): Promise<{ sessionId: string; url: string }> {
     const sub = await this.getActiveSubscription(user.id);
     if (!sub)
       throw new NotFoundException("No active weekly subscription found");
@@ -304,74 +215,43 @@ export class WeeklySubscriptionService {
 
     // Charge the diff for each cycle already paid at the old (Single) rate —
     // that's the shortfall vs. what they'd owe if they'd been on Family from
-    // the start. The price swap below makes every future cycle bill at the
-    // Family rate automatically, so remaining (unpaid) cycles aren't charged here.
+    // the start. The price swap (on webhook) makes every future cycle bill at
+    // the Family rate automatically, so remaining cycles aren't charged here.
     const { weeklyUpgradeDiffAmount } = this.configService.get("stripe", {
       infer: true,
     });
     const upgradeAmount = sub.cyclesPaid * weeklyUpgradeDiffAmount;
 
-    const user_ = await this.userRepository.findOne({ where: { id: user.id } });
-    const stripeCustomerId = await this.ensureStripeCustomer(user_);
-    const customer = (await this.stripe.customers.retrieve(
-      stripeCustomerId,
-    )) as any;
-    const defaultPaymentMethod: string | null = customer?.deleted
-      ? null
-      : (customer?.invoice_settings?.default_payment_method ?? null);
-    if (!defaultPaymentMethod) {
-      throw new BadRequestException("No default payment method on file");
-    }
+    const stripeCustomerId = await this.ensureStripeCustomer(user);
+    const baseUrl = this.configService.get("frontendUrl", { infer: true });
 
-    let paymentIntent: Awaited<
-      ReturnType<StripeTypes["paymentIntents"]["create"]>
-    >;
-    try {
-      paymentIntent = await this.stripe.paymentIntents.create({
-        customer: stripeCustomerId,
-        payment_method: defaultPaymentMethod,
-        amount: upgradeAmount,
-        currency: familyPlan.currency,
-        off_session: true,
-        confirm: true,
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Card declined";
-      throw new BadRequestException(`Upgrade charge failed: ${message}`);
-    }
-
-    const stripeSubscription = await this.stripe.subscriptions.retrieve(
-      sub.stripeSubscriptionId,
-    );
-    const itemId = stripeSubscription.items.data[0]?.id;
-    await this.stripe.subscriptions.update(sub.stripeSubscriptionId, {
-      items: [{ id: itemId, price: familyPlan.stripePriceId }],
-      proration_behavior: "none",
+    const session = await this.stripe.checkout.sessions.create({
+      mode: "payment",
+      line_items: [
+        {
+          price_data: {
+            currency: familyPlan.currency,
+            unit_amount: upgradeAmount,
+            product_data: {
+              name: "Upgrade to Family — catch-up differential",
+            },
+          },
+          quantity: 1,
+        },
+      ],
+      client_reference_id: user.id,
+      customer: stripeCustomerId,
+      payment_intent_data: { setup_future_usage: "off_session" },
+      metadata: {
+        type: "weekly_upgrade",
+        userId: user.id,
+        weeklySubscriptionId: sub.id,
+      },
+      success_url: `${baseUrl}/panel/subscription?complete=true`,
+      cancel_url: `${baseUrl}/panel/subscription`,
     });
 
-    await this.weeklyPaymentHistoryRepository.save(
-      this.weeklyPaymentHistoryRepository.create({
-        weeklySubscriptionId: sub.id,
-        stripePaymentIntentId: paymentIntent.id,
-        cycleNumber: null,
-        amount: upgradeAmount,
-        currency: familyPlan.currency,
-        status: WeeklyPaymentStatus.SUCCEEDED,
-        type: WeeklyPaymentType.UPGRADE,
-        fromTier: WeeklyPlanTier.SINGLE,
-        toTier: WeeklyPlanTier.FAMILY,
-      }),
-    );
-
-    sub.weeklyPlanId = familyPlan.id;
-    sub.status = WeeklySubscriptionStatus.ACTIVE;
-    await this.weeklySubscriptionRepository.save(sub);
-
-    return {
-      weeklySubscriptionId: sub.id,
-      amountCharged: upgradeAmount,
-      newTier: WeeklyPlanTier.FAMILY,
-    };
+    return { sessionId: session.id, url: session.url ?? "" };
   }
 
   async requestCancelOtp(user: User): Promise<{ message: string }> {
@@ -417,6 +297,230 @@ export class WeeklySubscriptionService {
   }
 
   // --- Webhook-facing handlers ---
+
+  /** Sets the card used in a Checkout Session as the customer's new default payment method. */
+  private async saveCheckoutPaymentMethodAsDefault(
+    stripeCustomerId: string,
+    paymentIntentId: string | { id: string } | null,
+  ): Promise<void> {
+    const id =
+      typeof paymentIntentId === "string"
+        ? paymentIntentId
+        : paymentIntentId?.id;
+    if (!id) return;
+    const paymentIntent = await this.stripe.paymentIntents.retrieve(id);
+    const paymentMethod =
+      typeof paymentIntent.payment_method === "string"
+        ? paymentIntent.payment_method
+        : paymentIntent.payment_method?.id;
+    if (!paymentMethod) return;
+    await this.stripe.customers.update(stripeCustomerId, {
+      invoice_settings: { default_payment_method: paymentMethod },
+    });
+  }
+
+  async handleStartCheckoutCompleted(session: {
+    metadata: Record<string, string> | null;
+    subscription: string | { id: string } | null;
+  }): Promise<void> {
+    const { userId, weeklyPlanId } = session.metadata ?? {};
+    const subscriptionId =
+      typeof session.subscription === "string"
+        ? session.subscription
+        : session.subscription?.id;
+    if (!userId || !weeklyPlanId || !subscriptionId) {
+      this.logger.warn(
+        `weekly_start checkout.session.completed missing metadata/subscription`,
+      );
+      return;
+    }
+
+    const existing = await this.weeklySubscriptionRepository.findOne({
+      where: { stripeSubscriptionId: subscriptionId },
+    });
+    if (existing) return; // already recorded (idempotency for webhook retries)
+
+    const plan = await this.weeklyPlanRepository.findOne({
+      where: { id: weeklyPlanId },
+    });
+    if (!plan) {
+      this.logger.warn(`weekly_start: plan "${weeklyPlanId}" not found`);
+      return;
+    }
+
+    await this.weeklySubscriptionRepository.save(
+      this.weeklySubscriptionRepository.create({
+        userId,
+        weeklyPlanId: plan.id,
+        stripeSubscriptionId: subscriptionId,
+        status: WeeklySubscriptionStatus.ACTIVE,
+        totalCycles: plan.totalCycles,
+        startedAt: new Date(),
+      }),
+    );
+  }
+
+  async handleUpgradeCheckoutCompleted(session: {
+    metadata: Record<string, string> | null;
+    payment_intent: string | { id: string } | null;
+  }): Promise<void> {
+    const { weeklySubscriptionId } = session.metadata ?? {};
+    if (!weeklySubscriptionId) {
+      this.logger.warn(
+        "weekly_upgrade checkout.session.completed missing metadata",
+      );
+      return;
+    }
+
+    const sub = await this.weeklySubscriptionRepository.findOne({
+      where: { id: weeklySubscriptionId },
+      relations: { weeklyPlan: true },
+    });
+    if (!sub || sub.weeklyPlan.tier === WeeklyPlanTier.FAMILY) return; // already processed
+
+    const paymentIntentId =
+      typeof session.payment_intent === "string"
+        ? session.payment_intent
+        : session.payment_intent?.id;
+    const existing = paymentIntentId
+      ? await this.weeklyPaymentHistoryRepository.findOne({
+          where: { stripePaymentIntentId: paymentIntentId },
+        })
+      : null;
+    if (existing) return; // idempotency for webhook retries
+
+    const familyPlan = await this.weeklyPlanRepository.findOne({
+      where: { tier: WeeklyPlanTier.FAMILY },
+    });
+    if (!familyPlan) return;
+
+    const { weeklyUpgradeDiffAmount } = this.configService.get("stripe", {
+      infer: true,
+    });
+    const upgradeAmount = sub.cyclesPaid * weeklyUpgradeDiffAmount;
+
+    const stripeSubscription = await this.stripe.subscriptions.retrieve(
+      sub.stripeSubscriptionId,
+    );
+    const itemId = stripeSubscription.items.data[0]?.id;
+    await this.stripe.subscriptions.update(sub.stripeSubscriptionId, {
+      items: [{ id: itemId, price: familyPlan.stripePriceId }],
+      proration_behavior: "none",
+    });
+
+    await this.weeklyPaymentHistoryRepository.save(
+      this.weeklyPaymentHistoryRepository.create({
+        weeklySubscriptionId: sub.id,
+        stripePaymentIntentId: paymentIntentId ?? null,
+        cycleNumber: null,
+        amount: upgradeAmount,
+        currency: familyPlan.currency,
+        status: WeeklyPaymentStatus.SUCCEEDED,
+        type: WeeklyPaymentType.UPGRADE,
+        fromTier: WeeklyPlanTier.SINGLE,
+        toTier: WeeklyPlanTier.FAMILY,
+      }),
+    );
+
+    sub.weeklyPlanId = familyPlan.id;
+    sub.status = WeeklySubscriptionStatus.ACTIVE;
+    await this.weeklySubscriptionRepository.save(sub);
+
+    const user = await this.userRepository.findOne({
+      where: { id: sub.userId },
+    });
+    if (user?.stripeCustomerId) {
+      await this.saveCheckoutPaymentMethodAsDefault(
+        user.stripeCustomerId,
+        session.payment_intent,
+      );
+    }
+  }
+
+  async handlePayoffCheckoutCompleted(session: {
+    metadata: Record<string, string> | null;
+    payment_intent: string | { id: string } | null;
+  }): Promise<void> {
+    const { weeklySubscriptionId, targetTier: rawTargetTier } =
+      session.metadata ?? {};
+    if (!weeklySubscriptionId) {
+      this.logger.warn(
+        "weekly_payoff checkout.session.completed missing metadata",
+      );
+      return;
+    }
+    const targetTier = rawTargetTier as WeeklyPlanTier | undefined;
+
+    const sub = await this.weeklySubscriptionRepository.findOne({
+      where: { id: weeklySubscriptionId },
+      relations: { weeklyPlan: true },
+    });
+    if (!sub || sub.status === WeeklySubscriptionStatus.PAID_OFF) return; // already processed
+
+    const paymentIntentId =
+      typeof session.payment_intent === "string"
+        ? session.payment_intent
+        : session.payment_intent?.id;
+    const existing = paymentIntentId
+      ? await this.weeklyPaymentHistoryRepository.findOne({
+          where: { stripePaymentIntentId: paymentIntentId },
+        })
+      : null;
+    if (existing) return; // idempotency for webhook retries
+
+    const payoffPlan =
+      targetTier && targetTier !== sub.weeklyPlan.tier
+        ? await this.weeklyPlanRepository.findOne({
+            where: { tier: targetTier },
+          })
+        : sub.weeklyPlan;
+    if (!payoffPlan) return;
+
+    const remainingCycles = sub.totalCycles - sub.cyclesPaid;
+    const remainingAmount = remainingCycles * payoffPlan.weeklyPrice;
+
+    await this.weeklyPaymentHistoryRepository.save(
+      this.weeklyPaymentHistoryRepository.create({
+        weeklySubscriptionId: sub.id,
+        stripePaymentIntentId: paymentIntentId ?? null,
+        cycleNumber: null,
+        amount: remainingAmount,
+        currency: payoffPlan.currency,
+        status: WeeklyPaymentStatus.SUCCEEDED,
+        type: WeeklyPaymentType.PAYOFF,
+        fromTier:
+          payoffPlan.tier !== sub.weeklyPlan.tier ? sub.weeklyPlan.tier : null,
+        toTier:
+          payoffPlan.tier !== sub.weeklyPlan.tier ? payoffPlan.tier : null,
+      }),
+    );
+
+    sub.status = WeeklySubscriptionStatus.PAID_OFF;
+    sub.paidOffAt = new Date();
+    sub.cyclesPaid = sub.totalCycles;
+    sub.weeklyPlanId = payoffPlan.id;
+    await this.weeklySubscriptionRepository.save(sub);
+
+    try {
+      await this.stripe.subscriptions.cancel(sub.stripeSubscriptionId, {
+        prorate: false,
+      });
+    } catch (err) {
+      this.logger.warn(
+        `Failed to cancel subscription ${sub.stripeSubscriptionId} after payoff: ${err instanceof Error ? err.message : err}`,
+      );
+    }
+
+    const user = await this.userRepository.findOne({
+      where: { id: sub.userId },
+    });
+    if (user?.stripeCustomerId) {
+      await this.saveCheckoutPaymentMethodAsDefault(
+        user.stripeCustomerId,
+        session.payment_intent,
+      );
+    }
+  }
 
   async handleSubscriptionUpdated(
     stripeSubscriptionId: string,
