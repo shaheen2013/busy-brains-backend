@@ -179,6 +179,7 @@ export class WeeklySubscriptionService {
       client_reference_id: user.id,
       customer: stripeCustomerId,
       payment_intent_data: { setup_future_usage: "off_session" },
+      invoice_creation: { enabled: true },
       metadata: {
         type: "weekly_payoff",
         userId: user.id,
@@ -242,6 +243,7 @@ export class WeeklySubscriptionService {
       client_reference_id: user.id,
       customer: stripeCustomerId,
       payment_intent_data: { setup_future_usage: "off_session" },
+      invoice_creation: { enabled: true },
       metadata: {
         type: "weekly_upgrade",
         userId: user.id,
@@ -297,6 +299,16 @@ export class WeeklySubscriptionService {
   }
 
   // --- Webhook-facing handlers ---
+
+  /** Fetches the invoice_pdf URL for a Checkout Session created with `invoice_creation: { enabled: true }`. */
+  private async getInvoicePdfUrl(
+    invoice: string | { id: string } | null | undefined,
+  ): Promise<string | null> {
+    const id = typeof invoice === "string" ? invoice : invoice?.id;
+    if (!id) return null;
+    const retrieved = await this.stripe.invoices.retrieve(id);
+    return retrieved.invoice_pdf ?? null;
+  }
 
   /** Sets the card used in a Checkout Session as the customer's new default payment method. */
   private async saveCheckoutPaymentMethodAsDefault(
@@ -363,6 +375,7 @@ export class WeeklySubscriptionService {
   async handleUpgradeCheckoutCompleted(session: {
     metadata: Record<string, string> | null;
     payment_intent: string | { id: string } | null;
+    invoice?: string | { id: string } | null;
   }): Promise<void> {
     const { weeklySubscriptionId } = session.metadata ?? {};
     if (!weeklySubscriptionId) {
@@ -408,6 +421,8 @@ export class WeeklySubscriptionService {
       proration_behavior: "none",
     });
 
+    const invoicePdfUrl = await this.getInvoicePdfUrl(session.invoice);
+
     await this.weeklyPaymentHistoryRepository.save(
       this.weeklyPaymentHistoryRepository.create({
         weeklySubscriptionId: sub.id,
@@ -415,6 +430,7 @@ export class WeeklySubscriptionService {
         cycleNumber: null,
         amount: upgradeAmount,
         currency: familyPlan.currency,
+        invoicePdfUrl,
         status: WeeklyPaymentStatus.SUCCEEDED,
         type: WeeklyPaymentType.UPGRADE,
         fromTier: WeeklyPlanTier.SINGLE,
@@ -444,6 +460,7 @@ export class WeeklySubscriptionService {
   async handlePayoffCheckoutCompleted(session: {
     metadata: Record<string, string> | null;
     payment_intent: string | { id: string } | null;
+    invoice?: string | { id: string } | null;
   }): Promise<void> {
     const { weeklySubscriptionId, targetTier: rawTargetTier } =
       session.metadata ?? {};
@@ -482,6 +499,7 @@ export class WeeklySubscriptionService {
 
     const remainingCycles = sub.totalCycles - sub.cyclesPaid;
     const remainingAmount = remainingCycles * payoffPlan.weeklyPrice;
+    const invoicePdfUrl = await this.getInvoicePdfUrl(session.invoice);
 
     await this.weeklyPaymentHistoryRepository.save(
       this.weeklyPaymentHistoryRepository.create({
@@ -490,6 +508,7 @@ export class WeeklySubscriptionService {
         cycleNumber: null,
         amount: remainingAmount,
         currency: payoffPlan.currency,
+        invoicePdfUrl,
         status: WeeklyPaymentStatus.SUCCEEDED,
         type: WeeklyPaymentType.PAYOFF,
         fromTier:
@@ -575,6 +594,7 @@ export class WeeklySubscriptionService {
     stripeInvoiceId: string,
     amount: number,
     currency: string,
+    invoicePdfUrl: string | null = null,
   ): Promise<void> {
     const sub = await this.weeklySubscriptionRepository.findOne({
       where: { stripeSubscriptionId },
@@ -594,6 +614,7 @@ export class WeeklySubscriptionService {
         cycleNumber: nextCycle,
         amount,
         currency,
+        invoicePdfUrl,
         status: WeeklyPaymentStatus.SUCCEEDED,
         type: WeeklyPaymentType.CYCLE,
       }),

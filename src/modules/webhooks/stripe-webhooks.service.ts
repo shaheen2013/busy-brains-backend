@@ -110,6 +110,7 @@ export class StripeWebhooksService {
         invoice.id,
         invoice.amount_paid ?? 0,
         invoice.currency ?? "usd",
+        invoice.invoice_pdf ?? null,
       );
       this.logger.log(`invoice.payment_succeeded (weekly): ${invoice.id}`);
       return;

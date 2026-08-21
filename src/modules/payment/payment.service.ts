@@ -410,7 +410,7 @@ export class PaymentService {
         currency: row.currency,
         status: row.status,
         createdAt: row.createdAt,
-        invoicePdfUrl: null,
+        invoicePdfUrl: row.invoicePdfUrl,
         planName: null,
         weeklyTier: row.weeklySubscription?.weeklyPlan?.tier ?? null,
         cycleNumber: row.cycleNumber,

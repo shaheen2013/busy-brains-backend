@@ -39,6 +39,9 @@ export class WeeklyPaymentHistory {
   @Column({ type: "varchar", nullable: true })
   stripePaymentIntentId: string | null;
 
+  @Column({ type: "varchar", nullable: true })
+  invoicePdfUrl: string | null;
+
   @Column({ type: "integer", nullable: true })
   cycleNumber: number | null;
 
