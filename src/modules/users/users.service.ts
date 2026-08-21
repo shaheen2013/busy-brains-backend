@@ -10,6 +10,8 @@ import { ConfigService } from "@nestjs/config";
 import { createClerkClient } from "@clerk/backend";
 import { User } from "./entities/user.entity";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
+import { Plan, PlanName } from "../subscriptions/entities/plan.entity";
+import { WeeklyPlanTier } from "../subscriptions/entities/weekly-plan.entity";
 import {
   WeeklySubscription,
   WeeklySubscriptionStatus,
@@ -30,6 +32,8 @@ export class UsersService {
     private userRepository: Repository<User>,
     @InjectRepository(UserPlan)
     private userPlanRepository: Repository<UserPlan>,
+    @InjectRepository(Plan)
+    private planRepository: Repository<Plan>,
     @InjectRepository(WeeklySubscription)
     private weeklySubscriptionRepository: Repository<WeeklySubscription>,
     private configService: ConfigService<AppConfig>,
@@ -121,6 +125,42 @@ export class UsersService {
     );
     trialWindowEnd.setDate(trialWindowEnd.getDate() + MODULE1_FREE_DAYS);
     const sevenDayExpiredAfterSignup = new Date() >= trialWindowEnd;
+
+    // A paid-off weekly subscription grants the same lifetime access as
+    // purchasing the matching one-time plan outright — surface it as
+    // "one_time" (rather than "weekly_recurring") so the frontend treats it
+    // identically to a real one-time purchase (no more upgrade/payoff CTAs).
+    if (
+      weeklySubscription &&
+      weeklySubscription.status === WeeklySubscriptionStatus.PAID_OFF
+    ) {
+      const planName =
+        weeklySubscription.weeklyPlan.tier === WeeklyPlanTier.FAMILY
+          ? PlanName.FAMILY_PACK
+          : PlanName.SOLO_EXPLORER;
+      const plan = await this.planRepository.findOne({
+        where: { name: planName },
+      });
+
+      return {
+        ...user,
+        activePlan: {
+          type: "one_time" as const,
+          id: weeklySubscription.id,
+          userId: weeklySubscription.userId,
+          planId: plan?.id ?? null,
+          isTrial: false,
+          trialStartedAt: null,
+          trialEndsAt: null,
+          isActive: true,
+          purchasedAt: weeklySubscription.paidOffAt,
+          createdAt: weeklySubscription.createdAt,
+          plan,
+          sevenDayExpiredAfterSignup,
+        },
+        profileImage,
+      };
+    }
 
     if (weeklySubscription) {
       return {

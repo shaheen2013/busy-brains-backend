@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { User } from "./entities/user.entity";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
+import { Plan } from "../subscriptions/entities/plan.entity";
 import { WeeklySubscription } from "../subscriptions/entities/weekly-subscription.entity";
 import { UsersService } from "./users.service";
 import { UsersController } from "./users.controller";
@@ -15,6 +16,7 @@ import { VerificationToken } from "./entities/verification-token.entity";
     TypeOrmModule.forFeature([
       User,
       UserPlan,
+      Plan,
       WeeklySubscription,
       VerificationToken,
     ]),
