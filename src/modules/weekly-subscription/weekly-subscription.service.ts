@@ -135,7 +135,6 @@ export class WeeklySubscriptionService {
       default_payment_method: subscriptionPaymentMethodId,
       payment_behavior: "default_incomplete",
       payment_settings: { save_default_payment_method: "on_subscription" },
-      expand: ["latest_invoice.payment_intent"],
     });
 
     const saved = await this.weeklySubscriptionRepository.save(
@@ -148,15 +147,31 @@ export class WeeklySubscriptionService {
       }),
     );
 
-    const latestInvoice = subscription.latest_invoice as any;
-    const paymentIntent =
-      latestInvoice && typeof latestInvoice === "object"
-        ? latestInvoice.payment_intent
-        : null;
-    const clientSecret =
-      paymentIntent && typeof paymentIntent === "object"
-        ? (paymentIntent.client_secret ?? undefined)
-        : undefined;
+    // `default_incomplete` creates the subscription's first invoice with a
+    // PaymentIntent shell but does NOT confirm/attempt it — Stripe's own
+    // auto-attempt is not synchronous/guaranteed here, so explicitly pay the
+    // invoice ourselves right away rather than leaving it to sit "open"
+    // forever with nothing to trigger a charge attempt.
+    const invoiceId =
+      typeof subscription.latest_invoice === "string"
+        ? subscription.latest_invoice
+        : subscription.latest_invoice?.id;
+
+    let clientSecret: string | undefined;
+    if (invoiceId) {
+      try {
+        await this.stripe.invoices.pay(invoiceId);
+      } catch (err: any) {
+        const paymentIntent = err?.raw?.payment_intent ?? err?.payment_intent;
+        if (paymentIntent?.status === "requires_action") {
+          clientSecret = paymentIntent.client_secret ?? undefined;
+        } else {
+          this.logger.warn(
+            `Failed to pay invoice ${invoiceId} for new weekly subscription ${subscription.id}: ${err instanceof Error ? err.message : err}`,
+          );
+        }
+      }
+    }
 
     return { weeklySubscriptionId: saved.id, clientSecret };
   }
