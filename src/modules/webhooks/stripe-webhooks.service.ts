@@ -123,8 +123,13 @@ export class StripeWebhooksService {
 
   async handleSubscriptionUpdated(event: any) {
     const subscription = event.data.object;
-    const currentPeriodEnd = subscription.current_period_end
-      ? new Date(subscription.current_period_end * 1000)
+    // Newer Stripe API versions moved current_period_end off the top-level
+    // subscription object onto its first item — same shift as invoice.subscription.
+    const rawPeriodEnd =
+      subscription.current_period_end ??
+      subscription.items?.data?.[0]?.current_period_end;
+    const currentPeriodEnd = rawPeriodEnd
+      ? new Date(rawPeriodEnd * 1000)
       : null;
     await this.weeklySubscriptionService.handleSubscriptionUpdated(
       subscription.id,
