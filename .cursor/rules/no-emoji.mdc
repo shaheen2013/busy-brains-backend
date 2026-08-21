@@ -1,0 +1,31 @@
+---
+description: Never use emoji in code, comments, docs, logs, or commits
+alwaysApply: true
+---
+
+# No emoji
+
+Do not use emoji anywhere in this repo:
+
+- Code, comments, and JSDoc
+- Markdown / AGENTS / CLAUDE / Cursor rules
+- Logs, console output, and toasts
+- UI / i18n copy
+- Commit messages and PR text you generate
+
+## Use instead
+
+- Plain text labels
+- Short ASCII status words: `OK`, `failed`, `done`
+
+## Examples
+
+```text
+Bad:  Deployment successful (with a leading checkmark/party emoji)
+Good: Deployment successful
+
+Bad:  Pull latest code (with a leading inbox emoji)
+Good: Pull latest code
+```
+
+If you edit existing text that contains emoji, remove it in the same change.
