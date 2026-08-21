@@ -312,29 +312,52 @@ export class WeeklySubscriptionService {
 
   /** Sets the card used in a Checkout Session as the customer's new default payment method. */
   private async saveCheckoutPaymentMethodAsDefault(
-    stripeCustomerId: string,
+    user: User,
     paymentIntentId: string | { id: string } | null,
   ): Promise<void> {
+    if (!user.stripeCustomerId) return;
     const id =
       typeof paymentIntentId === "string"
         ? paymentIntentId
         : paymentIntentId?.id;
     if (!id) return;
     const paymentIntent = await this.stripe.paymentIntents.retrieve(id);
-    const paymentMethod =
+    const paymentMethodId =
       typeof paymentIntent.payment_method === "string"
         ? paymentIntent.payment_method
         : paymentIntent.payment_method?.id;
-    if (!paymentMethod) return;
-    await this.stripe.customers.update(stripeCustomerId, {
-      invoice_settings: { default_payment_method: paymentMethod },
+    if (!paymentMethodId) return;
+    await this.applyDefaultPaymentMethod(user, paymentMethodId);
+  }
+
+  /**
+   * Sets a payment method as the Stripe customer's default, marks it reusable
+   * for future Checkout prefill, and mirrors the card details onto the local
+   * `users` row — the payment-method endpoint prefers that local cache and
+   * would otherwise keep showing the old card until the cache happens to be
+   * invalidated some other way.
+   */
+  private async applyDefaultPaymentMethod(
+    user: User,
+    paymentMethodId: string,
+  ): Promise<void> {
+    if (!user.stripeCustomerId) return;
+    await this.stripe.customers.update(user.stripeCustomerId, {
+      invoice_settings: { default_payment_method: paymentMethodId },
     });
     // Without this, Checkout stops prefilling the card for the customer on
     // future checkouts (allow_redisplay defaults to "limited"/unset, and
     // Stripe only prefills cards explicitly marked "always" since May 2024).
-    await this.stripe.paymentMethods.update(paymentMethod, {
+    const pm = await this.stripe.paymentMethods.update(paymentMethodId, {
       allow_redisplay: "always",
     });
+    if (!pm.card) return;
+    user.paymentMethodId = pm.id;
+    user.cardBrand = pm.card.brand;
+    user.cardLast4 = pm.card.last4;
+    user.cardExpMonth = pm.card.exp_month;
+    user.cardExpYear = pm.card.exp_year;
+    await this.userRepository.save(user);
   }
 
   async handleStartCheckoutCompleted(session: {
@@ -389,12 +412,7 @@ export class WeeklySubscriptionService {
           ? stripeSubscription.default_payment_method
           : stripeSubscription.default_payment_method?.id;
       if (defaultPaymentMethod) {
-        await this.stripe.customers.update(user.stripeCustomerId, {
-          invoice_settings: { default_payment_method: defaultPaymentMethod },
-        });
-        await this.stripe.paymentMethods.update(defaultPaymentMethod, {
-          allow_redisplay: "always",
-        });
+        await this.applyDefaultPaymentMethod(user, defaultPaymentMethod);
       }
     }
   }
@@ -478,7 +496,7 @@ export class WeeklySubscriptionService {
     });
     if (user?.stripeCustomerId) {
       await this.saveCheckoutPaymentMethodAsDefault(
-        user.stripeCustomerId,
+        user,
         session.payment_intent,
       );
     }
@@ -570,7 +588,7 @@ export class WeeklySubscriptionService {
     });
     if (user?.stripeCustomerId) {
       await this.saveCheckoutPaymentMethodAsDefault(
-        user.stripeCustomerId,
+        user,
         session.payment_intent,
       );
     }
