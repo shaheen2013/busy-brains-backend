@@ -99,6 +99,9 @@ export class ModulesService {
       ? new Date(Date.now() - 100 * 24 * 60 * 60 * 1000)
       : this.resolveBaseDate(userPlan ?? null, weeklySubscription ?? null);
     const unlockDays = getModuleUnlockDays(userEmail);
+    const weeklyGate = FREE_ACCESS_EMAILS.has(userEmail)
+      ? null
+      : this.resolveWeeklyGate(userPlan ?? null, weeklySubscription ?? null);
 
     if (moduleNo !== undefined) {
       const prevChildModule =
@@ -116,6 +119,7 @@ export class ModulesService {
         baseDate,
         prevChildModule,
         unlockDays,
+        weeklyGate,
       );
 
       const childModule = await this.childModuleRepository.findOne({
@@ -227,6 +231,7 @@ export class ModulesService {
         baseDate,
         prevChildModule,
         unlockDays,
+        weeklyGate,
       );
       const record = moduleMap.get(i) ?? null;
       result[`module_${i}`] = {
@@ -256,11 +261,37 @@ export class ModulesService {
     return dates.reduce((earliest, d) => (d < earliest ? d : earliest));
   }
 
+  /**
+   * A weekly subscriber's content is tied to actual payments, not just
+   * elapsed time — module N should only unlock once week N's charge has
+   * really succeeded (cyclesPaid >= N), so a lagging/failed payment keeps
+   * exactly the modules it should locked rather than everything or nothing.
+   * A one-time-plan owner has no cycles, so this is null for them and the
+   * pure time-based schedule in resolveModuleStatus applies instead.
+   * Paying off early sets cyclesPaid = totalCycles immediately, which
+   * correctly unlocks everything at once — same as a one-time purchase.
+   */
+  private resolveWeeklyGate(
+    userPlan: UserPlan | null,
+    weeklySubscription: WeeklySubscription | null,
+  ): { cyclesPaid: number } | null {
+    if (userPlan) return null; // one-time plan takes precedence
+    if (
+      !weeklySubscription ||
+      (weeklySubscription.status !== WeeklySubscriptionStatus.ACTIVE &&
+        weeklySubscription.status !== WeeklySubscriptionStatus.PAID_OFF)
+    ) {
+      return null;
+    }
+    return { cyclesPaid: weeklySubscription.cyclesPaid };
+  }
+
   private resolveModuleStatus(
     moduleNo: number,
     baseDate: Date | null,
     prevChildModule: ChildModule | null,
     unlockDays: Record<number, number>,
+    weeklyGate: { cyclesPaid: number } | null = null,
   ): { unlocked: boolean; accessible: boolean; unlockDate: Date | null } {
     if (!baseDate) {
       return { unlocked: false, accessible: false, unlockDate: null };
@@ -270,7 +301,12 @@ export class ModulesService {
     const unlockDate = new Date(baseDate);
     unlockDate.setDate(unlockDate.getDate() + delayDays);
 
-    const unlocked = new Date() >= unlockDate;
+    // unlockDate stays time-projected either way (useful for "unlocks in N
+    // days" display), but for weekly subscribers the real gate is whether
+    // that week's payment has actually gone through.
+    const unlocked = weeklyGate
+      ? moduleNo <= weeklyGate.cyclesPaid
+      : new Date() >= unlockDate;
     if (!unlocked) {
       return { unlocked: false, accessible: false, unlockDate };
     }
@@ -305,6 +341,9 @@ export class ModulesService {
       ? new Date(Date.now() - 100 * 24 * 60 * 60 * 1000)
       : this.resolveBaseDate(userPlan ?? null, weeklySubscription ?? null);
     const unlockDays = getModuleUnlockDays(userEmail);
+    const weeklyGate = FREE_ACCESS_EMAILS.has(userEmail)
+      ? null
+      : this.resolveWeeklyGate(userPlan ?? null, weeklySubscription ?? null);
 
     const childModules = await this.childModuleRepository.find({
       where: { childId: childId },
@@ -357,6 +396,7 @@ export class ModulesService {
         baseDate,
         prevChildModule,
         unlockDays,
+        weeklyGate,
       );
       const record = moduleMap.get(moduleNo) ?? null;
       module_list.push({
@@ -384,6 +424,7 @@ export class ModulesService {
           baseDate,
           prevChildModule,
           unlockDays,
+          weeklyGate,
         );
         const childModule = moduleMap.get(moduleNo);
         const quests = childModule
@@ -428,6 +469,7 @@ export class ModulesService {
           baseDate,
           prevChildModule,
           unlockDays,
+          weeklyGate,
         );
         const childModule = moduleMap.get(moduleNo);
         const quests = childModule

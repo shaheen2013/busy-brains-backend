@@ -7,6 +7,7 @@ import { ChildModule } from "../children/entities/child-module.entity";
 import { ChildQuest } from "../children/entities/child-quest.entity";
 import { ChildScreen } from "../children/entities/child-screen.entity";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
+import { WeeklySubscription } from "../subscriptions/entities/weekly-subscription.entity";
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { UserPlan } from "../subscriptions/entities/user-plan.entity";
       ChildQuest,
       ChildScreen,
       UserPlan,
+      WeeklySubscription,
     ]),
   ],
   controllers: [DashboardController],

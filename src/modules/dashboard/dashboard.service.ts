@@ -6,6 +6,10 @@ import { ChildModule } from "../children/entities/child-module.entity";
 import { ChildQuest } from "../children/entities/child-quest.entity";
 import { ChildScreen } from "../children/entities/child-screen.entity";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
+import {
+  WeeklySubscription,
+  WeeklySubscriptionStatus,
+} from "../subscriptions/entities/weekly-subscription.entity";
 import { moduleRegistry } from "../../constants/module-registry";
 import {
   MAX_MODULES,
@@ -51,6 +55,8 @@ export class DashboardService {
     private readonly childScreenRepository: Repository<ChildScreen>,
     @InjectRepository(UserPlan)
     private readonly userPlanRepository: Repository<UserPlan>,
+    @InjectRepository(WeeklySubscription)
+    private readonly weeklySubscriptionRepository: Repository<WeeklySubscription>,
   ) {}
 
   async getDashboard(userId: string, childId: string, include: string[]) {
@@ -65,7 +71,18 @@ export class DashboardService {
     const userPlan = await this.userPlanRepository.findOne({
       where: { userId, isActive: true },
     });
-    const baseDate = this.resolveBaseDate(userPlan ?? null);
+    const weeklySubscription = await this.weeklySubscriptionRepository.findOne({
+      where: { userId },
+      order: { createdAt: "DESC" },
+    });
+    const baseDate = this.resolveBaseDate(
+      userPlan ?? null,
+      weeklySubscription ?? null,
+    );
+    const weeklyGate = this.resolveWeeklyGate(
+      userPlan ?? null,
+      weeklySubscription ?? null,
+    );
 
     // Fetch all child progress records
     const childModules = await this.childModuleRepository.find({
@@ -191,6 +208,7 @@ export class DashboardService {
         moduleNo,
         baseDate,
         prevChildModule,
+        weeklyGate,
       );
       const record = moduleMap.get(moduleNo) ?? null;
       module_progress.push({
@@ -226,6 +244,7 @@ export class DashboardService {
           moduleNo,
           baseDate,
           prevChildModule,
+          weeklyGate,
         );
         const childModule = moduleMap.get(moduleNo);
         const quests = childModule
@@ -280,6 +299,7 @@ export class DashboardService {
           moduleNo,
           baseDate,
           prevChildModule,
+          weeklyGate,
         );
         const childModule = moduleMap.get(moduleNo);
         const quests = childModule
@@ -600,16 +620,50 @@ export class DashboardService {
     return { status: "completed" as const, data: screen.data };
   }
 
-  private resolveBaseDate(userPlan: UserPlan | null): Date | null {
-    if (!userPlan?.purchasedAt) return null;
-    const purchaseBase = userPlan.purchasedAt;
-    return purchaseBase;
+  private resolveBaseDate(
+    userPlan: UserPlan | null,
+    weeklySubscription: WeeklySubscription | null,
+  ): Date | null {
+    const dates: Date[] = [];
+    if (userPlan?.purchasedAt) dates.push(userPlan.purchasedAt);
+    if (
+      weeklySubscription?.startedAt &&
+      (weeklySubscription.status === WeeklySubscriptionStatus.ACTIVE ||
+        weeklySubscription.status === WeeklySubscriptionStatus.PAID_OFF)
+    ) {
+      dates.push(weeklySubscription.startedAt);
+    }
+    if (dates.length === 0) return null;
+    return dates.reduce((earliest, d) => (d < earliest ? d : earliest));
+  }
+
+  /**
+   * A weekly subscriber's modules are tied to actual payments, not just
+   * elapsed time — module N should only unlock once week N's charge has
+   * really succeeded (cyclesPaid >= N). Null for one-time-plan owners, who
+   * use the pure time-based schedule instead. Paying off early sets
+   * cyclesPaid = totalCycles immediately, unlocking everything at once.
+   */
+  private resolveWeeklyGate(
+    userPlan: UserPlan | null,
+    weeklySubscription: WeeklySubscription | null,
+  ): { cyclesPaid: number } | null {
+    if (userPlan) return null;
+    if (
+      !weeklySubscription ||
+      (weeklySubscription.status !== WeeklySubscriptionStatus.ACTIVE &&
+        weeklySubscription.status !== WeeklySubscriptionStatus.PAID_OFF)
+    ) {
+      return null;
+    }
+    return { cyclesPaid: weeklySubscription.cyclesPaid };
   }
 
   private resolveModuleStatus(
     moduleNo: number,
     baseDate: Date | null,
     prevChildModule: ChildModule | null,
+    weeklyGate: { cyclesPaid: number } | null = null,
   ) {
     if (!baseDate) {
       return { unlocked: false, accessible: false, unlockDate: null };
@@ -617,7 +671,9 @@ export class DashboardService {
     const delayDays = MODULE_UNLOCK_DAYS[moduleNo] ?? (moduleNo - 1) * 7;
     const unlockDate = new Date(baseDate);
     unlockDate.setDate(unlockDate.getDate() + delayDays);
-    const unlocked = new Date() >= unlockDate;
+    const unlocked = weeklyGate
+      ? moduleNo <= weeklyGate.cyclesPaid
+      : new Date() >= unlockDate;
     if (!unlocked) return { unlocked: false, accessible: false, unlockDate };
     const accessible =
       moduleNo === 1 ? true : (prevChildModule?.isCompleted ?? false);
