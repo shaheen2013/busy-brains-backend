@@ -329,6 +329,12 @@ export class WeeklySubscriptionService {
     await this.stripe.customers.update(stripeCustomerId, {
       invoice_settings: { default_payment_method: paymentMethod },
     });
+    // Without this, Checkout stops prefilling the card for the customer on
+    // future checkouts (allow_redisplay defaults to "limited"/unset, and
+    // Stripe only prefills cards explicitly marked "always" since May 2024).
+    await this.stripe.paymentMethods.update(paymentMethod, {
+      allow_redisplay: "always",
+    });
   }
 
   async handleStartCheckoutCompleted(session: {
@@ -370,6 +376,27 @@ export class WeeklySubscriptionService {
         startedAt: new Date(),
       }),
     );
+
+    // Checkout saves the card used as the new subscription's default payment
+    // method automatically, but not as the customer's account-wide default,
+    // and not marked reusable in future Checkout Sessions — do both here.
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (user?.stripeCustomerId) {
+      const stripeSubscription =
+        await this.stripe.subscriptions.retrieve(subscriptionId);
+      const defaultPaymentMethod =
+        typeof stripeSubscription.default_payment_method === "string"
+          ? stripeSubscription.default_payment_method
+          : stripeSubscription.default_payment_method?.id;
+      if (defaultPaymentMethod) {
+        await this.stripe.customers.update(user.stripeCustomerId, {
+          invoice_settings: { default_payment_method: defaultPaymentMethod },
+        });
+        await this.stripe.paymentMethods.update(defaultPaymentMethod, {
+          allow_redisplay: "always",
+        });
+      }
+    }
   }
 
   async handleUpgradeCheckoutCompleted(session: {

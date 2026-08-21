@@ -120,6 +120,12 @@ export class PaymentMethodService {
     await this.stripe.customers.update(stripeCustomerId, {
       invoice_settings: { default_payment_method: paymentMethodId },
     });
+    // Without this, Checkout stops prefilling the card for the customer on
+    // future checkouts (allow_redisplay defaults to "limited"/unset, and
+    // Stripe only prefills cards explicitly marked "always" since May 2024).
+    await this.stripe.paymentMethods.update(paymentMethodId, {
+      allow_redisplay: "always",
+    });
 
     const activeSub = await this.weeklySubscriptionRepository.findOne({
       where: {
