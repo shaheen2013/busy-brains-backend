@@ -302,10 +302,13 @@ export class WeeklySubscriptionService {
     if (!familyPlan)
       throw new NotFoundException('Weekly plan "FAMILY" not found');
 
+    // Only the current cycle's catch-up diff is charged now — the price swap
+    // below makes every future cycle bill at the Family rate automatically,
+    // so past/remaining cycles aren't re-charged here.
     const { weeklyUpgradeDiffAmount } = this.configService.get("stripe", {
       infer: true,
     });
-    const upgradeAmount = remainingCycles * weeklyUpgradeDiffAmount;
+    const upgradeAmount = weeklyUpgradeDiffAmount;
 
     const user_ = await this.userRepository.findOne({ where: { id: user.id } });
     const stripeCustomerId = await this.ensureStripeCustomer(user_);
