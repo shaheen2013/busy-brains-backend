@@ -50,11 +50,21 @@ export class WeeklySubscriptionController {
     return this.weeklySubscriptionService.upgrade(user);
   }
 
+  @Post("request-cancel-otp")
+  @ApiOperation({
+    summary:
+      "Send an OTP to the user's email to confirm subscription cancellation",
+  })
+  requestCancelOtp(@User() user: UserEntity) {
+    return this.weeklySubscriptionService.requestCancelOtp(user);
+  }
+
   @Post("cancel")
   @ApiOperation({
-    summary: "Cancel the weekly subscription outright, no proration",
+    summary:
+      "Cancel the weekly subscription outright, no proration (requires OTP)",
   })
-  cancel(@User() user: UserEntity) {
-    return this.weeklySubscriptionService.cancel(user);
+  cancel(@User() user: UserEntity, @Body("otp") otp: string) {
+    return this.weeklySubscriptionService.cancel(user, otp);
   }
 }

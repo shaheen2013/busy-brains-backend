@@ -39,6 +39,8 @@ export interface AppConfig {
     childDeletionOtpSequenceId: string;
     feedbackReportSequenceId: string;
     childFeedbackReportSequenceId: string;
+    paymentMethodRemovalOtpSequenceId: string;
+    weeklySubscriptionCancelOtpSequenceId: string;
   };
   nodeEnv: string;
   port: number;
@@ -95,6 +97,10 @@ export default (): AppConfig => ({
     feedbackReportSequenceId: process.env.KIT_FEEDBACK_REPORT_SEQUENCE_ID || "",
     childFeedbackReportSequenceId:
       process.env.KIT_CHILD_FEEDBACK_REPORT_SEQUENCE_ID || "",
+    paymentMethodRemovalOtpSequenceId:
+      process.env.KIT_PAYMENT_METHOD_REMOVAL_OTP_SEQUENCE_ID || "",
+    weeklySubscriptionCancelOtpSequenceId:
+      process.env.KIT_WEEKLY_SUBSCRIPTION_CANCEL_OTP_SEQUENCE_ID || "",
   },
   nodeEnv: process.env.NODE_ENV || "development",
   port: parseInt(process.env.PORT || "3001", 10),

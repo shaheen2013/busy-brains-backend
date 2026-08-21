@@ -13,6 +13,9 @@ import {
   WeeklyPaymentHistory,
   WeeklyPaymentStatus,
 } from "../subscriptions/entities/weekly-payment-history.entity";
+import { VerificationService } from "../users/verification.service";
+import { VerificationType } from "../users/entities/verification-token.entity";
+import { KitService } from "../kit/kit.service";
 
 export interface PaymentMethodInfo {
   brand: string;
@@ -34,6 +37,8 @@ export class PaymentMethodService {
     @InjectRepository(WeeklyPaymentHistory)
     private readonly weeklyPaymentHistoryRepository: Repository<WeeklyPaymentHistory>,
     private readonly configService: ConfigService<AppConfig>,
+    private readonly verificationService: VerificationService,
+    private readonly kitService: KitService,
   ) {
     const { secretKey } = this.configService.get("stripe", { infer: true });
     if (!secretKey) throw new Error("STRIPE_SECRET_KEY is not configured");
@@ -148,7 +153,22 @@ export class PaymentMethodService {
     };
   }
 
-  async remove(user: User): Promise<{ success: boolean }> {
+  async requestRemovalOtp(user: User): Promise<{ message: string }> {
+    const otp = await this.verificationService.generateOtp(
+      user.id,
+      VerificationType.PAYMENT_METHOD_REMOVAL,
+    );
+    await this.kitService.sendPaymentMethodRemovalOtp(user.id, otp);
+    return { message: "OTP sent to email" };
+  }
+
+  async remove(user: User, otp: string): Promise<{ success: boolean }> {
+    await this.verificationService.verifyOtp(
+      user.id,
+      VerificationType.PAYMENT_METHOD_REMOVAL,
+      otp,
+    );
+
     if (!user.stripeCustomerId || !user.paymentMethodId) {
       return { success: true };
     }

@@ -28,12 +28,21 @@ export class PaymentMethodController {
     return this.paymentMethodService.update(user, dto.paymentMethodId);
   }
 
+  @Post("request-removal-otp")
+  @ApiOperation({
+    summary: "Send an OTP to the user's email to confirm card removal",
+  })
+  requestRemovalOtp(@User() user: UserEntity) {
+    return this.paymentMethodService.requestRemovalOtp(user);
+  }
+
   @Delete()
   @ApiOperation({
-    summary: "Remove the authenticated user's saved default card",
+    summary:
+      "Remove the authenticated user's saved default card (requires OTP)",
   })
-  remove(@User() user: UserEntity) {
-    return this.paymentMethodService.remove(user);
+  remove(@User() user: UserEntity, @Body("otp") otp: string) {
+    return this.paymentMethodService.remove(user, otp);
   }
 
   @Post("retry")

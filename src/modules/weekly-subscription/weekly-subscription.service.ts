@@ -24,6 +24,9 @@ import {
   WeeklyPaymentType,
 } from "../subscriptions/entities/weekly-payment-history.entity";
 import { User } from "../users/entities/user.entity";
+import { VerificationService } from "../users/verification.service";
+import { VerificationType } from "../users/entities/verification-token.entity";
+import { KitService } from "../kit/kit.service";
 
 type StripeTypes = InstanceType<typeof Stripe>;
 
@@ -47,6 +50,8 @@ export class WeeklySubscriptionService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly configService: ConfigService<AppConfig>,
+    private readonly verificationService: VerificationService,
+    private readonly kitService: KitService,
   ) {
     const { secretKey } = this.configService.get("stripe", { infer: true });
     if (!secretKey) throw new Error("STRIPE_SECRET_KEY is not configured");
@@ -99,6 +104,26 @@ export class WeeklySubscriptionService {
       });
     }
 
+    // Stripe only auto-attempts a "default_incomplete" subscription's first
+    // invoice when a payment method is set on the SUBSCRIPTION itself — the
+    // customer's invoice_settings.default_payment_method is not enough on
+    // its own, so without this the subscription just sits incomplete forever.
+    let subscriptionPaymentMethodId = paymentMethodId;
+    if (!subscriptionPaymentMethodId) {
+      const customer = (await this.stripe.customers.retrieve(stripeCustomerId, {
+        expand: ["invoice_settings.default_payment_method"],
+      })) as any;
+      const defaultPm = customer?.deleted
+        ? null
+        : (customer?.invoice_settings?.default_payment_method ?? null);
+      subscriptionPaymentMethodId =
+        typeof defaultPm === "string" ? defaultPm : defaultPm?.id;
+    }
+
+    if (!subscriptionPaymentMethodId) {
+      throw new BadRequestException("No default payment method on file");
+    }
+
     const subscription = await this.stripe.subscriptions.create({
       customer: stripeCustomerId,
       items: [{ price: plan.stripePriceId }],
@@ -107,10 +132,8 @@ export class WeeklySubscriptionService {
         weeklyPlanId: plan.id,
         totalCycles: String(plan.totalCycles),
       },
-      default_payment_method: paymentMethodId,
-      payment_behavior: paymentMethodId
-        ? "default_incomplete"
-        : "default_incomplete",
+      default_payment_method: subscriptionPaymentMethodId,
+      payment_behavior: "default_incomplete",
       payment_settings: { save_default_payment_method: "on_subscription" },
       expand: ["latest_invoice.payment_intent"],
     });
@@ -332,9 +355,25 @@ export class WeeklySubscriptionService {
     };
   }
 
+  async requestCancelOtp(user: User): Promise<{ message: string }> {
+    const otp = await this.verificationService.generateOtp(
+      user.id,
+      VerificationType.WEEKLY_SUBSCRIPTION_CANCELLATION,
+    );
+    await this.kitService.sendWeeklySubscriptionCancelOtp(user.id, otp);
+    return { message: "OTP sent to email" };
+  }
+
   async cancel(
     user: User,
+    otp: string,
   ): Promise<{ weeklySubscriptionId: string; status: "canceled" }> {
+    await this.verificationService.verifyOtp(
+      user.id,
+      VerificationType.WEEKLY_SUBSCRIPTION_CANCELLATION,
+      otp,
+    );
+
     const sub = await this.getActiveSubscription(user.id);
     if (!sub)
       throw new NotFoundException("No active weekly subscription found");
