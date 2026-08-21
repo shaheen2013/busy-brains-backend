@@ -148,6 +148,29 @@ export class PaymentMethodService {
     };
   }
 
+  async remove(user: User): Promise<{ success: boolean }> {
+    if (!user.stripeCustomerId || !user.paymentMethodId) {
+      return { success: true };
+    }
+
+    try {
+      await this.stripe.paymentMethods.detach(user.paymentMethodId);
+    } catch (err) {
+      this.logger.warn(
+        `Failed to detach payment method ${user.paymentMethodId}: ${err instanceof Error ? err.message : err}`,
+      );
+    }
+
+    user.paymentMethodId = null;
+    user.cardBrand = null;
+    user.cardLast4 = null;
+    user.cardExpMonth = null;
+    user.cardExpYear = null;
+    await this.userRepository.save(user);
+
+    return { success: true };
+  }
+
   async retryFailed(
     user: User,
   ): Promise<{ weeklyPaymentHistoryId: string; status: string }[]> {

@@ -1,5 +1,5 @@
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
-import { Body, Controller, Get, Post } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Post } from "@nestjs/common";
 import { PaymentMethodService } from "./payment-method.service";
 import { User } from "../auth/decorators/user.decorator";
 import { User as UserEntity } from "../users/entities/user.entity";
@@ -26,6 +26,14 @@ export class PaymentMethodController {
   })
   update(@User() user: UserEntity, @Body() dto: UpdatePaymentMethodDto) {
     return this.paymentMethodService.update(user, dto.paymentMethodId);
+  }
+
+  @Delete()
+  @ApiOperation({
+    summary: "Remove the authenticated user's saved default card",
+  })
+  remove(@User() user: UserEntity) {
+    return this.paymentMethodService.remove(user);
   }
 
   @Post("retry")
