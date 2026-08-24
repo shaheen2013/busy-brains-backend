@@ -3,9 +3,10 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { ParentResourcesController } from "./parent-resources.controller";
 import { ParentResourcesService } from "./parent-resources.service";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
+import { WeeklySubscription } from "../subscriptions/entities/weekly-subscription.entity";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserPlan])],
+  imports: [TypeOrmModule.forFeature([UserPlan, WeeklySubscription])],
   controllers: [ParentResourcesController],
   providers: [ParentResourcesService],
 })

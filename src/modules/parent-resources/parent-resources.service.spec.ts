@@ -2,6 +2,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { ParentResourcesService } from "./parent-resources.service";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
+import { WeeklySubscription } from "../subscriptions/entities/weekly-subscription.entity";
 import { Plan, PlanName } from "../subscriptions/entities/plan.entity";
 import { PARENT_RESOURCES } from "../../common/parent-resources.constants";
 
@@ -17,11 +18,14 @@ const createMockRepository = () => ({
 describe("ParentResourcesService", () => {
   let service: ParentResourcesService;
   let userPlanRepository: ReturnType<typeof createMockRepository>;
+  let weeklySubscriptionRepository: ReturnType<typeof createMockRepository>;
 
   const userId = "user-uuid-123";
 
   beforeEach(async () => {
     userPlanRepository = createMockRepository();
+    weeklySubscriptionRepository = createMockRepository();
+    weeklySubscriptionRepository.findOne.mockResolvedValue(null);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -30,11 +34,16 @@ describe("ParentResourcesService", () => {
           provide: getRepositoryToken(UserPlan),
           useValue: userPlanRepository,
         },
+        {
+          provide: getRepositoryToken(WeeklySubscription),
+          useValue: weeklySubscriptionRepository,
+        },
       ],
     }).compile();
 
     service = module.get<ParentResourcesService>(ParentResourcesService);
     jest.clearAllMocks();
+    weeklySubscriptionRepository.findOne.mockResolvedValue(null);
   });
 
   describe("getResources()", () => {
@@ -122,6 +131,39 @@ describe("ParentResourcesService", () => {
       expect(userPlanRepository.findOne).toHaveBeenCalledWith(
         expect.objectContaining({ relations: ["plan"] }),
       );
+    });
+
+    it("should return PARENT_RESOURCES for a paid-off weekly subscriber with no UserPlan row", async () => {
+      userPlanRepository.findOne.mockResolvedValue(null);
+      weeklySubscriptionRepository.findOne.mockResolvedValue({
+        userId,
+        status: "paid_off",
+      });
+
+      const result = await service.getResources(userId);
+
+      expect(result).toBe(PARENT_RESOURCES);
+    });
+
+    it("should return PARENT_RESOURCES for an active weekly subscriber", async () => {
+      userPlanRepository.findOne.mockResolvedValue(null);
+      weeklySubscriptionRepository.findOne.mockResolvedValue({
+        userId,
+        status: "active",
+      });
+
+      const result = await service.getResources(userId);
+
+      expect(result).toBe(PARENT_RESOURCES);
+    });
+
+    it("should return empty array when neither a UserPlan nor a weekly subscription exists", async () => {
+      userPlanRepository.findOne.mockResolvedValue(null);
+      weeklySubscriptionRepository.findOne.mockResolvedValue(null);
+
+      const result = await service.getResources(userId);
+
+      expect(result).toEqual([]);
     });
 
     it("should return resources with the expected shape", async () => {
