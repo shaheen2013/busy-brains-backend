@@ -66,4 +66,25 @@ export const PARENT_RESOURCES: ParentResource[] = [
       "https://busy-brains-backend.s3.ap-southeast-2.amazonaws.com/Parent+Guidebooks/BB+Parent+Scripting+Resource_20260810_141210_0000.pdf",
     size: "1.3 MB",
   },
+  {
+    title: "The Busy Brains Body Check In - Tool",
+    module: 0,
+    download_url:
+      "https://busy-brains-backend.s3.ap-southeast-2.amazonaws.com/Parent+Guidebooks/TheBusyBrainsBodyCheckInTool.pdf",
+    size: "2.8 MB",
+  },
+  {
+    title: "The Busy Brains Body Check In - Visual A4",
+    module: 0,
+    download_url:
+      "https://busy-brains-backend.s3.ap-southeast-2.amazonaws.com/Parent+Guidebooks/TheBusyBrainsBodyCheckInVisualA4Format.pdf",
+    size: "1.0 MB",
+  },
+  {
+    title: "The Busy Brains Body Check In - Visual A3",
+    module: 0,
+    download_url:
+      "https://busy-brains-backend.s3.ap-southeast-2.amazonaws.com/Parent+Guidebooks/TheBusyBrainsBodyCheckInVisualA3Format.pdf",
+    size: "1.3 MB",
+  },
 ];
