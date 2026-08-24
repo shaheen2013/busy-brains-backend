@@ -253,13 +253,12 @@ export class KitService {
       return;
     }
 
-    const { apiKey, feedbackReportSequenceId } = this.configService.get("kit", {
-      infer: true,
-    });
+    const { apiKey, feedbackReportSequenceId, reportsToEmail } =
+      this.configService.get("kit", { infer: true });
 
-    if (!apiKey || !feedbackReportSequenceId) {
+    if (!apiKey || !feedbackReportSequenceId || !reportsToEmail) {
       this.logger.warn(
-        "KIT_API_KEY or KIT_FEEDBACK_REPORT_SEQUENCE_ID not configured — skipping",
+        "KIT_API_KEY, KIT_FEEDBACK_REPORT_SEQUENCE_ID, or KIT_REPORTS_TO not configured — skipping",
       );
       return;
     }
@@ -271,7 +270,7 @@ export class KitService {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           api_secret: apiKey,
-          email: "hello@busy-brains.com.au",
+          email: reportsToEmail,
           first_name: user.name,
           fields: {
             parent_name: user.name,
@@ -289,7 +288,7 @@ export class KitService {
     }
 
     this.logger.log(
-      `[Kit] Feedback report sent to hello@busy-brains.com.au for child "${childName}"`,
+      `[Kit] Feedback report sent to ${reportsToEmail} for child "${childName}"`,
     );
   }
 
@@ -306,14 +305,12 @@ export class KitService {
       return;
     }
 
-    const { apiKey, childFeedbackReportSequenceId } = this.configService.get(
-      "kit",
-      { infer: true },
-    );
+    const { apiKey, childFeedbackReportSequenceId, reportsToEmail } =
+      this.configService.get("kit", { infer: true });
 
-    if (!apiKey || !childFeedbackReportSequenceId) {
+    if (!apiKey || !childFeedbackReportSequenceId || !reportsToEmail) {
       this.logger.warn(
-        "KIT_API_KEY or KIT_CHILD_FEEDBACK_REPORT_SEQUENCE_ID not configured — skipping",
+        "KIT_API_KEY, KIT_CHILD_FEEDBACK_REPORT_SEQUENCE_ID, or KIT_REPORTS_TO not configured — skipping",
       );
       return;
     }
@@ -325,7 +322,7 @@ export class KitService {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           api_secret: apiKey,
-          email: "hello@busy-brains.com.au",
+          email: reportsToEmail,
           first_name: user.name,
           fields: {
             parent_name: user.name,
@@ -343,7 +340,7 @@ export class KitService {
     }
 
     this.logger.log(
-      `[Kit] Child feedback report sent to hello@busy-brains.com.au for child "${childName}"`,
+      `[Kit] Child feedback report sent to ${reportsToEmail} for child "${childName}"`,
     );
   }
 

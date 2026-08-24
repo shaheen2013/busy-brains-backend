@@ -203,7 +203,7 @@ export class FeedbackReportService {
 
   /**
    * Generate a feedback PDF, upload it to S3, update the feedback record with the URL,
-   * and send the report via Kit email to hello@busy-brains.com.au.
+   * and send the report via Kit email to the KIT_REPORTS_TO inbox.
    * Returns the updated ChildFeedback with pdfUrl.
    */
   async generateAndUploadPdf(
