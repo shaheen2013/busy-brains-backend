@@ -13,6 +13,11 @@ import { Plan, PlanName } from "../subscriptions/entities/plan.entity";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
 import { PaymentHistory } from "../subscriptions/entities/payment-history.entity";
 import { User } from "../users/entities/user.entity";
+import {
+  WeeklyPaymentHistory,
+  WeeklyPaymentType,
+} from "../subscriptions/entities/weekly-payment-history.entity";
+import { WeeklyPlanTier } from "../subscriptions/entities/weekly-plan.entity";
 
 const TRIAL_DAYS = 14;
 
@@ -35,6 +40,8 @@ export class PaymentService {
     private readonly paymentHistoryRepository: Repository<PaymentHistory>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(WeeklyPaymentHistory)
+    private readonly weeklyPaymentHistoryRepository: Repository<WeeklyPaymentHistory>,
     private readonly configService: ConfigService<AppConfig>,
   ) {
     const { secretKey } = this.configService.get("stripe", { infer: true });
@@ -244,7 +251,8 @@ export class PaymentService {
 
     // 100% discount promo codes result in amount_total=0 and no payment_intent.
     // Still a valid purchase — activate the plan but skip payment history.
-    const isFreeCheckout = !session.payment_intent && session.amount_total === 0;
+    const isFreeCheckout =
+      !session.payment_intent && session.amount_total === 0;
 
     if (!session.payment_intent && !isFreeCheckout) {
       Logger.warn(
@@ -286,7 +294,9 @@ export class PaymentService {
         );
         promoCode = pc.code;
       } catch {
-        Logger.warn(`Could not retrieve promo code: ${session.promotionCodeId}`);
+        Logger.warn(
+          `Could not retrieve promo code: ${session.promotionCodeId}`,
+        );
       }
     }
 
@@ -364,11 +374,68 @@ export class PaymentService {
     }
   }
 
-  async getPaymentHistory(userId: string): Promise<PaymentHistory[]> {
-    return this.paymentHistoryRepository.find({
+  async getPaymentHistory(userId: string): Promise<PaymentHistoryItem[]> {
+    const oneTime = await this.paymentHistoryRepository.find({
       where: { userId },
       relations: { plan: true },
       order: { createdAt: "DESC" },
     });
+
+    const weekly = await this.weeklyPaymentHistoryRepository.find({
+      where: { weeklySubscription: { userId } },
+      relations: { weeklySubscription: { weeklyPlan: true } },
+      order: { createdAt: "DESC" },
+    });
+
+    const items: PaymentHistoryItem[] = [
+      ...oneTime.map((row) => ({
+        id: row.id,
+        type: "one_time" as const,
+        amount: row.amount,
+        currency: row.currency,
+        status: row.status,
+        createdAt: row.createdAt,
+        invoicePdfUrl: row.invoicePdfUrl,
+        planName: row.plan?.name ?? null,
+        weeklyTier: null,
+        cycleNumber: null,
+        isPayoff: false,
+        isUpgrade: false,
+        upgradeFromTier: null,
+      })),
+      ...weekly.map((row) => ({
+        id: row.id,
+        type: "weekly_recurring" as const,
+        amount: row.amount,
+        currency: row.currency,
+        status: row.status,
+        createdAt: row.createdAt,
+        invoicePdfUrl: row.invoicePdfUrl,
+        planName: null,
+        weeklyTier: row.weeklySubscription?.weeklyPlan?.tier ?? null,
+        cycleNumber: row.cycleNumber,
+        isPayoff: row.type === WeeklyPaymentType.PAYOFF,
+        isUpgrade: row.type === WeeklyPaymentType.UPGRADE,
+        upgradeFromTier: row.fromTier,
+      })),
+    ];
+
+    return items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
+}
+
+export interface PaymentHistoryItem {
+  id: string;
+  type: "one_time" | "weekly_recurring";
+  amount: number | null;
+  currency: string | null;
+  status: string;
+  createdAt: Date;
+  invoicePdfUrl: string | null;
+  planName: string | null;
+  weeklyTier: WeeklyPlanTier | null;
+  cycleNumber: number | null;
+  isPayoff: boolean;
+  isUpgrade: boolean;
+  upgradeFromTier: WeeklyPlanTier | null;
 }

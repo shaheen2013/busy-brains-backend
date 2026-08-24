@@ -1,0 +1,41 @@
+---
+description: Mandatory class-validator DTOs on every request input
+globs: src/**/*.ts
+alwaysApply: false
+---
+
+# DTO validation is mandatory
+
+When adding or changing any NestJS endpoint input (body, query, params):
+
+1. Define a request DTO in the module `dto/` or `dtos/` folder with **class-validator** on every field.
+2. Do not accept untyped `@Body() body: any` or plain objects without validation.
+3. Prefer a small DTO over `@Body("field") field: string` for single body fields.
+4. Keep the global `ValidationPipe({ whitelist: true })` - never disable or weaken it.
+5. Use `@ApiProperty` / `@ApiPropertyOptional` to match sibling DTOs.
+6. Use `@Type(() => Number)` when numbers arrive as strings (query/body).
+7. If asked to add an endpoint without a DTO, include the validated DTO in the same change.
+8. Do not invent Zod, Formik, RHF, Yup, or Joi for Nest request validation.
+
+## Required pattern
+
+```ts
+import { ApiProperty } from "@nestjs/swagger";
+import { IsNotEmpty, IsString } from "class-validator";
+
+export class UpdatePaymentMethodDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  paymentMethodId: string;
+}
+```
+
+Also mirror: `CreateChildDto` (`@IsInt`/`@Min`/`@Max`/`@IsIn`), `GetAccessStatusDto` (`@IsUUID`/`@Type`/`@ValidateIf`), `PayoffWeeklySubscriptionDto` (`@IsOptional`/`@IsEnum`).
+
+## Anti-patterns
+
+- Controller handlers that take raw unvalidated objects
+- `@Body("otp") otp: string` instead of a DTO (see `DeleteChildDto` for the preferred shape)
+- Skipping validators and trusting the client
+- Disabling `ValidationPipe` or turning off `whitelist` without an explicit approved reason

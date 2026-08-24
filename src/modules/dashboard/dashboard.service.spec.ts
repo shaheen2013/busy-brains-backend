@@ -7,6 +7,7 @@ import { ChildModule } from "../children/entities/child-module.entity";
 import { ChildQuest } from "../children/entities/child-quest.entity";
 import { ChildScreen } from "../children/entities/child-screen.entity";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
+import { WeeklySubscription } from "../subscriptions/entities/weekly-subscription.entity";
 
 jest.mock("../../constants/module-registry", () => ({
   moduleRegistry: {
@@ -101,6 +102,7 @@ describe("DashboardService", () => {
   let childQuestRepo: ReturnType<typeof createMockRepository>;
   let childScreenRepo: ReturnType<typeof createMockRepository>;
   let userPlanRepo: ReturnType<typeof createMockRepository>;
+  let weeklySubscriptionRepo: ReturnType<typeof createMockRepository>;
 
   const userId = "user-uuid-1";
   const childId = "child-uuid-1";
@@ -162,6 +164,8 @@ describe("DashboardService", () => {
     childQuestRepo = createMockRepository();
     childScreenRepo = createMockRepository();
     userPlanRepo = createMockRepository();
+    weeklySubscriptionRepo = createMockRepository();
+    weeklySubscriptionRepo.findOne.mockResolvedValue(null);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -171,6 +175,10 @@ describe("DashboardService", () => {
         { provide: getRepositoryToken(ChildQuest), useValue: childQuestRepo },
         { provide: getRepositoryToken(ChildScreen), useValue: childScreenRepo },
         { provide: getRepositoryToken(UserPlan), useValue: userPlanRepo },
+        {
+          provide: getRepositoryToken(WeeklySubscription),
+          useValue: weeklySubscriptionRepo,
+        },
       ],
     }).compile();
 

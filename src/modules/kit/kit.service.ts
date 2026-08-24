@@ -101,6 +101,96 @@ export class KitService {
     this.logger.log(`[Kit] Account deletion OTP sent to ${user.email}`);
   }
 
+  async sendPaymentMethodRemovalOtp(
+    userId: string,
+    otp: string,
+  ): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      this.logger.warn(
+        `User ${userId} not found — skipping payment method removal OTP`,
+      );
+      return;
+    }
+
+    const { apiKey, paymentMethodRemovalOtpSequenceId } =
+      this.configService.get("kit", { infer: true });
+
+    if (!apiKey || !paymentMethodRemovalOtpSequenceId) {
+      this.logger.warn(
+        "KIT_API_KEY or KIT_PAYMENT_METHOD_REMOVAL_OTP_SEQUENCE_ID not configured — skipping",
+      );
+      return;
+    }
+
+    const response = await fetch(
+      `${KIT_API_BASE}/sequences/${paymentMethodRemovalOtpSequenceId}/subscribe`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          api_secret: apiKey,
+          email: user.email,
+          first_name: user.name,
+          fields: { otp },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`Kit API error (${response.status}): ${body}`);
+    }
+
+    this.logger.log(`[Kit] Payment method removal OTP sent to ${user.email}`);
+  }
+
+  async sendWeeklySubscriptionCancelOtp(
+    userId: string,
+    otp: string,
+  ): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      this.logger.warn(
+        `User ${userId} not found — skipping weekly subscription cancel OTP`,
+      );
+      return;
+    }
+
+    const { apiKey, weeklySubscriptionCancelOtpSequenceId } =
+      this.configService.get("kit", { infer: true });
+
+    if (!apiKey || !weeklySubscriptionCancelOtpSequenceId) {
+      this.logger.warn(
+        "KIT_API_KEY or KIT_WEEKLY_SUBSCRIPTION_CANCEL_OTP_SEQUENCE_ID not configured — skipping",
+      );
+      return;
+    }
+
+    const response = await fetch(
+      `${KIT_API_BASE}/sequences/${weeklySubscriptionCancelOtpSequenceId}/subscribe`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          api_secret: apiKey,
+          email: user.email,
+          first_name: user.name,
+          fields: { otp },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`Kit API error (${response.status}): ${body}`);
+    }
+
+    this.logger.log(
+      `[Kit] Weekly subscription cancellation OTP sent to ${user.email}`,
+    );
+  }
+
   async sendChildDeletionOtp(
     userId: string,
     childName: string,

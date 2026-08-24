@@ -34,7 +34,7 @@ export class ChildrenController {
   @ApiOperation({
     summary: "Create a child profile",
     description:
-      "Trial allows 1 child. Paid plan allows up to plan's maxChildren. Trial children count towards the paid limit.",
+      "Requires an active paid plan. Paid plan allows up to plan's maxChildren.",
   })
   create(@User() user: UserEntity, @Body() dto: CreateChildDto) {
     return this.childrenService.create(user.id, dto);

@@ -20,6 +20,8 @@ jest.mock("@clerk/backend", () => ({
 import { UsersService } from "./users.service";
 import { User } from "./entities/user.entity";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
+import { Plan } from "../subscriptions/entities/plan.entity";
+import { WeeklySubscription } from "../subscriptions/entities/weekly-subscription.entity";
 import { StorageService } from "../storage/storage.service";
 import { VerificationService } from "./verification.service";
 import { VerificationType } from "./entities/verification-token.entity";
@@ -43,6 +45,8 @@ describe("UsersService", () => {
   let service: UsersService;
   let userRepo: ReturnType<typeof createMockRepository>;
   let userPlanRepo: ReturnType<typeof createMockRepository>;
+  let planRepo: ReturnType<typeof createMockRepository>;
+  let weeklySubscriptionRepo: ReturnType<typeof createMockRepository>;
   let configService: jest.Mocked<ConfigService>;
   let storageService: jest.Mocked<StorageService>;
   let verificationService: jest.Mocked<VerificationService>;
@@ -78,6 +82,9 @@ describe("UsersService", () => {
 
     userRepo = createMockRepository();
     userPlanRepo = createMockRepository();
+    planRepo = createMockRepository();
+    weeklySubscriptionRepo = createMockRepository();
+    weeklySubscriptionRepo.findOne.mockResolvedValue(null);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -89,6 +96,14 @@ describe("UsersService", () => {
         {
           provide: getRepositoryToken(UserPlan),
           useValue: userPlanRepo,
+        },
+        {
+          provide: getRepositoryToken(Plan),
+          useValue: planRepo,
+        },
+        {
+          provide: getRepositoryToken(WeeklySubscription),
+          useValue: weeklySubscriptionRepo,
         },
         {
           provide: ConfigService,
@@ -222,16 +237,31 @@ describe("UsersService", () => {
       expect(result).toBeNull();
     });
 
-    it("should return user with activePlan: null and profileImage: null when no plan or resource", async () => {
+    it("should return activePlan type 'none' and profileImage: null when no plan or resource", async () => {
       userRepo.findOne.mockResolvedValue(mockUser);
       userPlanRepo.findOne.mockResolvedValue(null);
+      weeklySubscriptionRepo.findOne.mockResolvedValue(null);
       (storageService.getResource as jest.Mock).mockResolvedValue(null);
 
       const result = await service.findWithActivePlan("user-1");
 
       expect(result).toEqual({
         ...mockUser,
-        activePlan: null,
+        activePlan: {
+          type: "none",
+          id: null,
+          userId: null,
+          planId: null,
+          isTrial: false,
+          trialStartedAt: null,
+          trialEndsAt: null,
+          isActive: false,
+          purchasedAt: null,
+          createdAt: null,
+          plan: null,
+          weeklySubscription: null,
+          sevenDayExpiredAfterSignup: true,
+        },
         profileImage: null,
       });
     });
@@ -239,6 +269,7 @@ describe("UsersService", () => {
     it("should return profileImage url from storage when resource has a profile document", async () => {
       userRepo.findOne.mockResolvedValue(mockUser);
       userPlanRepo.findOne.mockResolvedValue(null);
+      weeklySubscriptionRepo.findOne.mockResolvedValue(null);
       (storageService.getResource as jest.Mock).mockResolvedValue({
         documents: [
           { label: "profile", url: "https://cdn.example.com/img.jpg" },
@@ -248,7 +279,7 @@ describe("UsersService", () => {
       const result = await service.findWithActivePlan("user-1");
 
       expect(result).toMatchObject({
-        activePlan: null,
+        activePlan: { type: "none" },
         profileImage: "https://cdn.example.com/img.jpg",
       });
     });

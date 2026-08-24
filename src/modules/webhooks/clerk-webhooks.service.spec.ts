@@ -4,6 +4,7 @@ import { getRepositoryToken } from "@nestjs/typeorm";
 import { ClerkWebhooksService } from "./clerk-webhooks.service";
 import { User } from "../users/entities/user.entity";
 import { PaymentService } from "../payment/payment.service";
+import { KitService } from "../kit/kit.service";
 
 const createMockRepository = () => ({
   findOne: jest.fn(),
@@ -44,17 +45,22 @@ describe("ClerkWebhooksService", () => {
   let userRepository: ReturnType<typeof createMockRepository>;
   let paymentService: { startTrial: jest.Mock };
   let mockConfigService: { get: jest.Mock };
+  let kitService: { subscribeToSignupSequence: jest.Mock };
 
   beforeEach(async () => {
     userRepository = createMockRepository();
     paymentService = { startTrial: jest.fn().mockResolvedValue(undefined) };
     mockConfigService = { get: jest.fn().mockReturnValue(false) };
+    kitService = {
+      subscribeToSignupSequence: jest.fn().mockResolvedValue(undefined),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ClerkWebhooksService,
         { provide: getRepositoryToken(User), useValue: userRepository },
         { provide: PaymentService, useValue: paymentService },
+        { provide: KitService, useValue: kitService },
         { provide: ConfigService, useValue: mockConfigService },
       ],
     }).compile();

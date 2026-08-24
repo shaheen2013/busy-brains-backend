@@ -8,6 +8,7 @@ import { ChildModule } from "./entities/child-module.entity";
 import { ChildQuest } from "./entities/child-quest.entity";
 import { ChildScreen } from "./entities/child-screen.entity";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
+import { WeeklySubscription } from "../subscriptions/entities/weekly-subscription.entity";
 import { User } from "../users/entities/user.entity";
 import { S3Service } from "../storage/s3.service";
 import { KitService } from "../kit/kit.service";
@@ -38,6 +39,7 @@ describe("ChildrenService", () => {
   let childQuestRepo: ReturnType<typeof createMockRepository>;
   let childScreenRepo: ReturnType<typeof createMockRepository>;
   let userPlanRepo: ReturnType<typeof createMockRepository>;
+  let weeklySubscriptionRepo: ReturnType<typeof createMockRepository>;
   let userRepo: ReturnType<typeof createMockRepository>;
   let s3Service: { upload: jest.Mock; delete: jest.Mock };
   let kitService: { sendChildDeletionOtp: jest.Mock };
@@ -52,6 +54,8 @@ describe("ChildrenService", () => {
     childQuestRepo = createMockRepository();
     childScreenRepo = createMockRepository();
     userPlanRepo = createMockRepository();
+    weeklySubscriptionRepo = createMockRepository();
+    weeklySubscriptionRepo.findOne.mockResolvedValue(null);
     userRepo = createMockRepository();
 
     s3Service = { upload: jest.fn(), delete: jest.fn() };
@@ -66,6 +70,10 @@ describe("ChildrenService", () => {
         { provide: getRepositoryToken(ChildQuest), useValue: childQuestRepo },
         { provide: getRepositoryToken(ChildScreen), useValue: childScreenRepo },
         { provide: getRepositoryToken(UserPlan), useValue: userPlanRepo },
+        {
+          provide: getRepositoryToken(WeeklySubscription),
+          useValue: weeklySubscriptionRepo,
+        },
         { provide: getRepositoryToken(User), useValue: userRepo },
         { provide: S3Service, useValue: s3Service },
         { provide: KitService, useValue: kitService },
@@ -96,11 +104,11 @@ describe("ChildrenService", () => {
         ForbiddenException,
       );
       await expect(service.create(userId, dto)).rejects.toThrow(
-        "An active plan or trial is required",
+        "An active paid plan is required to add a child",
       );
     });
 
-    it("should throw ForbiddenException when trial child limit is reached", async () => {
+    it("should throw ForbiddenException for a trial plan (trials cannot add children)", async () => {
       userPlanRepo.findOne.mockResolvedValue({
         id: "up-1",
         userId,
@@ -108,13 +116,53 @@ describe("ChildrenService", () => {
         isActive: true,
         plan: null,
       });
-      childRepo.countBy.mockResolvedValue(1); // already has 1 child; trial max = 1
 
       await expect(service.create(userId, dto)).rejects.toThrow(
         ForbiddenException,
       );
       await expect(service.create(userId, dto)).rejects.toThrow(
+        "An active paid plan is required to add a child",
+      );
+    });
+
+    it("should fall back to an active weekly subscription when there is no one-time plan", async () => {
+      userPlanRepo.findOne.mockResolvedValue(null);
+      weeklySubscriptionRepo.findOne.mockResolvedValue({
+        id: "ws-1",
+        userId,
+        status: "active",
+        weeklyPlan: { tier: "FAMILY" },
+      });
+      childRepo.countBy.mockResolvedValue(2);
+      const savedChild = { id: childId, userId, ...dto };
+      childRepo.save.mockResolvedValue(savedChild);
+
+      const result = await service.create(userId, dto);
+
+      expect(result).toBe(savedChild);
+    });
+
+    it("should throw ForbiddenException when the weekly subscription's child limit is reached", async () => {
+      userPlanRepo.findOne.mockResolvedValue(null);
+      weeklySubscriptionRepo.findOne.mockResolvedValue({
+        id: "ws-1",
+        userId,
+        status: "active",
+        weeklyPlan: { tier: "SINGLE" },
+      });
+      childRepo.countBy.mockResolvedValue(1); // SINGLE tier max = 1
+
+      await expect(service.create(userId, dto)).rejects.toThrow(
         "Your plan allows a maximum of 1 child",
+      );
+    });
+
+    it("should throw ForbiddenException when no one-time plan and no weekly subscription exist", async () => {
+      userPlanRepo.findOne.mockResolvedValue(null);
+      weeklySubscriptionRepo.findOne.mockResolvedValue(null);
+
+      await expect(service.create(userId, dto)).rejects.toThrow(
+        "An active paid plan is required to add a child",
       );
     });
 
@@ -134,25 +182,6 @@ describe("ChildrenService", () => {
       await expect(service.create(userId, dto)).rejects.toThrow(
         "Your plan allows a maximum of 2 children",
       );
-    });
-
-    it("should create and return a child when trial limit is not reached", async () => {
-      userPlanRepo.findOne.mockResolvedValue({
-        id: "up-1",
-        userId,
-        isTrial: true,
-        isActive: true,
-        plan: null,
-      });
-      childRepo.countBy.mockResolvedValue(0);
-      const savedChild = { id: childId, userId, ...dto };
-      childRepo.save.mockResolvedValue(savedChild);
-
-      const result = await service.create(userId, dto);
-
-      expect(childRepo.create).toHaveBeenCalledWith({ userId, ...dto });
-      expect(childRepo.save).toHaveBeenCalled();
-      expect(result).toBe(savedChild);
     });
 
     it("should create and return a child when paid plan limit is not reached", async () => {

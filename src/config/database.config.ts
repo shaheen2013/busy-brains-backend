@@ -11,6 +11,9 @@ import { ChildFeedback } from "../modules/feedback/entities/child-feedback.entit
 import { Plan } from "../modules/subscriptions/entities/plan.entity";
 import { UserPlan } from "../modules/subscriptions/entities/user-plan.entity";
 import { PaymentHistory } from "../modules/subscriptions/entities/payment-history.entity";
+import { WeeklyPlan } from "../modules/subscriptions/entities/weekly-plan.entity";
+import { WeeklySubscription } from "../modules/subscriptions/entities/weekly-subscription.entity";
+import { WeeklyPaymentHistory } from "../modules/subscriptions/entities/weekly-payment-history.entity";
 import { Resource } from "../modules/storage/entities/resource.entity";
 import { Document } from "../modules/storage/entities/document.entity";
 import { VerificationToken } from "../modules/users/entities/verification-token.entity";
@@ -43,6 +46,9 @@ export class DatabaseConfigService implements TypeOrmOptionsFactory {
         Plan,
         UserPlan,
         PaymentHistory,
+        WeeklyPlan,
+        WeeklySubscription,
+        WeeklyPaymentHistory,
         Resource,
         Document,
         VerificationToken,

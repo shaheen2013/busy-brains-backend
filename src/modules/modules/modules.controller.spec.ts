@@ -30,7 +30,7 @@ describe("ModulesController", () => {
 
   describe("getAccessList", () => {
     it("should call modulesService.getAccessList with user id, childId, and include array", async () => {
-      const user = { id: "user-uuid-1" };
+      const user = { id: "user-uuid-1", email: "user1@example.com" };
       const query = { childId: "child-uuid-1", include: ["quest", "screen"] };
       const expectedResult = {
         module_list: [],
@@ -49,6 +49,7 @@ describe("ModulesController", () => {
       expect(service.getAccessList).toHaveBeenCalledTimes(1);
       expect(service.getAccessList).toHaveBeenCalledWith(
         "user-uuid-1",
+        "user1@example.com",
         "child-uuid-1",
         ["quest", "screen"],
       );
@@ -56,7 +57,7 @@ describe("ModulesController", () => {
     });
 
     it("should pass empty array as include when not provided", async () => {
-      const user = { id: "user-uuid-1" };
+      const user = { id: "user-uuid-1", email: "user1@example.com" };
       const childId = "child-uuid-1";
       const include: string[] = [];
       const expectedResult = { module_list: [] };
@@ -71,6 +72,7 @@ describe("ModulesController", () => {
 
       expect(service.getAccessList).toHaveBeenCalledWith(
         "user-uuid-1",
+        "user1@example.com",
         "child-uuid-1",
         [],
       );
@@ -78,7 +80,7 @@ describe("ModulesController", () => {
     });
 
     it("should return whatever the service returns", async () => {
-      const user = { id: "user-uuid-2" };
+      const user = { id: "user-uuid-2", email: "user2@example.com" };
       const childId = "child-uuid-2";
       const include = ["quest"];
       const serviceReturn = {
@@ -100,7 +102,7 @@ describe("ModulesController", () => {
 
   describe("getAccessStatus", () => {
     it("should call modulesService.getAccessStatus with user id and query params", async () => {
-      const user = { id: "user-uuid-1" };
+      const user = { id: "user-uuid-1", email: "user1@example.com" };
       const query = {
         childId: "child-uuid-1",
         module: 1,
@@ -116,6 +118,7 @@ describe("ModulesController", () => {
       expect(service.getAccessStatus).toHaveBeenCalledTimes(1);
       expect(service.getAccessStatus).toHaveBeenCalledWith(
         "user-uuid-1",
+        "user1@example.com",
         "child-uuid-1",
         1,
         undefined,
@@ -125,7 +128,7 @@ describe("ModulesController", () => {
     });
 
     it("should call service with module, quest, and screen when all are provided", async () => {
-      const user = { id: "user-uuid-1" };
+      const user = { id: "user-uuid-1", email: "user1@example.com" };
       const query = {
         childId: "child-uuid-1",
         module: 1,
@@ -139,6 +142,7 @@ describe("ModulesController", () => {
 
       expect(service.getAccessStatus).toHaveBeenCalledWith(
         "user-uuid-1",
+        "user1@example.com",
         "child-uuid-1",
         1,
         2,
@@ -147,7 +151,7 @@ describe("ModulesController", () => {
     });
 
     it("should call service with undefined module, quest, screen when only childId is provided", async () => {
-      const user = { id: "user-uuid-1" };
+      const user = { id: "user-uuid-1", email: "user1@example.com" };
       const query = {
         childId: "child-uuid-1",
         module: undefined,
@@ -161,6 +165,7 @@ describe("ModulesController", () => {
 
       expect(service.getAccessStatus).toHaveBeenCalledWith(
         "user-uuid-1",
+        "user1@example.com",
         "child-uuid-1",
         undefined,
         undefined,
@@ -169,7 +174,7 @@ describe("ModulesController", () => {
     });
 
     it("should propagate service errors", async () => {
-      const user = { id: "user-uuid-1" };
+      const user = { id: "user-uuid-1", email: "user1@example.com" };
       const query = {
         childId: "bad-child",
         module: undefined,

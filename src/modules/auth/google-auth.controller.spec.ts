@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { GoogleAuthController } from "./google-auth.controller";
 import { UsersService } from "../users/users.service";
 import { PaymentService } from "../payment/payment.service";
+import { KitService } from "../kit/kit.service";
 
 // ---------------------------------------------------------------------------
 // Mock google-auth-library so we avoid real network calls
@@ -70,6 +71,10 @@ const mockPaymentService = {
   startTrial: jest.fn(),
 };
 
+const mockKitService = {
+  subscribeToSignupSequence: jest.fn(),
+};
+
 describe("GoogleAuthController", () => {
   let controller: GoogleAuthController;
 
@@ -85,6 +90,7 @@ describe("GoogleAuthController", () => {
         { provide: ConfigService, useValue: mockConfigService },
         { provide: UsersService, useValue: mockUsersService },
         { provide: PaymentService, useValue: mockPaymentService },
+        { provide: KitService, useValue: mockKitService },
       ],
     }).compile();
 
@@ -320,6 +326,7 @@ describe("GoogleAuthController", () => {
           { provide: ConfigService, useValue: trialConfigService },
           { provide: UsersService, useValue: mockUsersService },
           { provide: PaymentService, useValue: mockPaymentService },
+          { provide: KitService, useValue: mockKitService },
         ],
       }).compile();
 

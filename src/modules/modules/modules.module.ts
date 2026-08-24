@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
+import { WeeklySubscription } from "../subscriptions/entities/weekly-subscription.entity";
 import { Child } from "../children/entities/child.entity";
 import { ChildModule as ChildModuleEntity } from "../children/entities/child-module.entity";
 import { ChildQuest } from "../children/entities/child-quest.entity";
@@ -12,6 +13,7 @@ import { ModulesController } from "./modules.controller";
   imports: [
     TypeOrmModule.forFeature([
       UserPlan,
+      WeeklySubscription,
       Child,
       ChildModuleEntity,
       ChildQuest,

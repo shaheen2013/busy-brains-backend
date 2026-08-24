@@ -93,6 +93,13 @@ export class StripeWebhookController {
       case "payment_intent.payment_failed":
         await this.stripeWebhooksService.handlePaymentIntentFailed(event);
         break;
+      case "customer.subscription.created":
+      case "customer.subscription.updated":
+        await this.stripeWebhooksService.handleSubscriptionUpdated(event);
+        break;
+      case "customer.subscription.deleted":
+        await this.stripeWebhooksService.handleSubscriptionDeleted(event);
+        break;
       default:
         break;
     }

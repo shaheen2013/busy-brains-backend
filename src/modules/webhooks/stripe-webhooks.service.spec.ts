@@ -2,6 +2,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { StripeWebhooksService } from "./stripe-webhooks.service";
 import { PaymentService } from "../payment/payment.service";
 import { KitService } from "../kit/kit.service";
+import { WeeklySubscriptionService } from "../weekly-subscription/weekly-subscription.service";
 import { PlanName } from "../subscriptions/entities/plan.entity";
 
 // ---------------------------------------------------------------------------
@@ -91,6 +92,12 @@ describe("StripeWebhooksService", () => {
     handleInvoicePaid: jest.Mock;
   };
   let kitService: { subscribeToSequence: jest.Mock };
+  let weeklySubscriptionService: {
+    handleSubscriptionUpdated: jest.Mock;
+    handleSubscriptionDeleted: jest.Mock;
+    handleInvoicePaymentSucceeded: jest.Mock;
+    handleInvoicePaymentFailed: jest.Mock;
+  };
 
   beforeEach(async () => {
     paymentService = {
@@ -102,12 +109,22 @@ describe("StripeWebhooksService", () => {
     kitService = {
       subscribeToSequence: jest.fn().mockResolvedValue(undefined),
     };
+    weeklySubscriptionService = {
+      handleSubscriptionUpdated: jest.fn().mockResolvedValue(undefined),
+      handleSubscriptionDeleted: jest.fn().mockResolvedValue(undefined),
+      handleInvoicePaymentSucceeded: jest.fn().mockResolvedValue(undefined),
+      handleInvoicePaymentFailed: jest.fn().mockResolvedValue(undefined),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         StripeWebhooksService,
         { provide: PaymentService, useValue: paymentService },
         { provide: KitService, useValue: kitService },
+        {
+          provide: WeeklySubscriptionService,
+          useValue: weeklySubscriptionService,
+        },
       ],
     }).compile();
 
@@ -135,6 +152,7 @@ describe("StripeWebhooksService", () => {
           payment_intent: "pi_test_456",
           amount_total: 9900,
           currency: "usd",
+          promotionCodeId: null,
         },
       );
     });

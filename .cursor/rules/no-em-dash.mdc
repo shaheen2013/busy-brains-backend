@@ -1,0 +1,29 @@
+---
+description: Never use em dashes in code, comments, docs, or generated text
+alwaysApply: true
+---
+
+# No em dashes
+
+Do not use the em dash character (`—`, U+2014) anywhere in this repo:
+
+- Code comments and JSDoc
+- Markdown / AGENTS / CLAUDE / Cursor rules
+- API docs strings and i18n copy
+- Commit messages and PR text you generate
+
+## Use instead
+
+- Hyphen / minus: `-`
+- Colon: `:`
+- Comma or period for a pause
+- ASCII arrow when needed: `->`
+
+## Examples
+
+```text
+Bad:  Bootstrap CORS — then ValidationPipe — then listen
+Good: Bootstrap CORS - then ValidationPipe - then listen
+```
+
+If you edit existing text that contains `—`, replace it with `-` (or rephrase) in the same change.

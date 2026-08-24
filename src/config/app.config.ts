@@ -22,6 +22,7 @@ export interface AppConfig {
     publishableKey: string;
     webhookSecret: string;
     upgradePriceId: string;
+    weeklyUpgradeDiffAmount: number;
   };
 
   s3: {
@@ -38,6 +39,8 @@ export interface AppConfig {
     childDeletionOtpSequenceId: string;
     feedbackReportSequenceId: string;
     childFeedbackReportSequenceId: string;
+    paymentMethodRemovalOtpSequenceId: string;
+    weeklySubscriptionCancelOtpSequenceId: string;
   };
   nodeEnv: string;
   port: number;
@@ -71,6 +74,10 @@ export default (): AppConfig => ({
     publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
     webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
     upgradePriceId: process.env.STRIPE_PRICE_UPGRADE,
+    weeklyUpgradeDiffAmount: parseInt(
+      process.env.STRIPE_WEEKLY_UPGRADE_DIFF_AMOUNT || "1600",
+      10,
+    ),
   },
   s3: {
     region: process.env.AWS_REGION || "us-east-1",
@@ -90,6 +97,10 @@ export default (): AppConfig => ({
     feedbackReportSequenceId: process.env.KIT_FEEDBACK_REPORT_SEQUENCE_ID || "",
     childFeedbackReportSequenceId:
       process.env.KIT_CHILD_FEEDBACK_REPORT_SEQUENCE_ID || "",
+    paymentMethodRemovalOtpSequenceId:
+      process.env.KIT_PAYMENT_METHOD_REMOVAL_OTP_SEQUENCE_ID || "",
+    weeklySubscriptionCancelOtpSequenceId:
+      process.env.KIT_WEEKLY_SUBSCRIPTION_CANCEL_OTP_SEQUENCE_ID || "",
   },
   nodeEnv: process.env.NODE_ENV || "development",
   port: parseInt(process.env.PORT || "3001", 10),
