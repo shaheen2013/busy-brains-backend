@@ -46,7 +46,7 @@ export class StripeWebhookController {
           object: {
             id: "cs_test_1234567890",
             amount_total: 2000,
-            currency: "usd",
+            currency: "aud",
           },
         },
       },

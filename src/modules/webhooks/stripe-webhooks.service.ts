@@ -109,7 +109,7 @@ export class StripeWebhooksService {
         subscriptionId,
         invoice.id,
         invoice.amount_paid ?? 0,
-        invoice.currency ?? "usd",
+        invoice.currency ?? "aud",
         invoice.invoice_pdf ?? null,
       );
       this.logger.log(`invoice.payment_succeeded (weekly): ${invoice.id}`);
@@ -136,7 +136,7 @@ export class StripeWebhooksService {
         subscriptionId,
         invoice.id,
         invoice.amount_due ?? 0,
-        invoice.currency ?? "usd",
+        invoice.currency ?? "aud",
         failureReason,
       );
     }
