@@ -2,3 +2,4 @@ run.sh
 node_modules
 .env
 dist
+nohup.out
