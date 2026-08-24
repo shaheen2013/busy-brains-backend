@@ -51,14 +51,14 @@ const WEEKLY_TIERS: {
     productName: "Weekly Plan - Single",
     weeklyPrice: 3399,
     totalCycles: 6,
-    currency: "usd",
+    currency: "aud",
   },
   {
     tier: WeeklyPlanTier.FAMILY,
     productName: "Weekly Plan - Family",
     weeklyPrice: 4999,
     totalCycles: 6,
-    currency: "usd",
+    currency: "aud",
   },
 ];
 
