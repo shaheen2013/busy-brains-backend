@@ -36,13 +36,22 @@ export const MODULE_UNLOCK_DAYS: Record<number, number> = developmentMode
   ? DEVELOPMENT
   : PRODUCTION;
 
+function parseEmailListEnv(envValue: string | undefined): Set<string> {
+  return new Set(
+    (envValue ?? "")
+      .split(",")
+      .map((email) => email.trim())
+      .filter(Boolean),
+  );
+}
+
 // Users in this set bypass payment and time-based module gates.
 // Sequential completion (previous screen/module must be done) still applies.
-export const FREE_ACCESS_EMAILS = new Set([
-  "shaheenmediusware@gmail.com",
-  "mdmarufbinsalimbhuiyan@gmail.com",
-  "aileenk00@gmail.com",
-]);
+// Comma-separated list, e.g. FREE_ACCESS_EMAILS=a@x.com,b@y.com — kept out of
+// source so granting/revoking access doesn't require a code change + deploy.
+export const FREE_ACCESS_EMAILS = parseEmailListEnv(
+  process.env.FREE_ACCESS_EMAILS,
+);
 
 /**
  * Manually approved case-by-case exceptions: users confirmed (by checking
@@ -52,12 +61,11 @@ export const FREE_ACCESS_EMAILS = new Set([
  * of following the standard MODULE_UNLOCK_DAYS[2] delay. Modules 3+ are
  * unaffected. Add an email here only after confirming a succeeded purchase
  * in payment_history — this is not a general grandfather clause.
+ * Comma-separated list via env, e.g. MODULE2_INSTANT_UNLOCK_EMAILS=a@x.com,b@y.com
  */
-export const MODULE2_INSTANT_UNLOCK_EMAILS = new Set([
-  "caskeggs@gmail.com",
-  "kellyabasford@gmail.com",
-  "sonya_furner@hotmail.com",
-]);
+export const MODULE2_INSTANT_UNLOCK_EMAILS = parseEmailListEnv(
+  process.env.MODULE2_INSTANT_UNLOCK_EMAILS,
+);
 
 /** Resolves the per-module unlock-delay schedule to use for a given user. */
 export function getModuleUnlockDays(userEmail: string): Record<number, number> {
