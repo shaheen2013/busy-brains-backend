@@ -7,6 +7,13 @@ import { Child } from "../../modules/children/entities/child.entity";
 import { ChildModule } from "../../modules/children/entities/child-module.entity";
 import { ChildQuest } from "../../modules/children/entities/child-quest.entity";
 import { ChildScreen } from "../../modules/children/entities/child-screen.entity";
+import { ChildFeedback } from "../../modules/feedback/entities/child-feedback.entity";
+import { WeeklyPlan } from "../../modules/subscriptions/entities/weekly-plan.entity";
+import { WeeklySubscription } from "../../modules/subscriptions/entities/weekly-subscription.entity";
+import { WeeklyPaymentHistory } from "../../modules/subscriptions/entities/weekly-payment-history.entity";
+import { Resource } from "../../modules/storage/entities/resource.entity";
+import { Document } from "../../modules/storage/entities/document.entity";
+import { VerificationToken } from "../../modules/users/entities/verification-token.entity";
 import { PLANS } from "../../common/plans.constants";
 
 const dataSource = new DataSource({
@@ -22,9 +29,16 @@ const dataSource = new DataSource({
     ChildModule,
     ChildQuest,
     ChildScreen,
+    ChildFeedback,
     Plan,
     UserPlan,
     PaymentHistory,
+    WeeklyPlan,
+    WeeklySubscription,
+    WeeklyPaymentHistory,
+    Resource,
+    Document,
+    VerificationToken,
   ],
   synchronize: false,
   logging: false,
@@ -49,6 +63,7 @@ const plans: Omit<Plan, "id" | "createdAt" | "userPlans">[] = [
 
 async function freshSeed() {
   await dataSource.initialize();
+  await dataSource.synchronize();
 
   console.log("Truncating all tables...");
 
@@ -66,12 +81,12 @@ async function freshSeed() {
     RESTART IDENTITY CASCADE
   `);
 
-  console.log("✓ All tables cleared");
+  console.log("All tables cleared");
 
   const repo = dataSource.getRepository(Plan);
   for (const plan of plans) {
     await repo.save(repo.create(plan));
-    console.log(`✓ Created: ${plan.name}`);
+    console.log(`Created: ${plan.name}`);
   }
 
   await dataSource.destroy();
