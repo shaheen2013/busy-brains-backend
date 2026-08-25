@@ -36,6 +36,6 @@ RUN pnpm install --frozen-lockfile --prod --ignore-scripts && \
 
 COPY --from=builder /app/dist ./dist
 
-EXPOSE 5000
+EXPOSE 3046
 
 CMD ["sh", "-c", "pnpm run db:seed:prod && node --dns-result-order=ipv4first dist/main"]
