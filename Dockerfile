@@ -38,4 +38,4 @@ COPY --from=builder /app/dist ./dist
 
 EXPOSE 5000
 
-CMD ["node", "--dns-result-order=ipv4first", "dist/main"]
+CMD ["sh", "-c", "pnpm run db:seed:prod && node --dns-result-order=ipv4first dist/main"]
