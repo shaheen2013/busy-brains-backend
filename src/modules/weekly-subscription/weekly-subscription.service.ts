@@ -118,7 +118,7 @@ export class WeeklySubscriptionService {
           totalCycles: String(plan.totalCycles),
         },
       },
-      success_url: `${baseUrl}/panel/subscription?complete=true`,
+      success_url: `${baseUrl}/panel/subscription?complete=true&type=weekly`,
       cancel_url: `${baseUrl}/panel/subscription`,
     });
 
@@ -186,7 +186,7 @@ export class WeeklySubscriptionService {
         weeklySubscriptionId: sub.id,
         targetTier: payoffPlan.tier,
       },
-      success_url: `${baseUrl}/panel/subscription?complete=true`,
+      success_url: `${baseUrl}/panel/subscription?complete=true&type=weekly`,
       cancel_url: `${baseUrl}/panel/subscription`,
     });
 
@@ -249,7 +249,7 @@ export class WeeklySubscriptionService {
         userId: user.id,
         weeklySubscriptionId: sub.id,
       },
-      success_url: `${baseUrl}/panel/subscription?complete=true`,
+      success_url: `${baseUrl}/panel/subscription?complete=true&type=weekly`,
       cancel_url: `${baseUrl}/panel/subscription`,
     });
 
