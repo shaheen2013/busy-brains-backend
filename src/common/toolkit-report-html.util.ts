@@ -57,7 +57,60 @@ const ICONS = {
   hand: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><g clip-path="url(#clip0_9450_228208)"><path d="M18 11V6C18 5.46957 17.7893 4.96086 17.4142 4.58579C17.0391 4.21071 16.5304 4 16 4C15.4696 4 14.9609 4.21071 14.5858 4.58579C14.2107 4.96086 14 5.46957 14 6" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 9.99951V3.99951C14 3.46908 13.7893 2.96037 13.4142 2.5853C13.0391 2.21023 12.5304 1.99951 12 1.99951C11.4696 1.99951 10.9609 2.21023 10.5858 2.5853C10.2107 2.96037 10 3.46908 10 3.99951V5.99951" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.99609 10.5V6C9.99609 5.46957 9.78538 4.96086 9.41031 4.58579C9.03523 4.21071 8.52653 4 7.99609 4C7.46566 4 6.95695 4.21071 6.58188 4.58579C6.20681 4.96086 5.99609 5.46957 5.99609 6V14" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M17.9962 7.99902C17.9962 7.46859 18.2069 6.95988 18.582 6.58481C18.9571 6.20974 19.4658 5.99902 19.9962 5.99902C20.5266 5.99902 21.0353 6.20974 21.4104 6.58481C21.7855 6.95988 21.9962 7.46859 21.9962 7.99902V13.999C21.9962 16.1208 21.1533 18.1556 19.653 19.6559C18.1528 21.1562 16.1179 21.999 13.9962 21.999H11.9962C9.19619 21.999 7.49619 21.139 6.0062 19.659L2.4062 16.059C2.06213 15.678 1.87778 15.1792 1.89132 14.666C1.90486 14.1527 2.11524 13.6644 2.47892 13.302C2.84259 12.9396 3.3317 12.7309 3.84497 12.7192C4.35824 12.7075 4.85636 12.8936 5.2362 13.239L6.99619 14.999" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></g><defs><clipPath id="clip0_9450_228208"><rect width="24" height="24" fill="white"/></clipPath></defs></svg>`,
   star: `<span class="emoji">⭐</span>`,
   target: `<span class="emoji">🎯</span>`,
+  heart: `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7.5-4.5-10-9C.5 8.5 2 4 6.5 4 9 4 11 6 12 7.5 13 6 15 4 17.5 4 22 4 23.5 8.5 22 12c-2.5 4.5-10 9-10 9z" stroke="white" stroke-width="2" stroke-linejoin="round"/></svg>`,
 };
+
+// Static "My Check In" checklist items (design-fixed, not driven by dashboard data).
+const CHECK_IN_ITEMS: {
+  icon: string;
+  label: string;
+  bg: string;
+  iconBg: string;
+  side: "left" | "right";
+}[] = [
+  {
+    icon: "eat.svg",
+    label: "Have I eaten?",
+    bg: "#F0FDFA",
+    iconBg: "#2F5064",
+    side: "left",
+  },
+  {
+    icon: "water.svg",
+    label: "Have I drunk water?",
+    bg: "#FEFCE8",
+    iconBg: "#FBBF24",
+    side: "left",
+  },
+  {
+    icon: "toilet.svg",
+    label: "Do I need the toilet?",
+    bg: "#F0FDF4",
+    iconBg: "#34C759",
+    side: "left",
+  },
+  {
+    icon: "sleep.svg",
+    label: "Have I slept?",
+    bg: "#F5F3FF",
+    iconBg: "#9C6AFF",
+    side: "right",
+  },
+  {
+    icon: "temperature.svg",
+    label: "Am I hot or cold?",
+    bg: "#F1F5F9",
+    iconBg: "#2F5064",
+    side: "right",
+  },
+  {
+    icon: "pain.svg",
+    label: "Do I have any pain?",
+    bg: "#FFF1ED",
+    iconBg: "#E8694B",
+    side: "right",
+  },
+];
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -286,9 +339,24 @@ function buildImageGrid(assetsDir: string, images: GridImage[]): string {
       const src = loadAsset(assetsDir, `images/${img.imageFile}`);
       const accent = GROUP_ACCENT[img.group];
       return `
-          <div class="border-[1.5px] border-dashed rounded-[14px] px-1.5 pt-2.5 pb-[9px] flex flex-col items-center bg-white" style="border-color:${accent}">
-            <img class="w-full h-20 object-contain mb-[7px]" src="${src}" alt="${escapeHtml(img.label)}" />
-            <div class="text-[8px] font-bold text-[#334155] text-center leading-[1.3]">${escapeHtml(img.label)}</div>
+          <div class="border-[1.5px] border-dashed rounded-[10px] px-1 pt-1.5 pb-1.5 flex flex-col items-center bg-white" style="border-color:${accent}">
+            <img class="w-full h-10 object-contain mb-1" src="${src}" alt="${escapeHtml(img.label)}" />
+            <div class="text-[6px] font-bold text-[#334155] text-center leading-[1.2]">${escapeHtml(img.label)}</div>
+          </div>`;
+    })
+    .join("");
+}
+
+function buildCheckInItems(assetsDir: string, side: "left" | "right"): string {
+  return CHECK_IN_ITEMS.filter((item) => item.side === side)
+    .map((item) => {
+      const src = loadAsset(assetsDir, `images/check-in/${item.icon}`);
+      return `
+          <div class="rounded-[8px] px-1.5 py-2 flex flex-col items-center text-center gap-1" style="background:${item.bg}">
+            <div class="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style="background:${item.iconBg}">
+              <img class="w-[11px] h-[11px]" src="${src}" alt="" />
+            </div>
+            <div class="text-[7px] font-bold text-bb-slate leading-[1.2]">${escapeHtml(item.label)}</div>
           </div>`;
     })
     .join("");
@@ -305,12 +373,12 @@ function buildFavouriteToolsGrid(
         ? loadAsset(assetsDir, `images/${tool.imageFile}`)
         : null;
       const imageEl = img
-        ? `<img class="w-full h-20 object-contain mb-[7px]" src="${img}" alt="${escapeHtml(tool.title)}" />`
-        : `<div class="w-full h-20 mb-[7px]"></div>`;
+        ? `<img class="w-full h-10 object-contain mb-1" src="${img}" alt="${escapeHtml(tool.title)}" />`
+        : `<div class="w-full h-10 mb-1"></div>`;
       return `
-          <div class="border-[1.5px] border-dashed rounded-[14px] px-1.5 pt-2.5 pb-[9px] flex flex-col items-center bg-white" style="border-color:${accent}">
+          <div class="border-[1.5px] border-dashed rounded-[10px] px-1 pt-1.5 pb-1.5 flex flex-col items-center bg-white" style="border-color:${accent}">
             ${imageEl}
-            <div class="text-[8px] font-bold text-[#334155] text-center leading-[1.3]">${escapeHtml(tool.title)}</div>
+            <div class="text-[6px] font-bold text-[#334155] text-center leading-[1.2]">${escapeHtml(tool.title)}</div>
           </div>`;
     })
     .join("");
@@ -334,7 +402,7 @@ export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
     points
       .map(
         (p) =>
-          `<li class="text-[10.5px] text-[#475569] leading-[1.55] pl-3.5 relative mb-0.5 before:content-['•'] before:absolute before:left-0.5 before:text-[#94a3b8] before:font-bold">${escapeHtml(p)}</li>`,
+          `<li class="text-[8px] text-[#475569] leading-[1.45] pl-3 relative mb-0.5 before:content-['•'] before:absolute before:left-0.5 before:text-[#94a3b8] before:font-bold">${escapeHtml(p)}</li>`,
       )
       .join("");
 
@@ -343,8 +411,12 @@ export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
 
   const imageGrid = buildImageGrid(assetsDir, model.images);
 
-  const brainHeadSub = `${brainType.title} — ${brainType.subtitle}`;
-  const tactileHeadSub = `${tactileSense.title} — ${tactileSense.subtitle}`;
+  const checkInLeft = buildCheckInItems(assetsDir, "left");
+  const checkInRight = buildCheckInItems(assetsDir, "right");
+  const checkInBodySrc = loadAsset(
+    assetsDir,
+    "images/check-in/body-outline.svg",
+  );
 
   return `<!DOCTYPE html>
 <html>
@@ -417,14 +489,14 @@ export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
 </style>
 </head>
 <body>
-<div class="pb-7">
+<div class="pb-3">
 
   <!-- Top bar -->
-  <div class="flex justify-center items-center pt-3 pb-3">
-      <img class="h-20 block" src="${logoSrc}" alt="Busy Brains" />
+  <div class="flex justify-center items-center pt-2 pb-1">
+      <img class="h-14 block" src="${logoSrc}" alt="Busy Brains" />
   </div>
 
-  <div class="max-w-[700px] mx-auto mt-[18px] mb-0 px-[18px] flex flex-col gap-3.5">
+  <div class="max-w-[700px] mx-auto mt-3 mb-0 px-3 flex flex-col gap-3">
 
     <!-- Hero -->
     <div class="relative overflow-clip rounded-3xl border-[2px] border-[#89D1D1] bg-[linear-gradient(0deg,rgba(255,255,255,0.20)_0%,rgba(255,255,255,0.20)_100%),linear-gradient(135deg,rgba(108,197,198,0.18)_0%,rgba(156,106,255,0.12)_60%,rgba(255,213,37,0.10)_100%)] px-6 py-5 flex justify-between items-center relative overflow-hidden">
@@ -444,43 +516,49 @@ export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
       <img class="w-24 h-24 object-contain shrink-0" src="${heroSrc}" alt="Child meditating" />
     </div>
 
-    <!-- Brain Type + Tactile Sense -->
-    <div class="grid grid-cols-2 gap-3.5">
-      <div class="border-[2px] border-[#FFD525] rounded-[18px] bg-white">
-        <div class="flex items-center gap-[11px] bg-[#FFF8D6] rounded-t-[16px] p-4 pb-6">
-          <div class="relative w-[42px] h-[42px] rounded-[18px] flex items-center justify-center shrink-0 bg-bb-yellow">
+    <!-- Brain Type + Tactile Sense + My Check In -->
+    <div class="grid grid-cols-3 gap-2.5 items-stretch">
+      <div class="border-[1.5px] border-[#FFD525] rounded-[14px] bg-white flex flex-col">
+        <div class="flex items-center gap-2 bg-[#FFF8D6] rounded-t-[12px] p-2.5">
+          <div class="relative w-[26px] h-[26px] rounded-[10px] flex items-center justify-center shrink-0 bg-bb-yellow">
             ${ICONS.sprout}
-            <span class="absolute -bottom-[5px] -right-[5px] w-[17px] h-[17px] rounded-full bg-[#7A5800] border-2 border-white text-white text-[8px] font-extrabold flex items-center justify-center">A</span>
           </div>
-          <div>
-            <div class="text-[13px] font-extrabold text-[#7A5800]">My Brain Type</div>
-            <div class="text-[9.5px] text-[#7A5800] mt-0.5">${escapeHtml(brainHeadSub)}</div>
-          </div>
+          <div class="text-[10px] font-extrabold text-[#7A5800] leading-[1.25]">My Brain Type</div>
         </div>
-        <div class="p-4">
-          <div class="text-sm font-extrabold text-bb-slate mb-[7px]">${escapeHtml(brainType.title)}</div>
+        <div class="p-2.5">
+          <div class="text-[10px] font-extrabold text-bb-slate mb-1">${escapeHtml(brainType.title)}</div>
           ${
             brainType.description
-              ? `<p class="text-[10.5px] text-bb-slate-light leading-[1.6]">${escapeHtml(brainType.description)}</p>`
+              ? `<p class="text-[8px] text-bb-slate-light leading-[1.45]">${escapeHtml(brainType.description)}</p>`
               : `<ul class="list-none p-0">${brainBulletPoints}</ul>`
           }
         </div>
       </div>
 
-      <div class="border-[2px] border-[#2CC3D5] rounded-[18px] bg-white">
-        <div class="flex items-center gap-[11px] bg-bb-teal-bg rounded-t-[18px] p-4">
-          <div class="relative w-[42px] h-[42px] rounded-[18px] flex items-center justify-center shrink-0 bg-bb-teal-light">
+      <div class="border-[1.5px] border-[#2CC3D5] rounded-[14px] bg-white flex flex-col">
+        <div class="flex items-center gap-2 bg-bb-teal-bg rounded-t-[12px] p-2.5">
+          <div class="relative w-[26px] h-[26px] rounded-[10px] flex items-center justify-center shrink-0 bg-bb-teal-light">
             ${ICONS.hand}
-            <span class="absolute -bottom-[5px] -right-[5px] w-[17px] h-[17px] rounded-full bg-[#2D5353] border-2 border-white text-white text-[8px] font-extrabold flex items-center justify-center">B</span>
           </div>
-          <div>
-            <div class="text-[13px] font-extrabold text-[#2D5353]">My Tactile Sense</div>
-            <div class="text-[9.5px] text-[#2D5353] mt-0.5">${escapeHtml(tactileHeadSub)}</div>
-          </div>
+          <div class="text-[10px] font-extrabold text-[#2D5353] leading-[1.25]">Your Tactile Sense</div>
         </div>
-        <div class="p-4">
-          <div class="text-sm font-extrabold text-bb-slate mb-[7px]">${escapeHtml(tactileSense.title)}</div>
+        <div class="p-2.5">
+          <div class="text-[10px] font-extrabold text-bb-slate mb-1">${escapeHtml(tactileSense.title)}</div>
           <ul class="list-none p-0">${bulletPoints}</ul>
+        </div>
+      </div>
+
+      <div class="border-[1.5px] border-[#89D1D1] rounded-[14px] bg-white flex flex-col">
+        <div class="flex items-center gap-2 bg-bb-teal-bg rounded-t-[12px] p-2.5">
+          <div class="relative w-[26px] h-[26px] rounded-[10px] flex items-center justify-center shrink-0 bg-bb-orange">
+            ${ICONS.heart}
+          </div>
+          <div class="text-[10px] font-extrabold text-[#2D5353] leading-[1.25]">My Check in</div>
+        </div>
+        <div class="p-2.5 grid grid-cols-[1fr_auto_1fr] gap-1.5 items-center">
+          <div class="flex flex-col gap-1.5">${checkInLeft}</div>
+          <img class="w-10 h-auto object-contain shrink-0" src="${checkInBodySrc}" alt="" />
+          <div class="flex flex-col gap-1.5">${checkInRight}</div>
         </div>
       </div>
     </div>
@@ -499,13 +577,13 @@ export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
       </div>
       <div class="p-4">
         <div class="text-[12.5px] font-extrabold text-bb-slate mb-[11px]">You chose these as YOUR all-time faves</div>
-        <div class="grid grid-cols-5 gap-[11px]">${favouriteToolsGrid}</div>
+        <div class="grid grid-cols-10 gap-2">${favouriteToolsGrid}</div>
       </div>
     </div>
 
     <!-- Final Toolkit -->
-    <div class="border-[2px] border-[#9C6AFF] rounded-[20px] p-5">
-      <div class="flex items-center gap-[11px] mb-3">
+    <div class="border-[2px] border-[#9C6AFF] rounded-[16px] p-3.5">
+      <div class="flex items-center gap-[11px] mb-2">
         <div class="relative w-[42px] h-[42px] rounded-[13px] flex items-center justify-center shrink-0 bg-[linear-gradient(135deg,_rgba(156,106,255,0.13)_0%,_rgba(156,106,255,0.27)_100%)]">
           ${ICONS.target}
         </div>
@@ -514,19 +592,19 @@ export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
           <div class="text-[9.5px] text-bb-slate-faint mt-0.5">From Screen 5 Quiz Result &middot; how well you know your tools</div>
         </div>
       </div>
-      <div class="flex items-center gap-[9px] my-1 mb-3.5">
+      <div class="flex items-center gap-[9px] my-1 mb-2">
         <span class="text-[13px] font-extrabold text-bb-slate">${escapeHtml(toolkitInfo.title)}</span>
         <span class="bg-bb-purple-light text-bb-purple text-[9px] font-bold px-[11px] py-[3px] rounded-[14px]">Primary Tool</span>
       </div>
-      <div class="grid grid-cols-5 gap-[11px]">${imageGrid}</div>
+      <div class="grid grid-cols-10 gap-2">${imageGrid}</div>
     </div>
 
     <!-- Superstar -->
-    <div class="border border-bb-purple-border rounded-[18px] px-5 py-4 bg-bb-purple-bg flex items-center gap-3.5">
-      <div class="text-[34px] shrink-0">&#127881;</div>
+    <div class="border border-bb-purple-border rounded-[16px] px-4 py-2.5 bg-bb-purple-bg flex items-center gap-3">
+      <div class="text-[26px] shrink-0">&#127881;</div>
       <div>
-        <div class="text-sm font-extrabold text-bb-purple">You're a Busy Brain Superstar! &#11088;&#10024;</div>
-        <p class="text-[10px] text-bb-slate-light leading-[1.55] mt-1">
+        <div class="text-[12px] font-extrabold text-bb-purple">You're a Busy Brain Superstar! &#11088;&#10024;</div>
+        <p class="text-[8.5px] text-bb-slate-light leading-[1.4] mt-0.5">
           You now know your brain type, your sensory profile, and your personal toolkit.
           Stick this on your fridge or in your bedroom. Whenever you feel big feelings,
           look at your toolkit and pick a tool. You've totally got this!
@@ -535,7 +613,7 @@ export function buildToolkitReportHtml(options: BuildHtmlOptions): string {
     </div>
 
     <!-- Page footer -->
-    <div class="flex justify-between items-center mt-10 pt-3 border-t border-dashed border-[#6CC5C640] text-[8.5px] text-bb-slate-ghost">
+    <div class="flex justify-between items-center mt-3 pt-2 border-t border-dashed border-[#6CC5C640] text-[8.5px] text-bb-slate-ghost">
       <span>www.busy-brains.com.au</span>
       <span class="inline-flex gap-1">
         <i class="w-1.5 h-1.5 rounded-full inline-block bg-[#9C6AFF]"></i>
