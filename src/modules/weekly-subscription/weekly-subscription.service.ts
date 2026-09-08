@@ -33,6 +33,13 @@ const ACTIVE_STATUSES = [
   WeeklySubscriptionStatus.PAST_DUE,
 ];
 
+function buildSubscriptionSuccessUrl(
+  baseUrl: string,
+  fromNdis?: boolean,
+): string {
+  return `${baseUrl}/panel/subscription?complete=true&type=weekly${fromNdis ? "&from_ndis=true" : ""}`;
+}
+
 @Injectable()
 export class WeeklySubscriptionService {
   private stripe: Stripe.Stripe;
@@ -85,6 +92,7 @@ export class WeeklySubscriptionService {
   async start(
     user: User,
     tier: WeeklyPlanTier,
+    fromNdis?: boolean,
   ): Promise<{ sessionId: string; url: string }> {
     const existing = await this.getActiveSubscription(user.id);
     if (existing) {
@@ -118,7 +126,7 @@ export class WeeklySubscriptionService {
           totalCycles: String(plan.totalCycles),
         },
       },
-      success_url: `${baseUrl}/panel/subscription?complete=true&type=weekly`,
+      success_url: buildSubscriptionSuccessUrl(baseUrl, fromNdis),
       cancel_url: `${baseUrl}/panel/subscription`,
     });
 
@@ -128,6 +136,7 @@ export class WeeklySubscriptionService {
   async payoff(
     user: User,
     targetTier?: WeeklyPlanTier,
+    fromNdis?: boolean,
   ): Promise<{ sessionId: string; url: string }> {
     const sub = await this.getActiveSubscription(user.id);
     if (!sub)
@@ -186,14 +195,17 @@ export class WeeklySubscriptionService {
         weeklySubscriptionId: sub.id,
         targetTier: payoffPlan.tier,
       },
-      success_url: `${baseUrl}/panel/subscription?complete=true&type=weekly`,
+      success_url: buildSubscriptionSuccessUrl(baseUrl, fromNdis),
       cancel_url: `${baseUrl}/panel/subscription`,
     });
 
     return { sessionId: session.id, url: session.url ?? "" };
   }
 
-  async upgrade(user: User): Promise<{ sessionId: string; url: string }> {
+  async upgrade(
+    user: User,
+    fromNdis?: boolean,
+  ): Promise<{ sessionId: string; url: string }> {
     const sub = await this.getActiveSubscription(user.id);
     if (!sub)
       throw new NotFoundException("No active weekly subscription found");
@@ -249,7 +261,7 @@ export class WeeklySubscriptionService {
         userId: user.id,
         weeklySubscriptionId: sub.id,
       },
-      success_url: `${baseUrl}/panel/subscription?complete=true&type=weekly`,
+      success_url: buildSubscriptionSuccessUrl(baseUrl, fromNdis),
       cancel_url: `${baseUrl}/panel/subscription`,
     });
 

@@ -63,7 +63,11 @@ describe("PaymentController", () => {
 
       const result = await controller.startPlan(mockUser as UserEntity, dto);
 
-      expect(service.startPlan).toHaveBeenCalledWith(mockUser, dto.planName);
+      expect(service.startPlan).toHaveBeenCalledWith(
+        mockUser,
+        dto.planName,
+        undefined,
+      );
       expect(result).toBe(session);
     });
 
@@ -80,6 +84,7 @@ describe("PaymentController", () => {
       expect(service.startPlan).toHaveBeenCalledWith(
         mockUser,
         PlanName.FAMILY_PACK,
+        undefined,
       );
       expect(result).toBe(session);
     });
@@ -93,9 +98,9 @@ describe("PaymentController", () => {
       };
       service.upgradePlan.mockResolvedValue(session);
 
-      const result = await controller.upgradePlan(mockUser as UserEntity);
+      const result = await controller.upgradePlan(mockUser as UserEntity, {});
 
-      expect(service.upgradePlan).toHaveBeenCalledWith(mockUser);
+      expect(service.upgradePlan).toHaveBeenCalledWith(mockUser, undefined);
       expect(result).toBe(session);
     });
   });

@@ -21,6 +21,14 @@ import { WeeklyPlanTier } from "../subscriptions/entities/weekly-plan.entity";
 
 const TRIAL_DAYS = 14;
 
+function buildSubscriptionSuccessUrl(
+  baseUrl: string,
+  type: "one_time" | "weekly",
+  fromNdis?: boolean,
+): string {
+  return `${baseUrl}/panel/subscription?complete=true&type=${type}${fromNdis ? "&from_ndis=true" : ""}`;
+}
+
 type StripeTypes = InstanceType<typeof Stripe>;
 type Invoice = Awaited<ReturnType<StripeTypes["invoices"]["retrieve"]>>;
 type ExpandedInvoice = Invoice & {
@@ -77,6 +85,7 @@ export class PaymentService {
   async startPlan(
     user: User,
     planName: PlanName,
+    fromNdis?: boolean,
   ): Promise<{ sessionId: string; url: string }> {
     const existing = await this.userPlanRepository.findOne({
       where: { userId: user.id, isActive: true },
@@ -113,7 +122,7 @@ export class PaymentService {
       client_reference_id: user.id,
       metadata: { userId: user.id, planName: plan.name },
       invoice_creation: { enabled: true },
-      success_url: `${baseUrl}/panel/subscription?complete=true&type=one_time`,
+      success_url: buildSubscriptionSuccessUrl(baseUrl, "one_time", fromNdis),
       cancel_url: `${baseUrl}/panel/subscription`,
       customer: stripeCustomerId,
       allow_promotion_codes: true,
@@ -122,7 +131,10 @@ export class PaymentService {
     return { sessionId: session.id, url: session.url ?? "" };
   }
 
-  async upgradePlan(user: User): Promise<{ sessionId: string; url: string }> {
+  async upgradePlan(
+    user: User,
+    fromNdis?: boolean,
+  ): Promise<{ sessionId: string; url: string }> {
     const existing = await this.userPlanRepository.findOne({
       where: { userId: user.id, isActive: true },
       relations: { plan: true },
@@ -172,7 +184,7 @@ export class PaymentService {
         isUpgrade: "true",
       },
       invoice_creation: { enabled: true },
-      success_url: `${baseUrl}/panel/subscription?complete=true&type=one_time`,
+      success_url: buildSubscriptionSuccessUrl(baseUrl, "one_time", fromNdis),
       cancel_url: `${baseUrl}/panel/subscription`,
       customer: stripeCustomerId,
       allow_promotion_codes: true,

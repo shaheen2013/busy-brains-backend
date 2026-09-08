@@ -5,6 +5,7 @@ import { User } from "../auth/decorators/user.decorator";
 import { User as UserEntity } from "../users/entities/user.entity";
 import { StartWeeklySubscriptionDto } from "./dto/start-weekly-subscription.dto";
 import { PayoffWeeklySubscriptionDto } from "./dto/payoff-weekly-subscription.dto";
+import { UpgradeWeeklySubscriptionDto } from "./dto/upgrade-weekly-subscription.dto";
 
 @ApiTags("Weekly Subscription")
 @ApiBearerAuth("Clerk-Bearer")
@@ -26,7 +27,7 @@ export class WeeklySubscriptionController {
       "Start a new weekly recurring subscription (Single or Family) via a Stripe Checkout Session",
   })
   start(@User() user: UserEntity, @Body() dto: StartWeeklySubscriptionDto) {
-    return this.weeklySubscriptionService.start(user, dto.tier);
+    return this.weeklySubscriptionService.start(user, dto.tier, dto.fromNdis);
   }
 
   @Post("payoff")
@@ -35,7 +36,11 @@ export class WeeklySubscriptionController {
       "Pay off the remaining weekly cycles in one charge, optionally at a higher tier",
   })
   payoff(@User() user: UserEntity, @Body() dto: PayoffWeeklySubscriptionDto) {
-    return this.weeklySubscriptionService.payoff(user, dto.targetTier);
+    return this.weeklySubscriptionService.payoff(
+      user,
+      dto.targetTier,
+      dto.fromNdis,
+    );
   }
 
   @Post("upgrade")
@@ -43,8 +48,8 @@ export class WeeklySubscriptionController {
     summary:
       "Upgrade Single to Family, staying recurring (charges catch-up differential)",
   })
-  upgrade(@User() user: UserEntity) {
-    return this.weeklySubscriptionService.upgrade(user);
+  upgrade(@User() user: UserEntity, @Body() dto: UpgradeWeeklySubscriptionDto) {
+    return this.weeklySubscriptionService.upgrade(user, dto.fromNdis);
   }
 
   @Post("request-cancel-otp")
