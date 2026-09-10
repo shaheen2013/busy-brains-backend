@@ -8,6 +8,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { ConfigService } from "@nestjs/config";
 import { createClerkClient } from "@clerk/backend";
+import Stripe from "stripe";
 import { User } from "./entities/user.entity";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
 import { Plan, PlanName } from "../subscriptions/entities/plan.entity";
@@ -351,7 +352,53 @@ export class UsersService {
       otp,
     );
 
-    await this.userRepository.update(userId, { isDeleted: true });
+    const activeWeeklySubscription =
+      await this.weeklySubscriptionRepository.findOne({
+        where: [
+          { userId, status: WeeklySubscriptionStatus.ACTIVE },
+          { userId, status: WeeklySubscriptionStatus.PAST_DUE },
+        ],
+      });
+
+    if (activeWeeklySubscription) {
+      const { secretKey: stripeSecretKey } = this.configService.get("stripe", {
+        infer: true,
+      });
+      if (stripeSecretKey) {
+        const stripe = new Stripe(stripeSecretKey, {
+          apiVersion: "2026-04-22.dahlia",
+        });
+        await stripe.subscriptions.cancel(
+          activeWeeklySubscription.stripeSubscriptionId,
+          { prorate: false },
+        );
+      }
+
+      activeWeeklySubscription.status = WeeklySubscriptionStatus.CANCELED;
+      activeWeeklySubscription.canceledAt = new Date();
+      await this.weeklySubscriptionRepository.save(activeWeeklySubscription);
+    }
+
+    // Free the email immediately so the same address can re-register - do
+    // not rely on the async user.deleted webhook for this, since that
+    // handler hard-deletes the row and will fail on FK constraints for any
+    // user with children, plans, or payment history.
+    await this.userRepository.update(userId, {
+      isDeleted: true,
+      email: `deleted+${userId}@deleted.busybrains.internal`,
+    });
+
+    const clerkSecretKey = this.configService.get("clerk.secretKey", {
+      infer: true,
+    });
+    if (clerkSecretKey) {
+      const clerkClient = createClerkClient({ secretKey: clerkSecretKey });
+      // Kills the user's Clerk session immediately, on top of the isDeleted
+      // check ClerkGuard already does, so a live access token can't keep
+      // browsing the app after account deletion.
+      await clerkClient.users.deleteUser(userId);
+    }
+
     return { message: "Account deleted successfully" };
   }
 }

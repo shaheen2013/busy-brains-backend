@@ -6,9 +6,11 @@ import { ConfigService } from "@nestjs/config";
 // --- Mock @clerk/backend before any imports that use it ---
 const mockVerifyPassword = jest.fn();
 const mockUpdateUser = jest.fn();
+const mockDeleteUser = jest.fn();
 const mockClerkUsers = {
   verifyPassword: mockVerifyPassword,
   updateUser: mockUpdateUser,
+  deleteUser: mockDeleteUser,
 };
 const mockClerkClient = { users: mockClerkUsers };
 const mockCreateClerkClient = jest.fn().mockReturnValue(mockClerkClient);
@@ -630,7 +632,7 @@ describe("UsersService", () => {
   // deleteAccount
   // ---------------------------------------------------------------------------
   describe("deleteAccount", () => {
-    it("should verify OTP, mark user as deleted, and return success message", async () => {
+    it("should verify OTP, mark user as deleted, free the email, delete the Clerk user, and return success message", async () => {
       (verificationService.verifyOtp as jest.Mock).mockResolvedValue(true);
       userRepo.update.mockResolvedValue({});
 
@@ -643,8 +645,33 @@ describe("UsersService", () => {
       );
       expect(userRepo.update).toHaveBeenCalledWith("user-1", {
         isDeleted: true,
+        email: "deleted+user-1@deleted.busybrains.internal",
       });
+      expect(mockDeleteUser).toHaveBeenCalledWith("user-1");
       expect(result).toEqual({ message: "Account deleted successfully" });
+    });
+
+    it("should cancel an active weekly subscription on Stripe and mark it canceled", async () => {
+      (verificationService.verifyOtp as jest.Mock).mockResolvedValue(true);
+      userRepo.update.mockResolvedValue({});
+      const activeSubscription = {
+        id: "sub-1",
+        userId: "user-1",
+        status: "active",
+        stripeSubscriptionId: "stripe-sub-1",
+        canceledAt: null,
+      };
+      weeklySubscriptionRepo.findOne.mockResolvedValue(activeSubscription);
+      weeklySubscriptionRepo.save.mockResolvedValue(activeSubscription);
+
+      await service.deleteAccount("user-1", "123456");
+
+      expect(weeklySubscriptionRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: "canceled",
+          canceledAt: expect.any(Date),
+        }),
+      );
     });
 
     it("should propagate exceptions thrown by verificationService.verifyOtp", async () => {
