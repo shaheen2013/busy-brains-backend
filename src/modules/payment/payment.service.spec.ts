@@ -21,6 +21,7 @@ import { UserPlan } from "../subscriptions/entities/user-plan.entity";
 import { PaymentHistory } from "../subscriptions/entities/payment-history.entity";
 import { WeeklyPaymentHistory } from "../subscriptions/entities/weekly-payment-history.entity";
 import { User } from "../users/entities/user.entity";
+import { WeeklySubscriptionService } from "../weekly-subscription/weekly-subscription.service";
 
 const createMockRepository = () => ({
   findOne: jest.fn(),
@@ -44,6 +45,7 @@ describe("PaymentService", () => {
   let paymentHistoryRepo: ReturnType<typeof createMockRepository>;
   let weeklyPaymentHistoryRepo: ReturnType<typeof createMockRepository>;
   let userRepo: ReturnType<typeof createMockRepository>;
+  let weeklySubscriptionService: { hasActiveSubscription: jest.Mock };
   let configService: { get: jest.Mock };
 
   const userId = "user-id-1";
@@ -75,6 +77,9 @@ describe("PaymentService", () => {
     weeklyPaymentHistoryRepo = createMockRepository();
     weeklyPaymentHistoryRepo.find.mockResolvedValue([]);
     userRepo = createMockRepository();
+    weeklySubscriptionService = {
+      hasActiveSubscription: jest.fn().mockResolvedValue(false),
+    };
 
     configService = {
       get: jest.fn((key: string) => {
@@ -99,6 +104,10 @@ describe("PaymentService", () => {
         },
         { provide: getRepositoryToken(User), useValue: userRepo },
         { provide: ConfigService, useValue: configService },
+        {
+          provide: WeeklySubscriptionService,
+          useValue: weeklySubscriptionService,
+        },
       ],
     }).compile();
 
@@ -203,6 +212,15 @@ describe("PaymentService", () => {
       await expect(
         service.startPlan(mockUser as User, PlanName.SOLO_EXPLORER),
       ).rejects.toThrow("User already has an active plan");
+    });
+
+    it("should throw ConflictException when user already has an active weekly subscription", async () => {
+      userPlanRepo.findOne.mockResolvedValue(null);
+      weeklySubscriptionService.hasActiveSubscription.mockResolvedValue(true);
+
+      await expect(
+        service.startPlan(mockUser as User, PlanName.SOLO_EXPLORER),
+      ).rejects.toThrow("User already has an active weekly subscription");
     });
 
     it("should throw NotFoundException when plan is not found", async () => {
