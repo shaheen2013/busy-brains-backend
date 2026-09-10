@@ -3,6 +3,8 @@ import {
   NotFoundException,
   ConflictException,
   Logger,
+  Inject,
+  forwardRef,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { ConfigService } from "@nestjs/config";
@@ -18,6 +20,7 @@ import {
   WeeklyPaymentType,
 } from "../subscriptions/entities/weekly-payment-history.entity";
 import { WeeklyPlanTier } from "../subscriptions/entities/weekly-plan.entity";
+import { WeeklySubscriptionService } from "../weekly-subscription/weekly-subscription.service";
 
 const TRIAL_DAYS = 14;
 
@@ -51,10 +54,19 @@ export class PaymentService {
     @InjectRepository(WeeklyPaymentHistory)
     private readonly weeklyPaymentHistoryRepository: Repository<WeeklyPaymentHistory>,
     private readonly configService: ConfigService<AppConfig>,
+    @Inject(forwardRef(() => WeeklySubscriptionService))
+    private readonly weeklySubscriptionService: WeeklySubscriptionService,
   ) {
     const { secretKey } = this.configService.get("stripe", { infer: true });
     if (!secretKey) throw new Error("STRIPE_SECRET_KEY is not configured");
     this.stripe = new Stripe(secretKey, { apiVersion: "2026-04-22.dahlia" });
+  }
+
+  async hasActiveOneTimePlan(userId: string): Promise<boolean> {
+    const existing = await this.userPlanRepository.findOne({
+      where: { userId, isActive: true },
+    });
+    return !!existing && !existing.isTrial;
   }
 
   async startTrial(user: User): Promise<UserPlan> {
@@ -93,6 +105,14 @@ export class PaymentService {
 
     if (existing && !existing.isTrial) {
       throw new ConflictException("User already has an active plan");
+    }
+
+    const hasActiveWeekly =
+      await this.weeklySubscriptionService.hasActiveSubscription(user.id);
+    if (hasActiveWeekly) {
+      throw new ConflictException(
+        "User already has an active weekly subscription",
+      );
     }
 
     const plan = await this.planRepository.findOne({
