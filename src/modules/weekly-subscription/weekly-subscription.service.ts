@@ -269,6 +269,10 @@ export class WeeklySubscriptionService {
   }
 
   async requestCancelOtp(user: User): Promise<{ message: string }> {
+    const sub = await this.getActiveSubscription(user.id);
+    if (!sub)
+      throw new NotFoundException("No active weekly subscription found");
+
     const otp = await this.verificationService.generateOtp(
       user.id,
       VerificationType.WEEKLY_SUBSCRIPTION_CANCELLATION,
