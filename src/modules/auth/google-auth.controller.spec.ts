@@ -1,5 +1,6 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { ConfigService } from "@nestjs/config";
+import { ForbiddenException } from "@nestjs/common";
 import { GoogleAuthController } from "./google-auth.controller";
 import { UsersService } from "../users/users.service";
 import { PaymentService } from "../payment/payment.service";
@@ -225,6 +226,43 @@ describe("GoogleAuthController", () => {
       await controller.handleCallback("auth-code", undefined, res as any);
 
       expect(mockPaymentService.startTrial).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("handleCallback() – deleted account", () => {
+    const googleUser = {
+      id: "google-id-1",
+      email: "deleted@example.com",
+      name: "Deleted User",
+      given_name: "Deleted",
+      family_name: "User",
+      picture: "https://example.com/pic.jpg",
+    };
+
+    beforeEach(() => {
+      mockGetToken.mockResolvedValue({
+        tokens: { access_token: "at", id_token: "it" },
+      });
+      mockSetCredentials.mockReturnValue(undefined);
+      mockRequest.mockResolvedValue({ data: googleUser });
+      mockGetUserList.mockResolvedValue({
+        totalCount: 1,
+        data: [{ id: "clerk-deleted-id" }],
+      });
+      mockUsersService.findOrCreateFromOAuth.mockRejectedValue(
+        new ForbiddenException("This account has been deleted"),
+      );
+    });
+
+    it("should redirect to sign-in with google_failed instead of minting a sign-in token", async () => {
+      const res = createMockResponse();
+
+      await controller.handleCallback("auth-code", undefined, res as any);
+
+      expect(mockCreateSignInToken).not.toHaveBeenCalled();
+      expect(res.redirect).toHaveBeenCalledWith(
+        expect.stringContaining("error=google_failed"),
+      );
     });
   });
 
