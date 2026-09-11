@@ -4,6 +4,7 @@ import { PaymentService } from "./payment.service";
 import { User } from "../auth/decorators/user.decorator";
 import { User as UserEntity } from "../users/entities/user.entity";
 import { StartPlanDto } from "./dto/start-plan.dto";
+import { UpgradePlanDto } from "./dto/upgrade-plan.dto";
 
 @ApiTags("Payment")
 @ApiBearerAuth("Clerk-Bearer")
@@ -22,7 +23,7 @@ export class PaymentController {
     summary: "Start a paid subscription for SOLO_EXPLORER or FAMILY_PACK",
   })
   startPlan(@User() user: UserEntity, @Body() dto: StartPlanDto) {
-    return this.paymentService.startPlan(user, dto.planName);
+    return this.paymentService.startPlan(user, dto.planName, dto.fromNdis);
   }
 
   @Post("upgrade-plan")
@@ -30,8 +31,8 @@ export class PaymentController {
     summary:
       "Upgrade from Solo Explorer to Family Pack (charges $100 difference)",
   })
-  upgradePlan(@User() user: UserEntity) {
-    return this.paymentService.upgradePlan(user);
+  upgradePlan(@User() user: UserEntity, @Body() dto: UpgradePlanDto) {
+    return this.paymentService.upgradePlan(user, dto.fromNdis);
   }
 
   @Get("history")

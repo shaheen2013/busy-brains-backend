@@ -25,7 +25,8 @@
     "lede",
     "busybrains",
     "behaviour",
-    "upserts"
+    "upserts",
+    "ndis"
   ],
   "ignorePaths": [
     "node_modules/**",

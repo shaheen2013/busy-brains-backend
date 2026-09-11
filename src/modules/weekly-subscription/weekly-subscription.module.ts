@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { WeeklyPlan } from "../subscriptions/entities/weekly-plan.entity";
 import { WeeklySubscription } from "../subscriptions/entities/weekly-subscription.entity";
@@ -7,6 +7,7 @@ import { User } from "../users/entities/user.entity";
 import { VerificationToken } from "../users/entities/verification-token.entity";
 import { VerificationService } from "../users/verification.service";
 import { KitModule } from "../kit/kit.module";
+import { PaymentModule } from "../payment/payment.module";
 import { WeeklySubscriptionService } from "./weekly-subscription.service";
 import { WeeklySubscriptionController } from "./weekly-subscription.controller";
 
@@ -20,6 +21,7 @@ import { WeeklySubscriptionController } from "./weekly-subscription.controller";
       VerificationToken,
     ]),
     KitModule,
+    forwardRef(() => PaymentModule),
   ],
   controllers: [WeeklySubscriptionController],
   providers: [WeeklySubscriptionService, VerificationService],

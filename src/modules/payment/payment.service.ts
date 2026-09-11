@@ -3,6 +3,8 @@ import {
   NotFoundException,
   ConflictException,
   Logger,
+  Inject,
+  forwardRef,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { ConfigService } from "@nestjs/config";
@@ -18,8 +20,17 @@ import {
   WeeklyPaymentType,
 } from "../subscriptions/entities/weekly-payment-history.entity";
 import { WeeklyPlanTier } from "../subscriptions/entities/weekly-plan.entity";
+import { WeeklySubscriptionService } from "../weekly-subscription/weekly-subscription.service";
 
 const TRIAL_DAYS = 14;
+
+function buildSubscriptionSuccessUrl(
+  baseUrl: string,
+  type: "one_time" | "weekly",
+  fromNdis?: boolean,
+): string {
+  return `${baseUrl}/panel/subscription?complete=true&type=${type}${fromNdis ? "&from_ndis=true" : ""}`;
+}
 
 type StripeTypes = InstanceType<typeof Stripe>;
 type Invoice = Awaited<ReturnType<StripeTypes["invoices"]["retrieve"]>>;
@@ -43,10 +54,19 @@ export class PaymentService {
     @InjectRepository(WeeklyPaymentHistory)
     private readonly weeklyPaymentHistoryRepository: Repository<WeeklyPaymentHistory>,
     private readonly configService: ConfigService<AppConfig>,
+    @Inject(forwardRef(() => WeeklySubscriptionService))
+    private readonly weeklySubscriptionService: WeeklySubscriptionService,
   ) {
     const { secretKey } = this.configService.get("stripe", { infer: true });
     if (!secretKey) throw new Error("STRIPE_SECRET_KEY is not configured");
     this.stripe = new Stripe(secretKey, { apiVersion: "2026-04-22.dahlia" });
+  }
+
+  async hasActiveOneTimePlan(userId: string): Promise<boolean> {
+    const existing = await this.userPlanRepository.findOne({
+      where: { userId, isActive: true },
+    });
+    return !!existing && !existing.isTrial;
   }
 
   async startTrial(user: User): Promise<UserPlan> {
@@ -77,6 +97,7 @@ export class PaymentService {
   async startPlan(
     user: User,
     planName: PlanName,
+    fromNdis?: boolean,
   ): Promise<{ sessionId: string; url: string }> {
     const existing = await this.userPlanRepository.findOne({
       where: { userId: user.id, isActive: true },
@@ -84,6 +105,14 @@ export class PaymentService {
 
     if (existing && !existing.isTrial) {
       throw new ConflictException("User already has an active plan");
+    }
+
+    const hasActiveWeekly =
+      await this.weeklySubscriptionService.hasActiveSubscription(user.id);
+    if (hasActiveWeekly) {
+      throw new ConflictException(
+        "User already has an active weekly subscription",
+      );
     }
 
     const plan = await this.planRepository.findOne({
@@ -113,7 +142,7 @@ export class PaymentService {
       client_reference_id: user.id,
       metadata: { userId: user.id, planName: plan.name },
       invoice_creation: { enabled: true },
-      success_url: `${baseUrl}/panel/subscription?complete=true&type=one_time`,
+      success_url: buildSubscriptionSuccessUrl(baseUrl, "one_time", fromNdis),
       cancel_url: `${baseUrl}/panel/subscription`,
       customer: stripeCustomerId,
       allow_promotion_codes: true,
@@ -122,7 +151,10 @@ export class PaymentService {
     return { sessionId: session.id, url: session.url ?? "" };
   }
 
-  async upgradePlan(user: User): Promise<{ sessionId: string; url: string }> {
+  async upgradePlan(
+    user: User,
+    fromNdis?: boolean,
+  ): Promise<{ sessionId: string; url: string }> {
     const existing = await this.userPlanRepository.findOne({
       where: { userId: user.id, isActive: true },
       relations: { plan: true },
@@ -172,7 +204,7 @@ export class PaymentService {
         isUpgrade: "true",
       },
       invoice_creation: { enabled: true },
-      success_url: `${baseUrl}/panel/subscription?complete=true&type=one_time`,
+      success_url: buildSubscriptionSuccessUrl(baseUrl, "one_time", fromNdis),
       cancel_url: `${baseUrl}/panel/subscription`,
       customer: stripeCustomerId,
       allow_promotion_codes: true,

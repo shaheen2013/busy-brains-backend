@@ -1,9 +1,11 @@
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
+  forwardRef,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { ConfigService } from "@nestjs/config";
@@ -27,11 +29,19 @@ import { User } from "../users/entities/user.entity";
 import { VerificationService } from "../users/verification.service";
 import { VerificationType } from "../users/entities/verification-token.entity";
 import { KitService } from "../kit/kit.service";
+import { PaymentService } from "../payment/payment.service";
 
 const ACTIVE_STATUSES = [
   WeeklySubscriptionStatus.ACTIVE,
   WeeklySubscriptionStatus.PAST_DUE,
 ];
+
+function buildSubscriptionSuccessUrl(
+  baseUrl: string,
+  fromNdis?: boolean,
+): string {
+  return `${baseUrl}/panel/subscription?complete=true&type=weekly${fromNdis ? "&from_ndis=true" : ""}`;
+}
 
 @Injectable()
 export class WeeklySubscriptionService {
@@ -50,6 +60,8 @@ export class WeeklySubscriptionService {
     private readonly configService: ConfigService<AppConfig>,
     private readonly verificationService: VerificationService,
     private readonly kitService: KitService,
+    @Inject(forwardRef(() => PaymentService))
+    private readonly paymentService: PaymentService,
   ) {
     const { secretKey } = this.configService.get("stripe", { infer: true });
     if (!secretKey) throw new Error("STRIPE_SECRET_KEY is not configured");
@@ -76,6 +88,10 @@ export class WeeklySubscriptionService {
     });
   }
 
+  async hasActiveSubscription(userId: string): Promise<boolean> {
+    return !!(await this.getActiveSubscription(userId));
+  }
+
   /**
    * Every weekly money-moving action (start/upgrade/payoff) goes through
    * Stripe Checkout, same as the one-time plan flow — Stripe hosts card
@@ -85,12 +101,20 @@ export class WeeklySubscriptionService {
   async start(
     user: User,
     tier: WeeklyPlanTier,
+    fromNdis?: boolean,
   ): Promise<{ sessionId: string; url: string }> {
     const existing = await this.getActiveSubscription(user.id);
     if (existing) {
       throw new ConflictException(
         "User already has an active weekly subscription",
       );
+    }
+
+    const hasActiveOneTime = await this.paymentService.hasActiveOneTimePlan(
+      user.id,
+    );
+    if (hasActiveOneTime) {
+      throw new ConflictException("User already has an active plan");
     }
 
     const plan = await this.weeklyPlanRepository.findOne({ where: { tier } });
@@ -118,7 +142,7 @@ export class WeeklySubscriptionService {
           totalCycles: String(plan.totalCycles),
         },
       },
-      success_url: `${baseUrl}/panel/subscription?complete=true&type=weekly`,
+      success_url: buildSubscriptionSuccessUrl(baseUrl, fromNdis),
       cancel_url: `${baseUrl}/panel/subscription`,
     });
 
@@ -128,6 +152,7 @@ export class WeeklySubscriptionService {
   async payoff(
     user: User,
     targetTier?: WeeklyPlanTier,
+    fromNdis?: boolean,
   ): Promise<{ sessionId: string; url: string }> {
     const sub = await this.getActiveSubscription(user.id);
     if (!sub)
@@ -186,14 +211,17 @@ export class WeeklySubscriptionService {
         weeklySubscriptionId: sub.id,
         targetTier: payoffPlan.tier,
       },
-      success_url: `${baseUrl}/panel/subscription?complete=true&type=weekly`,
+      success_url: buildSubscriptionSuccessUrl(baseUrl, fromNdis),
       cancel_url: `${baseUrl}/panel/subscription`,
     });
 
     return { sessionId: session.id, url: session.url ?? "" };
   }
 
-  async upgrade(user: User): Promise<{ sessionId: string; url: string }> {
+  async upgrade(
+    user: User,
+    fromNdis?: boolean,
+  ): Promise<{ sessionId: string; url: string }> {
     const sub = await this.getActiveSubscription(user.id);
     if (!sub)
       throw new NotFoundException("No active weekly subscription found");
@@ -249,7 +277,7 @@ export class WeeklySubscriptionService {
         userId: user.id,
         weeklySubscriptionId: sub.id,
       },
-      success_url: `${baseUrl}/panel/subscription?complete=true&type=weekly`,
+      success_url: buildSubscriptionSuccessUrl(baseUrl, fromNdis),
       cancel_url: `${baseUrl}/panel/subscription`,
     });
 
@@ -257,6 +285,10 @@ export class WeeklySubscriptionService {
   }
 
   async requestCancelOtp(user: User): Promise<{ message: string }> {
+    const sub = await this.getActiveSubscription(user.id);
+    if (!sub)
+      throw new NotFoundException("No active weekly subscription found");
+
     const otp = await this.verificationService.generateOtp(
       user.id,
       VerificationType.WEEKLY_SUBSCRIPTION_CANCELLATION,

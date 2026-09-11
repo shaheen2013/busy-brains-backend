@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { Plan } from "../subscriptions/entities/plan.entity";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
@@ -7,6 +7,7 @@ import { WeeklyPaymentHistory } from "../subscriptions/entities/weekly-payment-h
 import { PaymentService } from "./payment.service";
 import { PaymentController } from "./payment.controller";
 import { User } from "../users/entities/user.entity";
+import { WeeklySubscriptionModule } from "../weekly-subscription/weekly-subscription.module";
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { User } from "../users/entities/user.entity";
       WeeklyPaymentHistory,
       User,
     ]),
+    forwardRef(() => WeeklySubscriptionModule),
   ],
   controllers: [PaymentController],
   providers: [PaymentService],
