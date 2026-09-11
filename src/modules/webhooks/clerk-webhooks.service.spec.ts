@@ -6,16 +6,30 @@ import { User } from "../users/entities/user.entity";
 import { PaymentService } from "../payment/payment.service";
 import { KitService } from "../kit/kit.service";
 
-const createMockRepository = () => ({
+const createMockManager = () => ({
   findOne: jest.fn(),
-  find: jest.fn(),
-  findBy: jest.fn(),
-  save: jest.fn(),
-  create: jest.fn().mockImplementation((data) => data),
   update: jest.fn(),
+  insert: jest.fn(),
   delete: jest.fn(),
-  upsert: jest.fn(),
 });
+
+const createMockRepository = () => {
+  const manager = createMockManager();
+  return {
+    findOne: jest.fn(),
+    find: jest.fn(),
+    findBy: jest.fn(),
+    save: jest.fn(),
+    create: jest.fn().mockImplementation((data) => data),
+    update: jest.fn(),
+    delete: jest.fn(),
+    upsert: jest.fn(),
+    manager: {
+      ...manager,
+      transaction: jest.fn().mockImplementation(async (fn) => fn(manager)),
+    },
+  };
+};
 
 // ---------------------------------------------------------------------------
 // Helpers to build Clerk event payloads
@@ -99,6 +113,7 @@ describe("ClerkWebhooksService", () => {
         id: "clerk-user-1",
         email: "jane@example.com",
       };
+      userRepository.findOne.mockResolvedValueOnce(null);
       userRepository.findOne.mockResolvedValueOnce(savedUser);
 
       const event = buildClerkEvent("user.created");
@@ -138,6 +153,7 @@ describe("ClerkWebhooksService", () => {
         id: "clerk-user-1",
         email: "jane@example.com",
       };
+      userRepository.findOne.mockResolvedValueOnce(null);
       userRepository.findOne.mockResolvedValueOnce(savedUser);
       paymentService.startTrial.mockRejectedValueOnce(
         new Error("User already has an active plan or trial"),
@@ -160,6 +176,62 @@ describe("ClerkWebhooksService", () => {
 
       expect(userRepository.upsert).not.toHaveBeenCalled();
       expect(paymentService.startTrial).not.toHaveBeenCalled();
+    });
+
+    it("re-links an existing row to the new Clerk id when the email already exists under a different id", async () => {
+      const existingUser: Partial<User> = {
+        id: "old-clerk-id",
+        name: "Jane Old",
+        email: "jane@example.com",
+        stripeCustomerId: "cus_123",
+      };
+      userRepository.findOne.mockResolvedValueOnce(existingUser);
+      const manager = userRepository.manager as any as ReturnType<
+        typeof createMockManager
+      >;
+      manager.findOne.mockResolvedValueOnce(existingUser);
+
+      const event = buildClerkEvent("user.created");
+
+      await service.handleUserCreated(event);
+
+      expect(userRepository.findOne).toHaveBeenCalledWith({
+        where: { email: "jane@example.com" },
+      });
+      expect(userRepository.upsert).not.toHaveBeenCalled();
+      expect(manager.update).toHaveBeenCalledWith(
+        User,
+        { id: "old-clerk-id" },
+        expect.objectContaining({
+          email: expect.stringContaining("__migrated__old-clerk-id__"),
+        }),
+      );
+      expect(manager.insert).toHaveBeenCalledWith(
+        User,
+        expect.objectContaining({
+          id: "clerk-user-1",
+          email: "jane@example.com",
+          stripeCustomerId: "cus_123",
+          isDeleted: false,
+        }),
+      );
+      expect(manager.delete).toHaveBeenCalledWith(User, {
+        id: "old-clerk-id",
+      });
+    });
+
+    it("upserts normally when the found email row already has the incoming Clerk id", async () => {
+      const existingUser: Partial<User> = {
+        id: "clerk-user-1",
+        email: "jane@example.com",
+      };
+      userRepository.findOne.mockResolvedValueOnce(existingUser);
+
+      const event = buildClerkEvent("user.created");
+
+      await service.handleUserCreated(event);
+
+      expect(userRepository.upsert).toHaveBeenCalled();
     });
   });
 
@@ -210,14 +282,16 @@ describe("ClerkWebhooksService", () => {
   // handleUserDeleted
   // ---------------------------------------------------------------------------
   describe("handleUserDeleted", () => {
-    it("deletes user by id", async () => {
+    it("soft-deletes user by id instead of hard-deleting", async () => {
       const event = buildClerkEvent("user.deleted");
 
       await service.handleUserDeleted(event);
 
-      expect(userRepository.delete).toHaveBeenCalledWith({
-        id: "clerk-user-1",
-      });
+      expect(userRepository.update).toHaveBeenCalledWith(
+        { id: "clerk-user-1" },
+        { isDeleted: true },
+      );
+      expect(userRepository.delete).not.toHaveBeenCalled();
     });
   });
 

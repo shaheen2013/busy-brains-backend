@@ -26,6 +26,7 @@
     "busybrains",
     "behaviour",
     "upserts",
+    "upserted",
     "ndis"
   ],
   "ignorePaths": [
