@@ -172,6 +172,38 @@ describe("UsersService", () => {
   });
 
   // ---------------------------------------------------------------------------
+  // isEmailDeleted
+  // ---------------------------------------------------------------------------
+  describe("isEmailDeleted", () => {
+    it("should return true when a user with that email is deleted", async () => {
+      userRepo.findOne.mockResolvedValue({ ...mockUser, isDeleted: true });
+
+      const result = await service.isEmailDeleted("test@example.com");
+
+      expect(userRepo.findOne).toHaveBeenCalledWith({
+        where: { email: "test@example.com" },
+      });
+      expect(result).toBe(true);
+    });
+
+    it("should return false when a user with that email is not deleted", async () => {
+      userRepo.findOne.mockResolvedValue(mockUser);
+
+      const result = await service.isEmailDeleted("test@example.com");
+
+      expect(result).toBe(false);
+    });
+
+    it("should return false when no user has that email", async () => {
+      userRepo.findOne.mockResolvedValue(null);
+
+      const result = await service.isEmailDeleted("nobody@example.com");
+
+      expect(result).toBe(false);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // findOrCreateFromOAuth
   // ---------------------------------------------------------------------------
   describe("findOrCreateFromOAuth", () => {

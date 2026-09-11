@@ -48,6 +48,11 @@ export class UsersService {
     return this.userRepository.findOne({ where: { id: id } });
   }
 
+  async isEmailDeleted(email: string): Promise<boolean> {
+    const user = await this.userRepository.findOne({ where: { email } });
+    return user?.isDeleted ?? false;
+  }
+
   async findOrCreateFromOAuth(params: {
     clerkId: string;
     email: string;
