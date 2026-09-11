@@ -3,6 +3,11 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { ConfigService } from "@nestjs/config";
 import { User } from "../users/entities/user.entity";
+import { Child } from "../children/entities/child.entity";
+import { UserPlan } from "../subscriptions/entities/user-plan.entity";
+import { PaymentHistory } from "../subscriptions/entities/payment-history.entity";
+import { WeeklySubscription } from "../subscriptions/entities/weekly-subscription.entity";
+import { VerificationToken } from "../users/entities/verification-token.entity";
 import { PaymentService } from "../payment/payment.service";
 import { KitService } from "../kit/kit.service";
 import { AppConfig } from "../../config/app.config";
@@ -51,6 +56,23 @@ export class ClerkWebhooksService {
   async handleUserCreated(event: ClerkUserEvent) {
     const user = this.mapClerkPayloadToUser(event.data);
     if (!user) return;
+
+    const existingByEmail = await this.userRepository.findOne({
+      where: { email: user.email },
+    });
+
+    if (existingByEmail && existingByEmail.id !== user.id) {
+      // The user deleted their Clerk account and signed back up with the
+      // same email, so Clerk assigned a new id. Re-link the existing row
+      // (and its FK-owned data) to the new id instead of upserting on id,
+      // which would otherwise throw on the unique email constraint and
+      // leave the DB pointing at a Clerk id that no longer exists.
+      await this.relinkUserToNewClerkId(existingByEmail.id, user);
+      this.logger.log(
+        `Re-linked existing user ${existingByEmail.id} to new Clerk id ${user.id} (email: ${user.email})`,
+      );
+      return;
+    }
 
     await this.userRepository.upsert(user, ["id"]);
     this.logger.log(`User upserted: ${event.data.id}`);
@@ -105,8 +127,65 @@ export class ClerkWebhooksService {
   async handleUserDeleted(event: ClerkUserEvent) {
     const { id } = event.data;
 
-    await this.userRepository.delete({ id: id });
-    this.logger.log(`User deleted: ${id}`);
+    // Soft delete, not hard delete: children/user_plans/payment_history/
+    // weekly_subscriptions reference this row via NO ACTION foreign keys,
+    // so a hard delete throws for any user with real data. Soft-deleting
+    // also keeps the row (and its email) around so handleUserCreated can
+    // re-link it if the user signs back up under a new Clerk id.
+    await this.userRepository.update({ id }, { isDeleted: true });
+    this.logger.log(`User soft-deleted: ${id}`);
+  }
+
+  private async relinkUserToNewClerkId(
+    oldId: string,
+    newUser: Pick<
+      User,
+      "id" | "name" | "email" | "phoneNumber" | "hasPassword"
+    >,
+  ): Promise<void> {
+    await this.userRepository.manager.transaction(async (manager) => {
+      const oldUser = await manager.findOne(User, { where: { id: oldId } });
+      if (!oldUser) return;
+
+      const newId = newUser.id;
+
+      // Free up the unique email constraint before inserting the new row.
+      await manager.update(
+        User,
+        { id: oldId },
+        { email: `__migrated__${oldId}__${oldUser.email}` },
+      );
+
+      await manager.insert(User, {
+        ...oldUser,
+        id: newId,
+        name: newUser.name,
+        email: newUser.email,
+        phoneNumber: newUser.phoneNumber,
+        hasPassword: newUser.hasPassword,
+        isDeleted: false,
+      });
+
+      await manager.update(Child, { userId: oldId }, { userId: newId });
+      await manager.update(UserPlan, { userId: oldId }, { userId: newId });
+      await manager.update(
+        PaymentHistory,
+        { userId: oldId },
+        { userId: newId },
+      );
+      await manager.update(
+        WeeklySubscription,
+        { userId: oldId },
+        { userId: newId },
+      );
+      await manager.update(
+        VerificationToken,
+        { userId: oldId },
+        { userId: newId },
+      );
+
+      await manager.delete(User, { id: oldId });
+    });
   }
 
   private mapClerkPayloadToUser(
