@@ -101,6 +101,18 @@ export class GoogleAuthController {
 
       this.logger.log(`Google user: ${googleUser.email}`);
 
+      // A deleted account must not be revived by logging back in with
+      // Google - creating a new Clerk user here would race the
+      // user.created webhook's relink logic and hand the old account back.
+      if (await this.usersService.isEmailDeleted(googleUser.email)) {
+        this.logger.warn(
+          `Google login blocked for deleted account: ${googleUser.email}`,
+        );
+        return res.redirect(
+          `${this.frontendUrl}/sign-in?error=account_deleted`,
+        );
+      }
+
       // Find or create Clerk user
       let clerkUserId: string;
       const existingUsers = await this.clerkClient.users.getUserList({

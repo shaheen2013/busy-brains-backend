@@ -66,6 +66,7 @@ const mockConfigService = {
 
 const mockUsersService = {
   findOrCreateFromOAuth: jest.fn(),
+  isEmailDeleted: jest.fn(),
 };
 
 const mockPaymentService = {
@@ -84,6 +85,7 @@ describe("GoogleAuthController", () => {
 
     // Reset config values to defaults
     mockConfigValues["features.startTrialOnSignup"] = false;
+    mockUsersService.isEmailDeleted.mockResolvedValue(false);
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [GoogleAuthController],
@@ -263,6 +265,42 @@ describe("GoogleAuthController", () => {
       expect(res.redirect).toHaveBeenCalledWith(
         expect.stringContaining("error=google_failed"),
       );
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // handleCallback – deleted account
+  // -------------------------------------------------------------------------
+  describe("handleCallback() – deleted account", () => {
+    const googleUser = {
+      id: "google-id-1",
+      email: "deleted@example.com",
+      name: "Deleted User",
+      given_name: "Deleted",
+      family_name: "User",
+      picture: "https://example.com/pic.jpg",
+    };
+
+    beforeEach(() => {
+      mockGetToken.mockResolvedValue({
+        tokens: { access_token: "at", id_token: "it" },
+      });
+      mockSetCredentials.mockReturnValue(undefined);
+      mockRequest.mockResolvedValue({ data: googleUser });
+      mockUsersService.isEmailDeleted.mockResolvedValue(true);
+    });
+
+    it("should redirect to sign-in with account_deleted without touching Clerk", async () => {
+      const res = createMockResponse();
+
+      await controller.handleCallback("auth-code", undefined, res as any);
+
+      expect(res.redirect).toHaveBeenCalledWith(
+        expect.stringContaining("/sign-in?error=account_deleted"),
+      );
+      expect(mockGetUserList).not.toHaveBeenCalled();
+      expect(mockCreateUser).not.toHaveBeenCalled();
+      expect(mockUsersService.findOrCreateFromOAuth).not.toHaveBeenCalled();
     });
   });
 
