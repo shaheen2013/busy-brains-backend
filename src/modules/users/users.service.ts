@@ -1,6 +1,7 @@
 import {
   Injectable,
   BadRequestException,
+  ForbiddenException,
   NotFoundException,
   Logger,
 } from "@nestjs/common";
@@ -55,13 +56,23 @@ export class UsersService {
     const existing = await this.userRepository.findOne({
       where: { id: params.clerkId },
     });
-    if (existing) return { user: existing, isNew: false };
+    if (existing) {
+      if (existing.isDeleted) {
+        throw new ForbiddenException("This account has been deleted");
+      }
+      return { user: existing, isNew: false };
+    }
 
     // A user may have previously registered via email/password with the same email
     const existingByEmail = await this.userRepository.findOne({
       where: { email: params.email },
     });
-    if (existingByEmail) return { user: existingByEmail, isNew: false };
+    if (existingByEmail) {
+      if (existingByEmail.isDeleted) {
+        throw new ForbiddenException("This account has been deleted");
+      }
+      return { user: existingByEmail, isNew: false };
+    }
 
     const user = this.userRepository.create({
       id: params.clerkId,
@@ -352,6 +363,17 @@ export class UsersService {
       otp,
     );
 
+    // Lock the account out first, before any Stripe/Clerk cleanup. If those
+    // calls fail below, isDeleted must already be set so ClerkGuard keeps
+    // blocking the account instead of leaving it fully live.
+    // Also frees the email immediately so the same address can re-register
+    // right away, rather than waiting on the async user.deleted webhook
+    // (clerk-webhooks.service.ts) to do the same isDeleted update later.
+    await this.userRepository.update(userId, {
+      isDeleted: true,
+      email: `deleted+${userId}@deleted.busybrains.internal`,
+    });
+
     const activeWeeklySubscription =
       await this.weeklySubscriptionRepository.findOne({
         where: [
@@ -361,42 +383,48 @@ export class UsersService {
       });
 
     if (activeWeeklySubscription) {
-      const { secretKey: stripeSecretKey } = this.configService.get("stripe", {
-        infer: true,
-      });
-      if (stripeSecretKey) {
-        const stripe = new Stripe(stripeSecretKey, {
-          apiVersion: "2026-04-22.dahlia",
-        });
-        await stripe.subscriptions.cancel(
-          activeWeeklySubscription.stripeSubscriptionId,
-          { prorate: false },
+      try {
+        const { secretKey: stripeSecretKey } = this.configService.get(
+          "stripe",
+          { infer: true },
+        );
+        if (stripeSecretKey) {
+          const stripe = new Stripe(stripeSecretKey, {
+            apiVersion: "2026-04-22.dahlia",
+          });
+          await stripe.subscriptions.cancel(
+            activeWeeklySubscription.stripeSubscriptionId,
+            { prorate: false },
+          );
+        }
+
+        activeWeeklySubscription.status = WeeklySubscriptionStatus.CANCELED;
+        activeWeeklySubscription.canceledAt = new Date();
+        await this.weeklySubscriptionRepository.save(activeWeeklySubscription);
+      } catch (error: any) {
+        Logger.error(
+          `Failed to cancel Stripe subscription during account deletion for ${userId}: ${error.message}`,
+          error.stack,
         );
       }
-
-      activeWeeklySubscription.status = WeeklySubscriptionStatus.CANCELED;
-      activeWeeklySubscription.canceledAt = new Date();
-      await this.weeklySubscriptionRepository.save(activeWeeklySubscription);
     }
-
-    // Free the email immediately so the same address can re-register - do
-    // not rely on the async user.deleted webhook for this, since that
-    // handler hard-deletes the row and will fail on FK constraints for any
-    // user with children, plans, or payment history.
-    await this.userRepository.update(userId, {
-      isDeleted: true,
-      email: `deleted+${userId}@deleted.busybrains.internal`,
-    });
 
     const clerkSecretKey = this.configService.get("clerk.secretKey", {
       infer: true,
     });
     if (clerkSecretKey) {
-      const clerkClient = createClerkClient({ secretKey: clerkSecretKey });
-      // Kills the user's Clerk session immediately, on top of the isDeleted
-      // check ClerkGuard already does, so a live access token can't keep
-      // browsing the app after account deletion.
-      await clerkClient.users.deleteUser(userId);
+      try {
+        const clerkClient = createClerkClient({ secretKey: clerkSecretKey });
+        // Kills the user's Clerk session immediately, on top of the isDeleted
+        // check ClerkGuard already does, so a live access token can't keep
+        // browsing the app after account deletion.
+        await clerkClient.users.deleteUser(userId);
+      } catch (error: any) {
+        Logger.error(
+          `Failed to delete Clerk user during account deletion for ${userId}: ${error.message}`,
+          error.stack,
+        );
+      }
     }
 
     return { message: "Account deleted successfully" };

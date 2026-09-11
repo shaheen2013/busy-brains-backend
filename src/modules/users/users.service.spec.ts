@@ -1,6 +1,10 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { getRepositoryToken } from "@nestjs/typeorm";
-import { BadRequestException, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
 // --- Mock @clerk/backend before any imports that use it ---
@@ -224,6 +228,32 @@ describe("UsersService", () => {
       });
       expect(userRepo.save).toHaveBeenCalledTimes(1);
       expect(result).toEqual({ user: newUser, isNew: true });
+    });
+
+    it("should throw ForbiddenException when the matching clerkId belongs to a deleted user", async () => {
+      const deletedUser: User = { ...mockUser, isDeleted: true };
+      userRepo.findOne.mockResolvedValueOnce(deletedUser);
+
+      await expect(service.findOrCreateFromOAuth(oauthParams)).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(userRepo.save).not.toHaveBeenCalled();
+    });
+
+    it("should throw ForbiddenException when the matching email belongs to a deleted user", async () => {
+      const deletedUser: User = {
+        ...mockUser,
+        email: oauthParams.email,
+        isDeleted: true,
+      };
+      userRepo.findOne
+        .mockResolvedValueOnce(null) // no user by clerkId
+        .mockResolvedValueOnce(deletedUser); // found by email
+
+      await expect(service.findOrCreateFromOAuth(oauthParams)).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(userRepo.save).not.toHaveBeenCalled();
     });
   });
 
@@ -648,6 +678,45 @@ describe("UsersService", () => {
         email: "deleted+user-1@deleted.busybrains.internal",
       });
       expect(mockDeleteUser).toHaveBeenCalledWith("user-1");
+      expect(result).toEqual({ message: "Account deleted successfully" });
+    });
+
+    it("should still mark the user deleted when canceling the Stripe subscription throws", async () => {
+      (verificationService.verifyOtp as jest.Mock).mockResolvedValue(true);
+      userRepo.update.mockResolvedValue({});
+      const activeSubscription = {
+        id: "sub-1",
+        userId: "user-1",
+        status: "active",
+        stripeSubscriptionId: "stripe-sub-1",
+        canceledAt: null,
+      };
+      weeklySubscriptionRepo.findOne.mockResolvedValue(activeSubscription);
+      weeklySubscriptionRepo.save.mockRejectedValue(
+        new Error("stripe unavailable"),
+      );
+
+      const result = await service.deleteAccount("user-1", "123456");
+
+      expect(userRepo.update).toHaveBeenCalledWith("user-1", {
+        isDeleted: true,
+        email: "deleted+user-1@deleted.busybrains.internal",
+      });
+      expect(mockDeleteUser).toHaveBeenCalledWith("user-1");
+      expect(result).toEqual({ message: "Account deleted successfully" });
+    });
+
+    it("should still mark the user deleted when deleting the Clerk user throws", async () => {
+      (verificationService.verifyOtp as jest.Mock).mockResolvedValue(true);
+      userRepo.update.mockResolvedValue({});
+      mockDeleteUser.mockRejectedValue(new Error("clerk unavailable"));
+
+      const result = await service.deleteAccount("user-1", "123456");
+
+      expect(userRepo.update).toHaveBeenCalledWith("user-1", {
+        isDeleted: true,
+        email: "deleted+user-1@deleted.busybrains.internal",
+      });
       expect(result).toEqual({ message: "Account deleted successfully" });
     });
 
