@@ -69,6 +69,18 @@ export class PaymentService {
     return !!existing && !existing.isTrial;
   }
 
+  // A weekly subscription starting should supersede an in-progress trial —
+  // mirrors what handleCheckoutCompleted already does for one-time plans by
+  // updating the same UserPlan row in place. Only touches trial rows: a
+  // real active one-time plan already blocks starting a weekly subscription
+  // (see WeeklySubscriptionService.start).
+  async deactivateActiveTrial(userId: string): Promise<void> {
+    await this.userPlanRepository.update(
+      { userId, isActive: true, isTrial: true },
+      { isActive: false },
+    );
+  }
+
   async startTrial(user: User): Promise<UserPlan> {
     const existing = await this.userPlanRepository.findOne({
       where: { userId: user.id, isActive: true },

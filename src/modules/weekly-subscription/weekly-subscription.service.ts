@@ -432,6 +432,10 @@ export class WeeklySubscriptionService {
       }),
     );
 
+    // A trial's UserPlan row otherwise stays active indefinitely alongside
+    // the new subscription, confusing anything that reads the "active plan".
+    await this.paymentService.deactivateActiveTrial(userId);
+
     // Checkout saves the card used as the new subscription's default payment
     // method automatically, but not as the customer's account-wide default,
     // and not marked reusable in future Checkout Sessions — do both here.

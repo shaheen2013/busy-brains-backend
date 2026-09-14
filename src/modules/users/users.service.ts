@@ -98,12 +98,28 @@ export class UsersService {
       relations: { plan: true },
     });
 
+    // Fetched up front (rather than only in the "no one-time plan" fallback)
+    // so a stale trial row can be checked against it below: starting a
+    // weekly subscription should close out an active trial, but this is a
+    // defensive backstop in case a trial row lingers anyway.
+    const weeklySubscription = await this.weeklySubscriptionRepository.findOne({
+      where: [
+        { userId: id, status: WeeklySubscriptionStatus.ACTIVE },
+        { userId: id, status: WeeklySubscriptionStatus.PAST_DUE },
+        { userId: id, status: WeeklySubscriptionStatus.PAID_OFF },
+      ],
+      relations: { weeklyPlan: true },
+      order: { createdAt: "DESC" },
+    });
+
     const resource = await this.storageService.getResource("user", id);
     const profileImage =
       resource?.documents.find((d) => d.label === "profile")?.url ?? null;
 
-    // A one-time plan (trial or purchased) takes precedence if active.
-    if (userPlan) {
+    // A one-time plan (trial or purchased) takes precedence if active,
+    // unless it's a trial row left over after the user started a real
+    // weekly subscription — that subscription wins instead.
+    if (userPlan && !(userPlan.isTrial && weeklySubscription)) {
       const plan = userPlan.isTrial
         ? { name: "TRIAL", trialEndsAt: userPlan.trialEndsAt }
         : userPlan.plan;
@@ -125,17 +141,6 @@ export class UsersService {
         profileImage,
       };
     }
-
-    // No one-time plan — fall back to an active/paid-off weekly recurring subscription.
-    const weeklySubscription = await this.weeklySubscriptionRepository.findOne({
-      where: [
-        { userId: id, status: WeeklySubscriptionStatus.ACTIVE },
-        { userId: id, status: WeeklySubscriptionStatus.PAST_DUE },
-        { userId: id, status: WeeklySubscriptionStatus.PAID_OFF },
-      ],
-      relations: { weeklyPlan: true },
-      order: { createdAt: "DESC" },
-    });
 
     const trialWindowEnd = new Date(
       weeklySubscription?.startedAt ?? user.createdAt,

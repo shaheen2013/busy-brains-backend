@@ -915,4 +915,15 @@ describe("PaymentService", () => {
       expect(result).toEqual([]);
     });
   });
+
+  describe("deactivateActiveTrial", () => {
+    it("should deactivate only an active trial row for the user", async () => {
+      await service.deactivateActiveTrial(userId);
+
+      expect(userPlanRepo.update).toHaveBeenCalledWith(
+        { userId, isActive: true, isTrial: true },
+        { isActive: false },
+      );
+    });
+  });
 });
