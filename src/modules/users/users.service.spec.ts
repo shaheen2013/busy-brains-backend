@@ -410,6 +410,70 @@ describe("UsersService", () => {
         },
       });
     });
+
+    it("should prefer an active weekly subscription over a stale active trial row", async () => {
+      const trialPlan = {
+        id: "plan-1",
+        userId: "user-1",
+        isTrial: true,
+        trialEndsAt: new Date("2025-12-31"),
+        trialStartedAt: new Date("2025-12-01"),
+        isActive: true,
+        plan: null,
+      };
+      const weeklySubscription = {
+        id: "sub-1",
+        userId: "user-1",
+        status: "active",
+        cyclesPaid: 1,
+        totalCycles: 6,
+        currentPeriodEnd: new Date("2026-01-01"),
+        paidOffAt: null,
+        startedAt: new Date("2025-12-05"),
+        createdAt: new Date("2025-12-05"),
+        weeklyPlan: { tier: "FAMILY" },
+      };
+      userRepo.findOne.mockResolvedValue(mockUser);
+      userPlanRepo.findOne.mockResolvedValue(trialPlan);
+      weeklySubscriptionRepo.findOne.mockResolvedValue(weeklySubscription);
+      (storageService.getResource as jest.Mock).mockResolvedValue(null);
+
+      const result = await service.findWithActivePlan("user-1");
+
+      expect(result).toMatchObject({
+        activePlan: {
+          type: "weekly_recurring",
+          id: "sub-1",
+          weeklySubscription: { tier: "FAMILY" },
+        },
+      });
+    });
+
+    it("should still return the trial when isTrial is false, even with a weekly subscription present", async () => {
+      const planData = { id: "real-plan", name: "PRO", price: 9.99 };
+      const userPlan = {
+        id: "plan-1",
+        userId: "user-1",
+        isTrial: false,
+        trialEndsAt: null,
+        isActive: true,
+        plan: planData,
+      };
+      userRepo.findOne.mockResolvedValue(mockUser);
+      userPlanRepo.findOne.mockResolvedValue(userPlan);
+      weeklySubscriptionRepo.findOne.mockResolvedValue({
+        id: "sub-1",
+        status: "active",
+        weeklyPlan: { tier: "FAMILY" },
+      });
+      (storageService.getResource as jest.Mock).mockResolvedValue(null);
+
+      const result = await service.findWithActivePlan("user-1");
+
+      expect(result).toMatchObject({
+        activePlan: { type: "one_time", plan: planData },
+      });
+    });
   });
 
   // ---------------------------------------------------------------------------
