@@ -76,6 +76,7 @@ describe("UsersService", () => {
     cardLast4: null,
     cardExpMonth: null,
     cardExpYear: null,
+    appGuide: {},
     createdAt: new Date("2024-01-01"),
     children: [],
     userPlans: [],
@@ -847,6 +848,87 @@ describe("UsersService", () => {
         service.deleteAccount("user-1", "wrong-otp"),
       ).rejects.toThrow(error);
 
+      expect(userRepo.update).not.toHaveBeenCalled();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // getAppGuide
+  // ---------------------------------------------------------------------------
+  describe("getAppGuide", () => {
+    it("should return the user's stored app guide data", async () => {
+      userRepo.findOne.mockResolvedValue({
+        ...mockUser,
+        appGuide: { onboardingStep: 3 },
+      });
+
+      const result = await service.getAppGuide("user-1");
+
+      expect(userRepo.findOne).toHaveBeenCalledWith({
+        where: { id: "user-1" },
+      });
+      expect(result).toEqual({ onboardingStep: 3 });
+    });
+
+    it("should return an empty object when the user has no app guide data yet", async () => {
+      userRepo.findOne.mockResolvedValue({ ...mockUser, appGuide: null });
+
+      const result = await service.getAppGuide("user-1");
+
+      expect(result).toEqual({});
+    });
+
+    it("should throw NotFoundException when the user does not exist", async () => {
+      userRepo.findOne.mockResolvedValue(null);
+
+      await expect(service.getAppGuide("missing-user")).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // updateAppGuide
+  // ---------------------------------------------------------------------------
+  describe("updateAppGuide", () => {
+    it("should add a new key when it does not exist yet", async () => {
+      userRepo.findOne.mockResolvedValue({
+        ...mockUser,
+        appGuide: { onboardingStep: 1 },
+      });
+
+      const result = await service.updateAppGuide("user-1", {
+        tutorialSeen: true,
+      });
+
+      expect(userRepo.update).toHaveBeenCalledWith("user-1", {
+        appGuide: { onboardingStep: 1, tutorialSeen: true },
+      });
+      expect(result).toEqual({ onboardingStep: 1, tutorialSeen: true });
+    });
+
+    it("should update an existing key's value", async () => {
+      userRepo.findOne.mockResolvedValue({
+        ...mockUser,
+        appGuide: { onboardingStep: 1 },
+      });
+
+      const result = await service.updateAppGuide("user-1", {
+        onboardingStep: 4,
+      });
+
+      expect(userRepo.update).toHaveBeenCalledWith("user-1", {
+        appGuide: { onboardingStep: 4 },
+      });
+      expect(result).toEqual({ onboardingStep: 4 });
+    });
+
+    it("should throw NotFoundException when the user does not exist", async () => {
+      userRepo.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.updateAppGuide("missing-user", { a: 1 }),
+      ).rejects.toThrow(NotFoundException);
       expect(userRepo.update).not.toHaveBeenCalled();
     });
   });

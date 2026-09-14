@@ -21,6 +21,7 @@ import { User as UserEntity } from "./entities/user.entity";
 import { UsersService } from "./users.service";
 import { UpdateUserDto } from "./dtos/update-user.dto";
 import { UpdatePasswordDto } from "./dtos/update-password.dto";
+import { UpdateAppGuideDto } from "./dtos/update-app-guide.dto";
 
 @ApiTags("Users")
 @ApiBearerAuth("Clerk-Bearer")
@@ -84,6 +85,25 @@ export class UsersController {
     @Body() updatePasswordDto: UpdatePasswordDto,
   ) {
     return this.usersService.updatePassword(user.id, updatePasswordDto);
+  }
+
+  @Get("me/app-guide")
+  @ApiOperation({
+    summary: "Get the app guide data stored for the current user",
+  })
+  getAppGuide(@User() user: UserEntity) {
+    return this.usersService.getAppGuide(user.id);
+  }
+
+  @Post("me/app-guide")
+  @ApiOperation({
+    summary: "Save/update app guide key-value data for the current user",
+  })
+  updateAppGuide(
+    @User() user: UserEntity,
+    @Body() updateAppGuideDto: UpdateAppGuideDto,
+  ) {
+    return this.usersService.updateAppGuide(user.id, updateAppGuideDto.data);
   }
 
   @Post("me/request-deletion")

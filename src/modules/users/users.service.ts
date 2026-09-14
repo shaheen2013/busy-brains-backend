@@ -352,6 +352,26 @@ export class UsersService {
     }
   }
 
+  async getAppGuide(userId: string): Promise<Record<string, unknown>> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException("User not found");
+
+    return user.appGuide ?? {};
+  }
+
+  async updateAppGuide(
+    userId: string,
+    data: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException("User not found");
+
+    const appGuide = { ...(user.appGuide ?? {}), ...data };
+    await this.userRepository.update(userId, { appGuide });
+
+    return appGuide;
+  }
+
   async requestDeletion(userId: string) {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException("User not found");

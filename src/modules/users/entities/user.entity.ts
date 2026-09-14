@@ -62,6 +62,9 @@ export class User {
   @Column({ type: "int", nullable: true })
   cardExpYear: number | null;
 
+  @Column({ type: "jsonb", default: () => "'{}'" })
+  appGuide: Record<string, unknown>;
+
   @CreateDateColumn()
   createdAt: Date;
 

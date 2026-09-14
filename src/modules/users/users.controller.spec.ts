@@ -4,6 +4,7 @@ import { UsersService } from "./users.service";
 import { User as UserEntity } from "./entities/user.entity";
 import { UpdateUserDto } from "./dtos/update-user.dto";
 import { UpdatePasswordDto } from "./dtos/update-password.dto";
+import { UpdateAppGuideDto } from "./dtos/update-app-guide.dto";
 
 describe("UsersController", () => {
   let controller: UsersController;
@@ -27,6 +28,7 @@ describe("UsersController", () => {
     cardLast4: null,
     cardExpMonth: null,
     cardExpYear: null,
+    appGuide: {},
     createdAt: new Date("2024-01-01"),
     children: [],
     userPlans: [],
@@ -45,6 +47,8 @@ describe("UsersController", () => {
             updatePassword: jest.fn(),
             requestDeletion: jest.fn(),
             deleteAccount: jest.fn(),
+            getAppGuide: jest.fn(),
+            updateAppGuide: jest.fn(),
           },
         },
       ],
@@ -217,6 +221,41 @@ describe("UsersController", () => {
         "user-1",
         "112233",
       );
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // GET /users/me/app-guide
+  // ---------------------------------------------------------------------------
+  describe("getAppGuide", () => {
+    it("should call usersService.getAppGuide with the user id", async () => {
+      const expectedResult = { onboardingStep: 3 };
+      usersService.getAppGuide.mockResolvedValue(expectedResult);
+
+      const result = await controller.getAppGuide(mockUser);
+
+      expect(usersService.getAppGuide).toHaveBeenCalledWith("user-1");
+      expect(usersService.getAppGuide).toHaveBeenCalledTimes(1);
+      expect(result).toEqual(expectedResult);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // POST /users/me/app-guide
+  // ---------------------------------------------------------------------------
+  describe("updateAppGuide", () => {
+    it("should call usersService.updateAppGuide with the user id and dto data", async () => {
+      const dto: UpdateAppGuideDto = { data: { tutorialSeen: true } };
+      const expectedResult = { onboardingStep: 3, tutorialSeen: true };
+      usersService.updateAppGuide.mockResolvedValue(expectedResult);
+
+      const result = await controller.updateAppGuide(mockUser, dto);
+
+      expect(usersService.updateAppGuide).toHaveBeenCalledWith("user-1", {
+        tutorialSeen: true,
+      });
+      expect(usersService.updateAppGuide).toHaveBeenCalledTimes(1);
+      expect(result).toEqual(expectedResult);
     });
   });
 });
