@@ -49,6 +49,12 @@ export interface AppConfig {
   features: {
     startTrialOnSignup: boolean;
   };
+  sso: {
+    verifyUrl: string;
+    mock: boolean;
+    defaultEmail: string;
+    defaultName: string;
+  };
 }
 
 export default (): AppConfig => ({
@@ -109,5 +115,13 @@ export default (): AppConfig => ({
   frontendUrl: process.env.FRONTEND_URL || "http://localhost:3000",
   features: {
     startTrialOnSignup: process.env.START_TRIAL_ON_SIGNUP === "true",
+  },
+  sso: {
+    verifyUrl:
+      process.env.HR_SSO_VERIFY_URL ||
+      "https://hr.mediusware.xyz/api/verify_token",
+    mock: process.env.MOCK_SSO === "true",
+    defaultEmail: process.env.DEFAULT_SSO_USER_EMAIL || "admin@example.com",
+    defaultName: process.env.DEFAULT_SSO_USER_NAME || "Admin",
   },
 });

@@ -128,9 +128,9 @@ describe("KitService", () => {
         text: jest.fn().mockResolvedValue("Unprocessable Entity"),
       });
 
-      await expect(
-        service.subscribeToSignupSequence("user-1"),
-      ).rejects.toThrow("Kit API error (422): Unprocessable Entity");
+      await expect(service.subscribeToSignupSequence("user-1")).rejects.toThrow(
+        "Kit API error (422): Unprocessable Entity",
+      );
     });
   });
 

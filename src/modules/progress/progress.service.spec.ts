@@ -100,7 +100,6 @@ describe("ProgressService", () => {
     getRepository: jest.Mock;
   };
 
-
   const userId = "user-uuid-1";
   const childId = "child-uuid-1";
   const mockChild = { id: childId, userId, name: "Test Child" };

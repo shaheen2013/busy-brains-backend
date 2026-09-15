@@ -7,7 +7,10 @@ import { ChildFeedback } from "./entities/child-feedback.entity";
 import { FeedbackReportModule } from "../feedback-report/feedback-report.module";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Child, ChildFeedback]), FeedbackReportModule],
+  imports: [
+    TypeOrmModule.forFeature([Child, ChildFeedback]),
+    FeedbackReportModule,
+  ],
   controllers: [FeedbackController],
   providers: [FeedbackService],
 })
