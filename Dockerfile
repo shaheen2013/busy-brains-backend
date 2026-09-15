@@ -4,7 +4,7 @@ WORKDIR /app
 
 RUN corepack enable
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
 RUN pnpm install --frozen-lockfile --ignore-scripts && \
     pnpm rebuild bcrypt msgpackr-extract
 
@@ -30,7 +30,7 @@ RUN apk add --no-cache \
 
 RUN corepack enable
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
 RUN pnpm install --frozen-lockfile --prod --ignore-scripts && \
     pnpm rebuild bcrypt msgpackr-extract
 
