@@ -22,6 +22,7 @@ import { UsersService } from "./users.service";
 import { UpdateUserDto } from "./dtos/update-user.dto";
 import { UpdatePasswordDto } from "./dtos/update-password.dto";
 import { UpdateAppGuideDto } from "./dtos/update-app-guide.dto";
+import { UpdateAppGuideShownDto } from "./dtos/update-app-guide-shown.dto";
 
 @ApiTags("Users")
 @ApiBearerAuth("Clerk-Bearer")
@@ -104,6 +105,20 @@ export class UsersController {
     @Body() updateAppGuideDto: UpdateAppGuideDto,
   ) {
     return this.usersService.updateAppGuide(user.id, updateAppGuideDto.data);
+  }
+
+  @Post("me/app-guide-shown")
+  @ApiOperation({
+    summary: "Set whether the app guide should be shown for the current user",
+  })
+  updateAppGuideShown(
+    @User() user: UserEntity,
+    @Body() updateAppGuideShownDto: UpdateAppGuideShownDto,
+  ) {
+    return this.usersService.updateAppGuideShown(
+      user.id,
+      updateAppGuideShownDto.appGuideShown,
+    );
   }
 
   @Post("me/request-deletion")

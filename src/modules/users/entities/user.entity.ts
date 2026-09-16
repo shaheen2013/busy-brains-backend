@@ -65,6 +65,9 @@ export class User {
   @Column({ type: "jsonb", default: () => "'{}'" })
   appGuide: Record<string, unknown>;
 
+  @Column({ type: "boolean", default: true })
+  appGuideShown: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

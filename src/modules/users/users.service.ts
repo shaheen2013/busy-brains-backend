@@ -84,6 +84,7 @@ export class UsersService {
       email: params.email,
       name: params.name,
       hasPassword: false,
+      appGuideShown: false,
     });
     const saved = await this.userRepository.save(user);
     return { user: saved, isNew: true };
@@ -370,6 +371,18 @@ export class UsersService {
     await this.userRepository.update(userId, { appGuide });
 
     return appGuide;
+  }
+
+  async updateAppGuideShown(
+    userId: string,
+    appGuideShown: boolean,
+  ): Promise<{ appGuideShown: boolean }> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException("User not found");
+
+    await this.userRepository.update(userId, { appGuideShown });
+
+    return { appGuideShown };
   }
 
   async requestDeletion(userId: string) {

@@ -192,7 +192,7 @@ export class ClerkWebhooksService {
     payload: ClerkUserPayload,
   ): Pick<
     User,
-    "id" | "name" | "email" | "phoneNumber" | "hasPassword"
+    "id" | "name" | "email" | "phoneNumber" | "hasPassword" | "appGuideShown"
   > | null {
     const primaryEmail =
       payload.email_addresses.find(
@@ -223,6 +223,7 @@ export class ClerkWebhooksService {
       email: primaryEmail,
       phoneNumber: payload.phone_numbers?.[0]?.phone_number ?? null,
       hasPassword,
+      appGuideShown: false,
     };
   }
 }

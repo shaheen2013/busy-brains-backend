@@ -77,6 +77,7 @@ describe("UsersService", () => {
     cardExpMonth: null,
     cardExpYear: null,
     appGuide: {},
+    appGuideShown: true,
     createdAt: new Date("2024-01-01"),
     children: [],
     userPlans: [],
@@ -258,6 +259,7 @@ describe("UsersService", () => {
         email: oauthParams.email,
         name: oauthParams.name,
         hasPassword: false,
+        appGuideShown: false,
       });
       expect(userRepo.save).toHaveBeenCalledTimes(1);
       expect(result).toEqual({ user: newUser, isNew: true });

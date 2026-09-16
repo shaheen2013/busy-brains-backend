@@ -29,6 +29,7 @@ describe("UsersController", () => {
     cardExpMonth: null,
     cardExpYear: null,
     appGuide: {},
+    appGuideShown: true,
     createdAt: new Date("2024-01-01"),
     children: [],
     userPlans: [],

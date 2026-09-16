@@ -102,6 +102,7 @@ describe("ClerkWebhooksService", () => {
           email: "jane@example.com",
           phoneNumber: "+1234567890",
           hasPassword: false,
+          appGuideShown: false,
         },
         ["id"],
       );
