@@ -26,6 +26,7 @@ import { FeedbackModule } from "./modules/feedback/feedback.module";
 import { FeedbackReportModule } from "./modules/feedback-report/feedback-report.module";
 import { WeeklySubscriptionModule } from "./modules/weekly-subscription/weekly-subscription.module";
 import { PaymentMethodModule } from "./modules/payment-method/payment-method.module";
+import { FreeGuideModule } from "./modules/free-guide/free-guide.module";
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { PaymentMethodModule } from "./modules/payment-method/payment-method.mod
     FeedbackReportModule,
     WeeklySubscriptionModule,
     PaymentMethodModule,
+    FreeGuideModule,
   ],
   providers: [
     {

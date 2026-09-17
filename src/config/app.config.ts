@@ -41,6 +41,7 @@ export interface AppConfig {
     childFeedbackReportSequenceId: string;
     paymentMethodRemovalOtpSequenceId: string;
     weeklySubscriptionCancelOtpSequenceId: string;
+    freeGuideSequenceId: string;
     reportsToEmail: string;
   };
   nodeEnv: string;
@@ -102,6 +103,7 @@ export default (): AppConfig => ({
       process.env.KIT_PAYMENT_METHOD_REMOVAL_OTP_SEQUENCE_ID || "",
     weeklySubscriptionCancelOtpSequenceId:
       process.env.KIT_WEEKLY_SUBSCRIPTION_CANCEL_OTP_SEQUENCE_ID || "",
+    freeGuideSequenceId: process.env.KIT_FREE_GUIDE_SEQUENCE_ID || "",
     reportsToEmail: process.env.KIT_REPORTS_TO || "",
   },
   nodeEnv: process.env.NODE_ENV || "development",

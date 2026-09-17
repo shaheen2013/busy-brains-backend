@@ -390,4 +390,35 @@ export class KitService {
       `Subscribed ${user.email} to Kit sequence ${purchaseCompletionSequenceId}`,
     );
   }
+
+  async subscribeEmailToSequence(
+    email: string,
+    sequenceId: string,
+  ): Promise<void> {
+    const { apiKey } = this.configService.get("kit", { infer: true });
+
+    if (!apiKey || !sequenceId) {
+      this.logger.warn("KIT_API_KEY or sequence id not configured — skipping");
+      return;
+    }
+
+    const response = await fetch(
+      `${KIT_API_BASE}/sequences/${sequenceId}/subscribe`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          api_secret: apiKey,
+          email,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`Kit API error (${response.status}): ${body}`);
+    }
+
+    this.logger.log(`[Kit] Subscribed ${email} to sequence ${sequenceId}`);
+  }
 }
