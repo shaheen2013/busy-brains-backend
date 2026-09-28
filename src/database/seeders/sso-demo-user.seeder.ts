@@ -1,6 +1,12 @@
 import { DataSource } from "typeorm";
 import { createClerkClient } from "@clerk/backend";
 import { User } from "../../modules/users/entities/user.entity";
+import { Child } from "../../modules/children/entities/child.entity";
+import { ChildModule } from "../../modules/children/entities/child-module.entity";
+import { ChildQuest } from "../../modules/children/entities/child-quest.entity";
+import { ChildScreen } from "../../modules/children/entities/child-screen.entity";
+import { UserPlan } from "../../modules/subscriptions/entities/user-plan.entity";
+import { PaymentHistory } from "../../modules/subscriptions/entities/payment-history.entity";
 
 const dataSource = new DataSource({
   type: "postgres",
@@ -9,7 +15,17 @@ const dataSource = new DataSource({
   username: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  entities: [User],
+  // TypeORM needs every entity User has a relation to (children, userPlans,
+  // payments) registered here too, even though this seeder never touches them.
+  entities: [
+    User,
+    Child,
+    ChildModule,
+    ChildQuest,
+    ChildScreen,
+    UserPlan,
+    PaymentHistory,
+  ],
   synchronize: false,
   logging: false,
 });
