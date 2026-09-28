@@ -50,6 +50,14 @@ export interface AppConfig {
   features: {
     startTrialOnSignup: boolean;
   };
+  sso: {
+    demoValidateUrl: string;
+    verifyUrl: string;
+    mock: boolean;
+    domain: string;
+    demoEmail: string;
+    demoName: string;
+  };
 }
 
 export default (): AppConfig => ({
@@ -111,5 +119,19 @@ export default (): AppConfig => ({
   frontendUrl: process.env.FRONTEND_URL || "http://localhost:3000",
   features: {
     startTrialOnSignup: process.env.START_TRIAL_ON_SIGNUP === "true",
+  },
+  sso: {
+    // Step 1: primary demo-validate endpoint, no auth header (POST {code, domain}).
+    demoValidateUrl: process.env.HR_SSO_DEMO_VALIDATE_URL || "",
+    // Step 2 fallback: cross-domain endpoint, bearer-authenticated.
+    verifyUrl:
+      process.env.HR_SSO_VERIFY_URL ||
+      "https://hr.mediusware.xyz/api/cross-domain/auth/validate/",
+    mock: process.env.MOCK_SSO === "true",
+    domain: process.env.HR_SSO_DOMAIN || "busy-brains.com.au",
+    // Busy Brains has one undifferentiated user type, so the demo-hub flow
+    // signs every visitor into the same seeded demo account (no role picker).
+    demoEmail: process.env.SSO_DEMO_EMAIL || "demo@busy-brains.com.au",
+    demoName: process.env.SSO_DEMO_NAME || "Demo Parent",
   },
 });

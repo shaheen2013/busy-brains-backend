@@ -1,0 +1,47 @@
+# =============================================================================
+# BusyBrain Backend — MW Staging Deployment Pipeline
+# =============================================================================
+#
+# Trigger  : Push/merge to the `mw-staging` branch
+# Target   : Remote server via SSH
+# Strategy : Pull latest code -> Docker rebuild -> compose up
+#
+# Required GitHub Secrets:
+#   MW_STAGING_REMOTE_HOST             - Server public IP or hostname
+#   MW_STAGING_REMOTE_USERNAME         - SSH login user
+#   MW_STAGING_REMOTE_SSH_PRIVATE_KEY  - Private SSH key (contents of .pem file)
+#
+# Server prerequisites:
+#   - Repo cloned at ~/projects/busy-brains-backend
+#   - `.env` created manually on the server (gitignored, not overwritten by deploy)
+#   - Docker and Docker Compose installed
+#
+# =============================================================================
+
+name: Deploy BusyBrain Backend to MW Staging
+
+on:
+  push:
+    branches:
+      - mw-staging
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: SSH Deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.MW_STAGING_REMOTE_HOST }}
+          username: ${{ secrets.MW_STAGING_REMOTE_USERNAME }}
+          key: ${{ secrets.MW_STAGING_REMOTE_SSH_PRIVATE_KEY }}
+          command_timeout: 30m
+          script: |
+            cd ~/projects/busy-brains-backend
+            git reset --hard
+            git pull origin mw-staging
+            docker compose up -d --build
