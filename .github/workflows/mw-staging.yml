@@ -36,8 +36,8 @@ jobs:
       - name: SSH Deploy
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.MW_STAGING_REMOTE_HOST }}
-          username: ${{ secrets.MW_STAGING_REMOTE_USERNAME }}
+          host: ${{ secrets.MW_STAGING_HOST }}
+          username: ${{ secrets.MW_STAGING_USERNAME }}
           key: ${{ secrets.MW_STAGING_REMOTE_SSH_PRIVATE_KEY }}
           command_timeout: 30m
           script: |
