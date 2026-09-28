@@ -21,6 +21,8 @@
     "weekly-plans:seed:prod": "node dist/database/seeders/stripe-weekly-setup.js",
     "prod-schema-sync": "TS_NODE_PROJECT=tsconfig.seed.json node --env-file=.env -r ts-node/register src/database/seeders/prod-schema-sync.ts",
     "prod-schema-sync:prod": "node dist/database/seeders/prod-schema-sync.js",
+    "sso-demo-user:seed": "TS_NODE_PROJECT=tsconfig.seed.json node --env-file=.env -r ts-node/register src/database/seeders/sso-demo-user.seeder.ts",
+    "sso-demo-user:seed:prod": "node dist/database/seeders/sso-demo-user.seeder.js",
     "lint:fix": "eslint --fix",
     "spell": "cspell \"**/*.{js,jsx,ts,tsx,md,json}\" --no-progress",
     "security:secrets": "secretlint \"**/*\"",
