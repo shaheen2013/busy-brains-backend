@@ -167,6 +167,9 @@ async function bootstrap() {
 
       "https://staging.busy-brains.com.au",
       "https://www.staging.busy-brains.com.au",
+
+      "https://busy-brains.mediusware.xyz",
+      "https://www.busy-brains.mediusware.xyz",
     ]),
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
