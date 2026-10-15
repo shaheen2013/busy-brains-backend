@@ -1,11 +1,13 @@
 [
   {
     "email": "enterprise@example.com",
-    "childAllowed": 9
+    "childAllowed": 9,
+    "moduleUnlockStartDate": "2026-10-01"
   },
   {
     "email": "another@example.com",
     "childAllowed": 4,
+    "moduleUnlockStartDate": "2026-11-15",
     "billingDescription": "Optional custom text shown on the billing page"
   }
 ]

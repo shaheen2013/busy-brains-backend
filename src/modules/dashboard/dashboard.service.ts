@@ -82,14 +82,13 @@ export class DashboardService {
       where: { userId },
       order: { createdAt: "DESC" },
     });
-    // Exception accounts (paid outside the system) bypass payment and
-    // time-based gates, same as in ModulesService.
-    const isException =
-      !!(await this.exceptionAccountsService.findActive(userEmail));
-    const baseDate = isException
-      ? new Date(Date.now() - 100 * 24 * 60 * 60 * 1000)
+    // Exception accounts (paid outside the system) follow the normal
+    // staggered schedule from their configured start date.
+    const exception = await this.exceptionAccountsService.findActive(userEmail);
+    const baseDate = exception
+      ? exception.moduleUnlockStartDate
       : this.resolveBaseDate(userPlan ?? null, weeklySubscription ?? null);
-    const weeklyGate = isException
+    const weeklyGate = exception
       ? null
       : this.resolveWeeklyGate(userPlan ?? null, weeklySubscription ?? null);
 

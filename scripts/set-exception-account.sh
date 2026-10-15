@@ -11,10 +11,14 @@
 #
 # JSON format: an array of entries.
 #   [
-#     { "email": "a@x.com", "childAllowed": 9 },
-#     { "email": "b@y.com", "childAllowed": 4, "billingDescription": "Custom text" },
-#     { "email": "c@z.com", "childAllowed": 2, "exceptionGiven": false }
+#     { "email": "a@x.com", "childAllowed": 9, "moduleUnlockStartDate": "2026-10-01" },
+#     { "email": "b@y.com", "childAllowed": 4, "moduleUnlockStartDate": "2026-11-15",
+#       "billingDescription": "Custom text" },
+#     { "email": "c@z.com", "childAllowed": 2, "moduleUnlockStartDate": "2026-10-01",
+#       "exceptionGiven": false }
 #   ]
+# moduleUnlockStartDate (YYYY-MM-DD) is mandatory: the day the normal module
+# unlock schedule starts for that account (like a purchase date).
 # billingDescription is optional (defaults to the standard message) and
 # exceptionGiven is optional (defaults to true).
 set -euo pipefail
@@ -37,7 +41,7 @@ sql_file="$(mktemp)"
 trap 'rm -f "$sql_file"' EXIT
 
 python3 -I - "$json_file" "$sql_file" <<'PY'
-import json, re, sys
+import datetime, json, re, sys
 
 src, out = sys.argv[1], sys.argv[2]
 try:
@@ -57,7 +61,7 @@ def q(s):
 for i, e in enumerate(entries, 1):
     if not isinstance(e, dict):
         sys.exit(f"Entry {i}: must be an object")
-    unknown = set(e) - {"email", "childAllowed", "billingDescription", "exceptionGiven"}
+    unknown = set(e) - {"email", "childAllowed", "moduleUnlockStartDate", "billingDescription", "exceptionGiven"}
     if unknown:
         sys.exit(f"Entry {i}: unknown field(s): {', '.join(sorted(unknown))}")
     email = str(e.get("email", "")).strip().lower()
@@ -69,6 +73,13 @@ for i, e in enumerate(entries, 1):
     n = e.get("childAllowed")
     if isinstance(n, bool) or not isinstance(n, int) or n < 1:
         sys.exit(f"Entry {i} ({email}): childAllowed must be a positive whole number")
+    start = e.get("moduleUnlockStartDate")
+    if not isinstance(start, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", start):
+        sys.exit(f"Entry {i} ({email}): moduleUnlockStartDate is required (YYYY-MM-DD)")
+    try:
+        datetime.date.fromisoformat(start)
+    except ValueError:
+        sys.exit(f"Entry {i} ({email}): moduleUnlockStartDate {start!r} is not a real date")
     given = e.get("exceptionGiven", True)
     if not isinstance(given, bool):
         sys.exit(f"Entry {i} ({email}): exceptionGiven must be true or false")
@@ -78,24 +89,24 @@ for i, e in enumerate(entries, 1):
         desc = f"You have paid outside the system. You are allowed up to {n} {noun}."
     if not isinstance(desc, str):
         sys.exit(f"Entry {i} ({email}): billingDescription must be a string")
-    rows.append((email, n, given, desc))
+    rows.append((email, n, given, desc, start))
 
 lines = ["BEGIN;", "DELETE FROM exception_accounts;"]
-for email, n, given, desc in rows:
+for email, n, given, desc, start in rows:
     lines.append(
-        'INSERT INTO exception_accounts (email, "childAllowed", "exceptionGiven", "billingDescription") '
-        f"VALUES ({q(email)}, {n}, {'true' if given else 'false'}, {q(desc)});"
+        'INSERT INTO exception_accounts (email, "childAllowed", "exceptionGiven", "billingDescription", "moduleUnlockStartDate") '
+        f"VALUES ({q(email)}, {n}, {'true' if given else 'false'}, {q(desc)}, {q(start)});"
     )
 lines += [
     "COMMIT;",
-    'SELECT email, "childAllowed", "exceptionGiven", "billingDescription" FROM exception_accounts ORDER BY email;',
+    'SELECT email, "childAllowed", "exceptionGiven", "moduleUnlockStartDate", "billingDescription" FROM exception_accounts ORDER BY email;',
 ]
 with open(out, "w") as f:
     f.write("\n".join(lines) + "\n")
 
 print(f"{len(rows)} entr{'y' if len(rows) == 1 else 'ies'} in file:")
-for email, n, given, desc in rows:
-    print(f"  {email}  children={n}  active={given}")
+for email, n, given, desc, start in rows:
+    print(f"  {email}  children={n}  active={given}  unlock start={start}")
     print(f"    \"{desc}\"")
 PY
 

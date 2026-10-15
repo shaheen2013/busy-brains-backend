@@ -97,14 +97,12 @@ export class ModulesService {
       order: { createdAt: "DESC" },
     });
 
-    const fullAccess = await this.hasFullAccess(userEmail);
-    const baseDate = fullAccess
-      ? new Date(Date.now() - 100 * 24 * 60 * 60 * 1000)
-      : this.resolveBaseDate(userPlan ?? null, weeklySubscription ?? null);
+    const { baseDate, weeklyGate } = await this.resolveUnlockSchedule(
+      userEmail,
+      userPlan ?? null,
+      weeklySubscription ?? null,
+    );
     const unlockDays = getModuleUnlockDays(userEmail);
-    const weeklyGate = fullAccess
-      ? null
-      : this.resolveWeeklyGate(userPlan ?? null, weeklySubscription ?? null);
 
     if (moduleNo !== undefined) {
       const prevChildModule =
@@ -247,13 +245,34 @@ export class ModulesService {
     return result;
   }
 
-  // Free-access and exception (paid outside the system) accounts bypass
-  // payment and time-based gates.
-  private async hasFullAccess(email: string): Promise<boolean> {
-    return (
-      FREE_ACCESS_EMAILS.has(email) ||
-      !!(await this.exceptionAccountsService.findActive(email))
-    );
+  /**
+   * Base date and weekly gate for the unlock schedule. Free-access emails
+   * bypass every time gate. Exception accounts (paid outside the system) use
+   * the normal staggered schedule from their configured start date. Everyone
+   * else is driven by their purchase / weekly subscription.
+   */
+  private async resolveUnlockSchedule(
+    userEmail: string,
+    userPlan: UserPlan | null,
+    weeklySubscription: WeeklySubscription | null,
+  ): Promise<{
+    baseDate: Date | null;
+    weeklyGate: { cyclesPaid: number } | null;
+  }> {
+    if (FREE_ACCESS_EMAILS.has(userEmail)) {
+      return {
+        baseDate: new Date(Date.now() - 100 * 24 * 60 * 60 * 1000),
+        weeklyGate: null,
+      };
+    }
+    const exception = await this.exceptionAccountsService.findActive(userEmail);
+    if (exception) {
+      return { baseDate: exception.moduleUnlockStartDate, weeklyGate: null };
+    }
+    return {
+      baseDate: this.resolveBaseDate(userPlan, weeklySubscription),
+      weeklyGate: this.resolveWeeklyGate(userPlan, weeklySubscription),
+    };
   }
 
   private resolveBaseDate(
@@ -349,14 +368,12 @@ export class ModulesService {
       where: { userId },
       order: { createdAt: "DESC" },
     });
-    const fullAccess = await this.hasFullAccess(userEmail);
-    const baseDate = fullAccess
-      ? new Date(Date.now() - 100 * 24 * 60 * 60 * 1000)
-      : this.resolveBaseDate(userPlan ?? null, weeklySubscription ?? null);
+    const { baseDate, weeklyGate } = await this.resolveUnlockSchedule(
+      userEmail,
+      userPlan ?? null,
+      weeklySubscription ?? null,
+    );
     const unlockDays = getModuleUnlockDays(userEmail);
-    const weeklyGate = fullAccess
-      ? null
-      : this.resolveWeeklyGate(userPlan ?? null, weeklySubscription ?? null);
 
     const childModules = await this.childModuleRepository.find({
       where: { childId: childId },
