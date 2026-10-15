@@ -26,6 +26,9 @@ import { UpdateChildDto } from "./dto/update-child.dto";
 import { moduleRegistry } from "../../constants/module-registry";
 import { Position } from "../../types/position";
 
+// Children listed for accounts without an exception, oldest first.
+const MAX_LISTED_CHILDREN = 3;
+
 const BUDDY_CUSTOMIZATION_KEY = "buddy_customization";
 
 type AvatarData = {
@@ -132,8 +135,26 @@ export class ChildrenService {
   }
 
   async findAll(userId: string): Promise<EnrichedChild[]> {
-    const children = await this.childRepository.findBy({ userId });
-    if (children.length === 0) return [];
+    const allChildren = await this.childRepository.findBy({ userId });
+    if (allChildren.length === 0) return [];
+
+    // Non-exception accounts only ever see their 3 oldest children, even if
+    // more exist (e.g. an exception account that was later revoked).
+    let children = allChildren;
+    if (allChildren.length > MAX_LISTED_CHILDREN) {
+      const user = await this.userRepository.findOne({ where: { id: userId } });
+      const exception = await this.exceptionAccountsService.findActive(
+        user?.email,
+      );
+      if (!exception) {
+        children = [...allChildren]
+          .sort(
+            (x, y) =>
+              (x.createdAt?.getTime() ?? 0) - (y.createdAt?.getTime() ?? 0),
+          )
+          .slice(0, MAX_LISTED_CHILDREN);
+      }
+    }
 
     const childIds = children.map((c) => c.id);
 

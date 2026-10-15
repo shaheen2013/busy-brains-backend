@@ -261,6 +261,36 @@ describe("ChildrenService", () => {
   // ---------------------------------------------------------------------------
 
   describe("findAll", () => {
+    describe("child list cap", () => {
+      const makeChildren = () =>
+        [4, 2, 5, 1, 3].map((n) => ({
+          id: `c${n}`,
+          userId,
+          name: `Child ${n}`,
+          createdAt: new Date(2024, 0, n),
+        }));
+
+      beforeEach(() => {
+        childRepo.findBy.mockResolvedValue(makeChildren());
+        childModuleRepo.findBy.mockResolvedValue([]);
+        userRepo.findOne.mockResolvedValue({ id: userId, email: "e@x.com" });
+      });
+
+      it("should return only the 3 oldest children for a non-exception account", async () => {
+        const result = await service.findAll(userId);
+
+        expect(result.map((c) => c.id)).toEqual(["c1", "c2", "c3"]);
+      });
+
+      it("should return all children for an exception account", async () => {
+        exceptionAccounts.findActive.mockResolvedValue({ childAllowed: 9 });
+
+        const result = await service.findAll(userId);
+
+        expect(result).toHaveLength(5);
+      });
+    });
+
     it("should return an empty array when the user has no children", async () => {
       childRepo.findBy.mockResolvedValue([]);
 
