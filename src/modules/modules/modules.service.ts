@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Injectable,
 } from "@nestjs/common";
+import { ExceptionAccountsService } from "../exception-accounts/exception-accounts.service";
 import { InjectRepository } from "@nestjs/typeorm";
 import { In, Repository } from "typeorm";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
@@ -62,6 +63,7 @@ export class ModulesService {
     private readonly childQuestRepository: Repository<ChildQuest>,
     @InjectRepository(ChildScreen)
     private readonly childScreenRepository: Repository<ChildScreen>,
+    private readonly exceptionAccountsService: ExceptionAccountsService,
   ) {}
 
   async getAccessStatus(
@@ -95,13 +97,12 @@ export class ModulesService {
       order: { createdAt: "DESC" },
     });
 
-    const baseDate = FREE_ACCESS_EMAILS.has(userEmail)
-      ? new Date(Date.now() - 100 * 24 * 60 * 60 * 1000)
-      : this.resolveBaseDate(userPlan ?? null, weeklySubscription ?? null);
+    const { baseDate, weeklyGate } = await this.resolveUnlockSchedule(
+      userEmail,
+      userPlan ?? null,
+      weeklySubscription ?? null,
+    );
     const unlockDays = getModuleUnlockDays(userEmail);
-    const weeklyGate = FREE_ACCESS_EMAILS.has(userEmail)
-      ? null
-      : this.resolveWeeklyGate(userPlan ?? null, weeklySubscription ?? null);
 
     if (moduleNo !== undefined) {
       const prevChildModule =
@@ -244,6 +245,36 @@ export class ModulesService {
     return result;
   }
 
+  /**
+   * Base date and weekly gate for the unlock schedule. Free-access emails
+   * bypass every time gate. Exception accounts (paid outside the system) use
+   * the normal staggered schedule from their configured start date. Everyone
+   * else is driven by their purchase / weekly subscription.
+   */
+  private async resolveUnlockSchedule(
+    userEmail: string,
+    userPlan: UserPlan | null,
+    weeklySubscription: WeeklySubscription | null,
+  ): Promise<{
+    baseDate: Date | null;
+    weeklyGate: { cyclesPaid: number } | null;
+  }> {
+    if (FREE_ACCESS_EMAILS.has(userEmail)) {
+      return {
+        baseDate: new Date(Date.now() - 100 * 24 * 60 * 60 * 1000),
+        weeklyGate: null,
+      };
+    }
+    const exception = await this.exceptionAccountsService.findActive(userEmail);
+    if (exception) {
+      return { baseDate: exception.moduleUnlockStartDate, weeklyGate: null };
+    }
+    return {
+      baseDate: this.resolveBaseDate(userPlan, weeklySubscription),
+      weeklyGate: this.resolveWeeklyGate(userPlan, weeklySubscription),
+    };
+  }
+
   private resolveBaseDate(
     userPlan: UserPlan | null,
     weeklySubscription: WeeklySubscription | null,
@@ -337,13 +368,12 @@ export class ModulesService {
       where: { userId },
       order: { createdAt: "DESC" },
     });
-    const baseDate = FREE_ACCESS_EMAILS.has(userEmail)
-      ? new Date(Date.now() - 100 * 24 * 60 * 60 * 1000)
-      : this.resolveBaseDate(userPlan ?? null, weeklySubscription ?? null);
+    const { baseDate, weeklyGate } = await this.resolveUnlockSchedule(
+      userEmail,
+      userPlan ?? null,
+      weeklySubscription ?? null,
+    );
     const unlockDays = getModuleUnlockDays(userEmail);
-    const weeklyGate = FREE_ACCESS_EMAILS.has(userEmail)
-      ? null
-      : this.resolveWeeklyGate(userPlan ?? null, weeklySubscription ?? null);
 
     const childModules = await this.childModuleRepository.find({
       where: { childId: childId },

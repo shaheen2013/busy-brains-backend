@@ -1,3 +1,4 @@
+import { ExceptionAccountsService } from "../exception-accounts/exception-accounts.service";
 import { Test, TestingModule } from "@nestjs/testing";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import {
@@ -97,6 +98,10 @@ describe("UsersService", () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
+        {
+          provide: ExceptionAccountsService,
+          useValue: { findActive: jest.fn().mockResolvedValue(null) },
+        },
         {
           provide: getRepositoryToken(User),
           useValue: userRepo,

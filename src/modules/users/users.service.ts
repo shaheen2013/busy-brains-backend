@@ -5,6 +5,7 @@ import {
   NotFoundException,
   Logger,
 } from "@nestjs/common";
+import { ExceptionAccountsService } from "../exception-accounts/exception-accounts.service";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { ConfigService } from "@nestjs/config";
@@ -42,6 +43,7 @@ export class UsersService {
     private storageService: StorageService,
     private verificationService: VerificationService,
     private kitService: KitService,
+    private readonly exceptionAccountsService: ExceptionAccountsService,
   ) {}
 
   findById(id: string): Promise<User | null> {
@@ -93,6 +95,39 @@ export class UsersService {
   async findWithActivePlan(id: string) {
     const user = await this.userRepository.findOne({ where: { id: id } });
     if (!user) return null;
+
+    // Exception accounts pay outside the system: no plan rows are consulted.
+    const exception = await this.exceptionAccountsService.findActive(
+      user.email,
+    );
+    if (exception) {
+      const exceptionResource = await this.storageService.getResource(
+        "user",
+        id,
+      );
+      return {
+        ...user,
+        activePlan: {
+          type: "exception" as const,
+          id: null,
+          userId: user.id,
+          planId: null,
+          isTrial: false,
+          trialStartedAt: null,
+          trialEndsAt: null,
+          isActive: true,
+          purchasedAt: null,
+          createdAt: user.createdAt,
+          plan: null,
+          childAllowed: exception.childAllowed,
+          billingDescription: exception.billingDescription,
+          sevenDayExpiredAfterSignup: false,
+        },
+        profileImage:
+          exceptionResource?.documents.find((d) => d.label === "profile")
+            ?.url ?? null,
+      };
+    }
 
     const userPlan = await this.userPlanRepository.findOne({
       where: { userId: id, isActive: true },

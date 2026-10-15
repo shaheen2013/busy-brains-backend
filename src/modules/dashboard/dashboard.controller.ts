@@ -31,6 +31,11 @@ export class DashboardController {
     @Query("include", new ParseArrayPipe({ optional: true, separator: "," }))
     include: string[] = [],
   ) {
-    return this.dashboardService.getDashboard(user.id, childId, include);
+    return this.dashboardService.getDashboard(
+      user.id,
+      childId,
+      include,
+      user.email,
+    );
   }
 }

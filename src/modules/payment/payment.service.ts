@@ -6,6 +6,7 @@ import {
   Inject,
   forwardRef,
 } from "@nestjs/common";
+import { ExceptionAccountsService } from "../exception-accounts/exception-accounts.service";
 import { InjectRepository } from "@nestjs/typeorm";
 import { ConfigService } from "@nestjs/config";
 import { Repository } from "typeorm";
@@ -56,6 +57,7 @@ export class PaymentService {
     private readonly configService: ConfigService<AppConfig>,
     @Inject(forwardRef(() => WeeklySubscriptionService))
     private readonly weeklySubscriptionService: WeeklySubscriptionService,
+    private readonly exceptionAccountsService: ExceptionAccountsService,
   ) {
     const { secretKey } = this.configService.get("stripe", { infer: true });
     if (!secretKey) throw new Error("STRIPE_SECRET_KEY is not configured");
@@ -82,6 +84,12 @@ export class PaymentService {
   }
 
   async startTrial(user: User): Promise<UserPlan> {
+    if (await this.exceptionAccountsService.findActive(user.email)) {
+      throw new ConflictException(
+        "Your account is billed outside the system and cannot purchase a plan",
+      );
+    }
+
     const existing = await this.userPlanRepository.findOne({
       where: { userId: user.id, isActive: true },
     });
@@ -111,6 +119,12 @@ export class PaymentService {
     planName: PlanName,
     fromNdis?: boolean,
   ): Promise<{ sessionId: string; url: string }> {
+    if (await this.exceptionAccountsService.findActive(user.email)) {
+      throw new ConflictException(
+        "Your account is billed outside the system and cannot purchase a plan",
+      );
+    }
+
     const existing = await this.userPlanRepository.findOne({
       where: { userId: user.id, isActive: true },
     });
@@ -167,6 +181,12 @@ export class PaymentService {
     user: User,
     fromNdis?: boolean,
   ): Promise<{ sessionId: string; url: string }> {
+    if (await this.exceptionAccountsService.findActive(user.email)) {
+      throw new ConflictException(
+        "Your account is billed outside the system and cannot purchase a plan",
+      );
+    }
+
     const existing = await this.userPlanRepository.findOne({
       where: { userId: user.id, isActive: true },
       relations: { plan: true },

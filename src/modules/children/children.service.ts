@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
+import { ExceptionAccountsService } from "../exception-accounts/exception-accounts.service";
 import { InjectRepository } from "@nestjs/typeorm";
 import { In, Repository } from "typeorm";
 import { Child } from "./entities/child.entity";
@@ -24,6 +25,9 @@ import { CreateChildDto } from "./dto/create-child.dto";
 import { UpdateChildDto } from "./dto/update-child.dto";
 import { moduleRegistry } from "../../constants/module-registry";
 import { Position } from "../../types/position";
+
+// Children listed for accounts without an exception, oldest first.
+const MAX_LISTED_CHILDREN = 3;
 
 const BUDDY_CUSTOMIZATION_KEY = "buddy_customization";
 
@@ -72,38 +76,49 @@ export class ChildrenService {
     private readonly s3Service: S3Service,
     private readonly kitService: KitService,
     private readonly verificationService: VerificationService,
+    private readonly exceptionAccountsService: ExceptionAccountsService,
   ) {}
 
   async create(userId: string, dto: CreateChildDto): Promise<Child> {
-    const userPlan = await this.userPlanRepository.findOne({
-      where: { userId, isActive: true },
-      relations: { plan: true },
-    });
+    // Exception accounts pay outside the system and have a custom child cap.
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const exception = await this.exceptionAccountsService.findActive(
+      user?.email,
+    );
 
     let maxChildren: number;
 
-    if (userPlan && !userPlan.isTrial) {
-      maxChildren = userPlan.plan?.maxChildren ?? 0;
+    if (exception) {
+      maxChildren = exception.childAllowed;
     } else {
-      // No active one-time paid plan — fall back to an active/paid-off weekly
-      // recurring subscription (past_due does not count, matches module unlock rules).
-      const weeklySubscription =
-        await this.weeklySubscriptionRepository.findOne({
-          where: [
-            { userId, status: WeeklySubscriptionStatus.ACTIVE },
-            { userId, status: WeeklySubscriptionStatus.PAID_OFF },
-          ],
-          relations: { weeklyPlan: true },
-        });
+      const userPlan = await this.userPlanRepository.findOne({
+        where: { userId, isActive: true },
+        relations: { plan: true },
+      });
 
-      if (!weeklySubscription) {
-        throw new ForbiddenException(
-          "An active paid plan is required to add a child",
-        );
+      if (userPlan && !userPlan.isTrial) {
+        maxChildren = userPlan.plan?.maxChildren ?? 0;
+      } else {
+        // No active one-time paid plan — fall back to an active/paid-off weekly
+        // recurring subscription (past_due does not count, matches module unlock rules).
+        const weeklySubscription =
+          await this.weeklySubscriptionRepository.findOne({
+            where: [
+              { userId, status: WeeklySubscriptionStatus.ACTIVE },
+              { userId, status: WeeklySubscriptionStatus.PAID_OFF },
+            ],
+            relations: { weeklyPlan: true },
+          });
+
+        if (!weeklySubscription) {
+          throw new ForbiddenException(
+            "An active paid plan is required to add a child",
+          );
+        }
+
+        maxChildren =
+          weeklySubscription.weeklyPlan.tier === WeeklyPlanTier.FAMILY ? 3 : 1;
       }
-
-      maxChildren =
-        weeklySubscription.weeklyPlan.tier === WeeklyPlanTier.FAMILY ? 3 : 1;
     }
 
     const childCount = await this.childRepository.countBy({ userId });
@@ -120,8 +135,26 @@ export class ChildrenService {
   }
 
   async findAll(userId: string): Promise<EnrichedChild[]> {
-    const children = await this.childRepository.findBy({ userId });
-    if (children.length === 0) return [];
+    const allChildren = await this.childRepository.findBy({ userId });
+    if (allChildren.length === 0) return [];
+
+    // Non-exception accounts only ever see their 3 oldest children, even if
+    // more exist (e.g. an exception account that was later revoked).
+    let children = allChildren;
+    if (allChildren.length > MAX_LISTED_CHILDREN) {
+      const user = await this.userRepository.findOne({ where: { id: userId } });
+      const exception = await this.exceptionAccountsService.findActive(
+        user?.email,
+      );
+      if (!exception) {
+        children = [...allChildren]
+          .sort(
+            (x, y) =>
+              (x.createdAt?.getTime() ?? 0) - (y.createdAt?.getTime() ?? 0),
+          )
+          .slice(0, MAX_LISTED_CHILDREN);
+      }
+    }
 
     const childIds = children.map((c) => c.id);
 

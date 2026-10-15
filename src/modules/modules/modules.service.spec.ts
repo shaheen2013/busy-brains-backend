@@ -1,3 +1,4 @@
+import { ExceptionAccountsService } from "../exception-accounts/exception-accounts.service";
 import { Test, TestingModule } from "@nestjs/testing";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { BadRequestException, ForbiddenException } from "@nestjs/common";
@@ -106,6 +107,7 @@ describe("ModulesService", () => {
   let childModuleRepo: ReturnType<typeof createMockRepository>;
   let childQuestRepo: ReturnType<typeof createMockRepository>;
   let childScreenRepo: ReturnType<typeof createMockRepository>;
+  let exceptionAccounts: { findActive: jest.Mock };
 
   const userId = "user-uuid-1";
   const userEmail = "test@example.com";
@@ -127,10 +129,12 @@ describe("ModulesService", () => {
     childModuleRepo = createMockRepository();
     childQuestRepo = createMockRepository();
     childScreenRepo = createMockRepository();
+    exceptionAccounts = { findActive: jest.fn().mockResolvedValue(null) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ModulesService,
+        { provide: ExceptionAccountsService, useValue: exceptionAccounts },
         { provide: getRepositoryToken(UserPlan), useValue: userPlanRepo },
         {
           provide: getRepositoryToken(WeeklySubscription),
@@ -344,6 +348,56 @@ describe("ModulesService", () => {
 
       expect(result.module_2.unlocked).toBe(true);
       expect(result.module_2.accessible).toBe(true);
+    });
+  });
+
+  describe("getAccessStatus — exception account", () => {
+    const daysAgo = (n: number) =>
+      new Date(Date.now() - n * 24 * 60 * 60 * 1000);
+
+    beforeEach(() => {
+      childRepo.findOne.mockResolvedValue(mockChild);
+      // No purchase of any kind: only the exception row drives the schedule.
+      userPlanRepo.findOne.mockResolvedValue(null);
+      childModuleRepo.findOne.mockResolvedValue({
+        id: "cm-2",
+        moduleNo: 2,
+        isCompleted: true,
+      });
+    });
+
+    it("unlocks a module once its delay has passed since moduleUnlockStartDate", async () => {
+      exceptionAccounts.findActive.mockResolvedValue({
+        moduleUnlockStartDate: daysAgo(20),
+      });
+
+      const result = (await service.getAccessStatus(
+        userId,
+        userEmail,
+        childId,
+        3,
+      )) as any;
+
+      expect(result.module_3.unlocked).toBe(true);
+    });
+
+    it("keeps a module locked until its delay has passed (not free access)", async () => {
+      const start = daysAgo(5);
+      exceptionAccounts.findActive.mockResolvedValue({
+        moduleUnlockStartDate: start,
+      });
+
+      const result = (await service.getAccessStatus(
+        userId,
+        userEmail,
+        childId,
+        3,
+      )) as any;
+
+      expect(result.module_3.unlocked).toBe(false);
+      expect(result.module_3.unlockDate.getTime()).toBe(
+        start.getTime() + 14 * 24 * 60 * 60 * 1000,
+      );
     });
   });
 

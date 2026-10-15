@@ -1,3 +1,4 @@
+import { ExceptionAccountsService } from "../exception-accounts/exception-accounts.service";
 import { Test, TestingModule } from "@nestjs/testing";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { ForbiddenException, NotFoundException } from "@nestjs/common";
@@ -41,6 +42,7 @@ describe("ChildrenService", () => {
   let userPlanRepo: ReturnType<typeof createMockRepository>;
   let weeklySubscriptionRepo: ReturnType<typeof createMockRepository>;
   let userRepo: ReturnType<typeof createMockRepository>;
+  let exceptionAccounts: { findActive: jest.Mock };
   let s3Service: { upload: jest.Mock; delete: jest.Mock };
   let kitService: { sendChildDeletionOtp: jest.Mock };
   let verificationService: { generateOtp: jest.Mock; verifyOtp: jest.Mock };
@@ -57,6 +59,7 @@ describe("ChildrenService", () => {
     weeklySubscriptionRepo = createMockRepository();
     weeklySubscriptionRepo.findOne.mockResolvedValue(null);
     userRepo = createMockRepository();
+    exceptionAccounts = { findActive: jest.fn().mockResolvedValue(null) };
 
     s3Service = { upload: jest.fn(), delete: jest.fn() };
     kitService = { sendChildDeletionOtp: jest.fn() };
@@ -65,6 +68,10 @@ describe("ChildrenService", () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ChildrenService,
+        {
+          provide: ExceptionAccountsService,
+          useValue: exceptionAccounts,
+        },
         { provide: getRepositoryToken(Child), useValue: childRepo },
         { provide: getRepositoryToken(ChildModule), useValue: childModuleRepo },
         { provide: getRepositoryToken(ChildQuest), useValue: childQuestRepo },
@@ -96,6 +103,36 @@ describe("ChildrenService", () => {
 
   describe("create", () => {
     const dto: CreateChildDto = { name: "Alice", age: 8, gender: "female" };
+
+    describe("exception account", () => {
+      beforeEach(() => {
+        userRepo.findOne.mockResolvedValue({ id: userId, email: "e@x.com" });
+        exceptionAccounts.findActive.mockResolvedValue({
+          email: "e@x.com",
+          childAllowed: 5,
+          exceptionGiven: true,
+          billingDescription: "paid outside",
+        });
+      });
+
+      it("should allow a child without any plan while under childAllowed", async () => {
+        childRepo.countBy.mockResolvedValue(4);
+        const savedChild = { id: childId, userId, ...dto };
+        childRepo.create.mockReturnValue(savedChild);
+        childRepo.save.mockResolvedValue(savedChild);
+
+        await expect(service.create(userId, dto)).resolves.toEqual(savedChild);
+        expect(userPlanRepo.findOne).not.toHaveBeenCalled();
+      });
+
+      it("should reject once childAllowed is reached", async () => {
+        childRepo.countBy.mockResolvedValue(5);
+
+        await expect(service.create(userId, dto)).rejects.toThrow(
+          "Your plan allows a maximum of 5 children",
+        );
+      });
+    });
 
     it("should throw ForbiddenException when no active plan exists", async () => {
       userPlanRepo.findOne.mockResolvedValue(null);
@@ -224,6 +261,36 @@ describe("ChildrenService", () => {
   // ---------------------------------------------------------------------------
 
   describe("findAll", () => {
+    describe("child list cap", () => {
+      const makeChildren = () =>
+        [4, 2, 5, 1, 3].map((n) => ({
+          id: `c${n}`,
+          userId,
+          name: `Child ${n}`,
+          createdAt: new Date(2024, 0, n),
+        }));
+
+      beforeEach(() => {
+        childRepo.findBy.mockResolvedValue(makeChildren());
+        childModuleRepo.findBy.mockResolvedValue([]);
+        userRepo.findOne.mockResolvedValue({ id: userId, email: "e@x.com" });
+      });
+
+      it("should return only the 3 oldest children for a non-exception account", async () => {
+        const result = await service.findAll(userId);
+
+        expect(result.map((c) => c.id)).toEqual(["c1", "c2", "c3"]);
+      });
+
+      it("should return all children for an exception account", async () => {
+        exceptionAccounts.findActive.mockResolvedValue({ childAllowed: 9 });
+
+        const result = await service.findAll(userId);
+
+        expect(result).toHaveLength(5);
+      });
+    });
+
     it("should return an empty array when the user has no children", async () => {
       childRepo.findBy.mockResolvedValue([]);
 

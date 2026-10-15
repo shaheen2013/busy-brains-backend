@@ -1,4 +1,5 @@
 import { ForbiddenException, Injectable } from "@nestjs/common";
+import { ExceptionAccountsService } from "../exception-accounts/exception-accounts.service";
 import { InjectRepository } from "@nestjs/typeorm";
 import { In, Repository } from "typeorm";
 import { Child } from "../children/entities/child.entity";
@@ -57,9 +58,15 @@ export class DashboardService {
     private readonly userPlanRepository: Repository<UserPlan>,
     @InjectRepository(WeeklySubscription)
     private readonly weeklySubscriptionRepository: Repository<WeeklySubscription>,
+    private readonly exceptionAccountsService: ExceptionAccountsService,
   ) {}
 
-  async getDashboard(userId: string, childId: string, include: string[]) {
+  async getDashboard(
+    userId: string,
+    childId: string,
+    include: string[],
+    userEmail?: string,
+  ) {
     const child = await this.childRepository.findOne({
       where: { id: childId, userId },
     });
@@ -75,14 +82,15 @@ export class DashboardService {
       where: { userId },
       order: { createdAt: "DESC" },
     });
-    const baseDate = this.resolveBaseDate(
-      userPlan ?? null,
-      weeklySubscription ?? null,
-    );
-    const weeklyGate = this.resolveWeeklyGate(
-      userPlan ?? null,
-      weeklySubscription ?? null,
-    );
+    // Exception accounts (paid outside the system) follow the normal
+    // staggered schedule from their configured start date.
+    const exception = await this.exceptionAccountsService.findActive(userEmail);
+    const baseDate = exception
+      ? exception.moduleUnlockStartDate
+      : this.resolveBaseDate(userPlan ?? null, weeklySubscription ?? null);
+    const weeklyGate = exception
+      ? null
+      : this.resolveWeeklyGate(userPlan ?? null, weeklySubscription ?? null);
 
     // Fetch all child progress records
     const childModules = await this.childModuleRepository.find({
