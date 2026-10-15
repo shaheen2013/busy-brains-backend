@@ -1,4 +1,5 @@
 import { DataSource } from "typeorm";
+import { ExceptionAccount } from "../../modules/exception-accounts/entities/exception-account.entity";
 import { User } from "../../modules/users/entities/user.entity";
 import { Child } from "../../modules/children/entities/child.entity";
 import { ChildModule } from "../../modules/children/entities/child-module.entity";
@@ -50,6 +51,7 @@ const dataSource = new DataSource({
     Resource,
     Document,
     VerificationToken,
+    ExceptionAccount,
   ],
   synchronize: false,
   logging: true,

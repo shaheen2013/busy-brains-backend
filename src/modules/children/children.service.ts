@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
+import { ExceptionAccountsService } from "../exception-accounts/exception-accounts.service";
 import { InjectRepository } from "@nestjs/typeorm";
 import { In, Repository } from "typeorm";
 import { Child } from "./entities/child.entity";
@@ -24,7 +25,6 @@ import { CreateChildDto } from "./dto/create-child.dto";
 import { UpdateChildDto } from "./dto/update-child.dto";
 import { moduleRegistry } from "../../constants/module-registry";
 import { Position } from "../../types/position";
-import { findExceptionAccount } from "../../constants/exception-accounts";
 
 const BUDDY_CUSTOMIZATION_KEY = "buddy_customization";
 
@@ -73,12 +73,15 @@ export class ChildrenService {
     private readonly s3Service: S3Service,
     private readonly kitService: KitService,
     private readonly verificationService: VerificationService,
+    private readonly exceptionAccountsService: ExceptionAccountsService,
   ) {}
 
   async create(userId: string, dto: CreateChildDto): Promise<Child> {
     // Exception accounts pay outside the system and have a custom child cap.
     const user = await this.userRepository.findOne({ where: { id: userId } });
-    const exception = findExceptionAccount(user?.email);
+    const exception = await this.exceptionAccountsService.findActive(
+      user?.email,
+    );
 
     let maxChildren: number;
 

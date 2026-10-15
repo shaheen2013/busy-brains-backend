@@ -3,7 +3,7 @@ import {
   ForbiddenException,
   Injectable,
 } from "@nestjs/common";
-import { findExceptionAccount } from "../../constants/exception-accounts";
+import { ExceptionAccountsService } from "../exception-accounts/exception-accounts.service";
 import { InjectRepository } from "@nestjs/typeorm";
 import { In, Repository } from "typeorm";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
@@ -63,6 +63,7 @@ export class ModulesService {
     private readonly childQuestRepository: Repository<ChildQuest>,
     @InjectRepository(ChildScreen)
     private readonly childScreenRepository: Repository<ChildScreen>,
+    private readonly exceptionAccountsService: ExceptionAccountsService,
   ) {}
 
   async getAccessStatus(
@@ -96,11 +97,12 @@ export class ModulesService {
       order: { createdAt: "DESC" },
     });
 
-    const baseDate = this.hasFullAccess(userEmail)
+    const fullAccess = await this.hasFullAccess(userEmail);
+    const baseDate = fullAccess
       ? new Date(Date.now() - 100 * 24 * 60 * 60 * 1000)
       : this.resolveBaseDate(userPlan ?? null, weeklySubscription ?? null);
     const unlockDays = getModuleUnlockDays(userEmail);
-    const weeklyGate = this.hasFullAccess(userEmail)
+    const weeklyGate = fullAccess
       ? null
       : this.resolveWeeklyGate(userPlan ?? null, weeklySubscription ?? null);
 
@@ -247,8 +249,11 @@ export class ModulesService {
 
   // Free-access and exception (paid outside the system) accounts bypass
   // payment and time-based gates.
-  private hasFullAccess(email: string): boolean {
-    return FREE_ACCESS_EMAILS.has(email) || !!findExceptionAccount(email);
+  private async hasFullAccess(email: string): Promise<boolean> {
+    return (
+      FREE_ACCESS_EMAILS.has(email) ||
+      !!(await this.exceptionAccountsService.findActive(email))
+    );
   }
 
   private resolveBaseDate(
@@ -344,11 +349,12 @@ export class ModulesService {
       where: { userId },
       order: { createdAt: "DESC" },
     });
-    const baseDate = this.hasFullAccess(userEmail)
+    const fullAccess = await this.hasFullAccess(userEmail);
+    const baseDate = fullAccess
       ? new Date(Date.now() - 100 * 24 * 60 * 60 * 1000)
       : this.resolveBaseDate(userPlan ?? null, weeklySubscription ?? null);
     const unlockDays = getModuleUnlockDays(userEmail);
-    const weeklyGate = this.hasFullAccess(userEmail)
+    const weeklyGate = fullAccess
       ? null
       : this.resolveWeeklyGate(userPlan ?? null, weeklySubscription ?? null);
 

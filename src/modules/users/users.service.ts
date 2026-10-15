@@ -5,7 +5,7 @@ import {
   NotFoundException,
   Logger,
 } from "@nestjs/common";
-import { findExceptionAccount } from "../../constants/exception-accounts";
+import { ExceptionAccountsService } from "../exception-accounts/exception-accounts.service";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { ConfigService } from "@nestjs/config";
@@ -43,6 +43,7 @@ export class UsersService {
     private storageService: StorageService,
     private verificationService: VerificationService,
     private kitService: KitService,
+    private readonly exceptionAccountsService: ExceptionAccountsService,
   ) {}
 
   findById(id: string): Promise<User | null> {
@@ -96,7 +97,9 @@ export class UsersService {
     if (!user) return null;
 
     // Exception accounts pay outside the system: no plan rows are consulted.
-    const exception = findExceptionAccount(user.email);
+    const exception = await this.exceptionAccountsService.findActive(
+      user.email,
+    );
     if (exception) {
       const exceptionResource = await this.storageService.getResource(
         "user",

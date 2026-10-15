@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { ExceptionAccountsModule } from "../exception-accounts/exception-accounts.module";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
 import { WeeklySubscription } from "../subscriptions/entities/weekly-subscription.entity";
@@ -11,6 +12,7 @@ import { ModulesController } from "./modules.controller";
 
 @Module({
   imports: [
+    ExceptionAccountsModule,
     TypeOrmModule.forFeature([
       UserPlan,
       WeeklySubscription,

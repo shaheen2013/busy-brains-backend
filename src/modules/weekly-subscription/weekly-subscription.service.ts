@@ -7,7 +7,7 @@ import {
   NotFoundException,
   forwardRef,
 } from "@nestjs/common";
-import { findExceptionAccount } from "../../constants/exception-accounts";
+import { ExceptionAccountsService } from "../exception-accounts/exception-accounts.service";
 import { InjectRepository } from "@nestjs/typeorm";
 import { ConfigService } from "@nestjs/config";
 import { In, Repository } from "typeorm";
@@ -63,6 +63,7 @@ export class WeeklySubscriptionService {
     private readonly kitService: KitService,
     @Inject(forwardRef(() => PaymentService))
     private readonly paymentService: PaymentService,
+    private readonly exceptionAccountsService: ExceptionAccountsService,
   ) {
     const { secretKey } = this.configService.get("stripe", { infer: true });
     if (!secretKey) throw new Error("STRIPE_SECRET_KEY is not configured");
@@ -104,7 +105,7 @@ export class WeeklySubscriptionService {
     tier: WeeklyPlanTier,
     fromNdis?: boolean,
   ): Promise<{ sessionId: string; url: string }> {
-    if (findExceptionAccount(user.email)) {
+    if (await this.exceptionAccountsService.findActive(user.email)) {
       throw new ConflictException(
         "Your account is billed outside the system and cannot purchase a plan",
       );

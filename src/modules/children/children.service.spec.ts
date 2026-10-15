@@ -1,4 +1,4 @@
-import { findExceptionAccount } from "../../constants/exception-accounts";
+import { ExceptionAccountsService } from "../exception-accounts/exception-accounts.service";
 import { Test, TestingModule } from "@nestjs/testing";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { ForbiddenException, NotFoundException } from "@nestjs/common";
@@ -32,10 +32,6 @@ const createMockRepository = () => ({
   count: jest.fn(),
 });
 
-jest.mock("../../constants/exception-accounts", () => ({
-  findExceptionAccount: jest.fn().mockReturnValue(null),
-}));
-
 describe("ChildrenService", () => {
   let service: ChildrenService;
 
@@ -46,6 +42,7 @@ describe("ChildrenService", () => {
   let userPlanRepo: ReturnType<typeof createMockRepository>;
   let weeklySubscriptionRepo: ReturnType<typeof createMockRepository>;
   let userRepo: ReturnType<typeof createMockRepository>;
+  let exceptionAccounts: { findActive: jest.Mock };
   let s3Service: { upload: jest.Mock; delete: jest.Mock };
   let kitService: { sendChildDeletionOtp: jest.Mock };
   let verificationService: { generateOtp: jest.Mock; verifyOtp: jest.Mock };
@@ -62,6 +59,7 @@ describe("ChildrenService", () => {
     weeklySubscriptionRepo = createMockRepository();
     weeklySubscriptionRepo.findOne.mockResolvedValue(null);
     userRepo = createMockRepository();
+    exceptionAccounts = { findActive: jest.fn().mockResolvedValue(null) };
 
     s3Service = { upload: jest.fn(), delete: jest.fn() };
     kitService = { sendChildDeletionOtp: jest.fn() };
@@ -70,6 +68,10 @@ describe("ChildrenService", () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ChildrenService,
+        {
+          provide: ExceptionAccountsService,
+          useValue: exceptionAccounts,
+        },
         { provide: getRepositoryToken(Child), useValue: childRepo },
         { provide: getRepositoryToken(ChildModule), useValue: childModuleRepo },
         { provide: getRepositoryToken(ChildQuest), useValue: childQuestRepo },
@@ -103,19 +105,15 @@ describe("ChildrenService", () => {
     const dto: CreateChildDto = { name: "Alice", age: 8, gender: "female" };
 
     describe("exception account", () => {
-      const mockedFind = findExceptionAccount as jest.Mock;
-
       beforeEach(() => {
         userRepo.findOne.mockResolvedValue({ id: userId, email: "e@x.com" });
-        mockedFind.mockReturnValue({
+        exceptionAccounts.findActive.mockResolvedValue({
           email: "e@x.com",
           childAllowed: 5,
           exceptionGiven: true,
           billingDescription: "paid outside",
         });
       });
-
-      afterEach(() => mockedFind.mockReturnValue(null));
 
       it("should allow a child without any plan while under childAllowed", async () => {
         childRepo.countBy.mockResolvedValue(4);

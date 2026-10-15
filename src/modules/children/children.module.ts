@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { ExceptionAccountsModule } from "../exception-accounts/exception-accounts.module";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { Child } from "./entities/child.entity";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
@@ -16,6 +17,7 @@ import { User } from "../users/entities/user.entity";
 
 @Module({
   imports: [
+    ExceptionAccountsModule,
     TypeOrmModule.forFeature([
       Child,
       UserPlan,

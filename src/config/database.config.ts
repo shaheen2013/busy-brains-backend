@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { ExceptionAccount } from "../modules/exception-accounts/entities/exception-account.entity";
 import { ConfigService } from "@nestjs/config";
 import { TypeOrmModuleOptions, TypeOrmOptionsFactory } from "@nestjs/typeorm";
 import { AppConfig } from "./app.config";
@@ -52,6 +53,7 @@ export class DatabaseConfigService implements TypeOrmOptionsFactory {
         Resource,
         Document,
         VerificationToken,
+        ExceptionAccount,
       ],
       synchronize: isDev,
       logging: isDev,

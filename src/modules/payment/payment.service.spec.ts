@@ -11,6 +11,7 @@ jest.mock("stripe", () => {
   return jest.fn().mockImplementation(() => stripeMockInstance);
 });
 
+import { ExceptionAccountsService } from "../exception-accounts/exception-accounts.service";
 import { Test, TestingModule } from "@nestjs/testing";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { ConfigService } from "@nestjs/config";
@@ -92,6 +93,10 @@ describe("PaymentService", () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PaymentService,
+        {
+          provide: ExceptionAccountsService,
+          useValue: { findActive: jest.fn().mockResolvedValue(null) },
+        },
         { provide: getRepositoryToken(Plan), useValue: planRepo },
         { provide: getRepositoryToken(UserPlan), useValue: userPlanRepo },
         {

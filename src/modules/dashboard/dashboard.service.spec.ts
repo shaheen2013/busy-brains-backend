@@ -1,3 +1,4 @@
+import { ExceptionAccountsService } from "../exception-accounts/exception-accounts.service";
 import { Test, TestingModule } from "@nestjs/testing";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { ForbiddenException } from "@nestjs/common";
@@ -170,6 +171,10 @@ describe("DashboardService", () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DashboardService,
+        {
+          provide: ExceptionAccountsService,
+          useValue: { findActive: jest.fn().mockResolvedValue(null) },
+        },
         { provide: getRepositoryToken(Child), useValue: childRepo },
         { provide: getRepositoryToken(ChildModule), useValue: childModuleRepo },
         { provide: getRepositoryToken(ChildQuest), useValue: childQuestRepo },

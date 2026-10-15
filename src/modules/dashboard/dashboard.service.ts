@@ -1,4 +1,5 @@
 import { ForbiddenException, Injectable } from "@nestjs/common";
+import { ExceptionAccountsService } from "../exception-accounts/exception-accounts.service";
 import { InjectRepository } from "@nestjs/typeorm";
 import { In, Repository } from "typeorm";
 import { Child } from "../children/entities/child.entity";
@@ -11,7 +12,6 @@ import {
   WeeklySubscriptionStatus,
 } from "../subscriptions/entities/weekly-subscription.entity";
 import { moduleRegistry } from "../../constants/module-registry";
-import { findExceptionAccount } from "../../constants/exception-accounts";
 import {
   MAX_MODULES,
   MODULE_UNLOCK_DAYS,
@@ -58,6 +58,7 @@ export class DashboardService {
     private readonly userPlanRepository: Repository<UserPlan>,
     @InjectRepository(WeeklySubscription)
     private readonly weeklySubscriptionRepository: Repository<WeeklySubscription>,
+    private readonly exceptionAccountsService: ExceptionAccountsService,
   ) {}
 
   async getDashboard(
@@ -83,7 +84,8 @@ export class DashboardService {
     });
     // Exception accounts (paid outside the system) bypass payment and
     // time-based gates, same as in ModulesService.
-    const isException = !!findExceptionAccount(userEmail);
+    const isException =
+      !!(await this.exceptionAccountsService.findActive(userEmail));
     const baseDate = isException
       ? new Date(Date.now() - 100 * 24 * 60 * 60 * 1000)
       : this.resolveBaseDate(userPlan ?? null, weeklySubscription ?? null);
