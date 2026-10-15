@@ -24,6 +24,7 @@ import { CreateChildDto } from "./dto/create-child.dto";
 import { UpdateChildDto } from "./dto/update-child.dto";
 import { moduleRegistry } from "../../constants/module-registry";
 import { Position } from "../../types/position";
+import { findExceptionAccount } from "../../constants/exception-accounts";
 
 const BUDDY_CUSTOMIZATION_KEY = "buddy_customization";
 
@@ -75,35 +76,43 @@ export class ChildrenService {
   ) {}
 
   async create(userId: string, dto: CreateChildDto): Promise<Child> {
-    const userPlan = await this.userPlanRepository.findOne({
-      where: { userId, isActive: true },
-      relations: { plan: true },
-    });
+    // Exception accounts pay outside the system and have a custom child cap.
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const exception = findExceptionAccount(user?.email);
 
     let maxChildren: number;
 
-    if (userPlan && !userPlan.isTrial) {
-      maxChildren = userPlan.plan?.maxChildren ?? 0;
+    if (exception) {
+      maxChildren = exception.childAllowed;
     } else {
-      // No active one-time paid plan — fall back to an active/paid-off weekly
-      // recurring subscription (past_due does not count, matches module unlock rules).
-      const weeklySubscription =
-        await this.weeklySubscriptionRepository.findOne({
-          where: [
-            { userId, status: WeeklySubscriptionStatus.ACTIVE },
-            { userId, status: WeeklySubscriptionStatus.PAID_OFF },
-          ],
-          relations: { weeklyPlan: true },
-        });
+      const userPlan = await this.userPlanRepository.findOne({
+        where: { userId, isActive: true },
+        relations: { plan: true },
+      });
 
-      if (!weeklySubscription) {
-        throw new ForbiddenException(
-          "An active paid plan is required to add a child",
-        );
+      if (userPlan && !userPlan.isTrial) {
+        maxChildren = userPlan.plan?.maxChildren ?? 0;
+      } else {
+        // No active one-time paid plan — fall back to an active/paid-off weekly
+        // recurring subscription (past_due does not count, matches module unlock rules).
+        const weeklySubscription =
+          await this.weeklySubscriptionRepository.findOne({
+            where: [
+              { userId, status: WeeklySubscriptionStatus.ACTIVE },
+              { userId, status: WeeklySubscriptionStatus.PAID_OFF },
+            ],
+            relations: { weeklyPlan: true },
+          });
+
+        if (!weeklySubscription) {
+          throw new ForbiddenException(
+            "An active paid plan is required to add a child",
+          );
+        }
+
+        maxChildren =
+          weeklySubscription.weeklyPlan.tier === WeeklyPlanTier.FAMILY ? 3 : 1;
       }
-
-      maxChildren =
-        weeklySubscription.weeklyPlan.tier === WeeklyPlanTier.FAMILY ? 3 : 1;
     }
 
     const childCount = await this.childRepository.countBy({ userId });

@@ -1,3 +1,4 @@
+import { findExceptionAccount } from "../../constants/exception-accounts";
 import { Test, TestingModule } from "@nestjs/testing";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { ForbiddenException, NotFoundException } from "@nestjs/common";
@@ -30,6 +31,10 @@ const createMockRepository = () => ({
   countBy: jest.fn(),
   count: jest.fn(),
 });
+
+jest.mock("../../constants/exception-accounts", () => ({
+  findExceptionAccount: jest.fn().mockReturnValue(null),
+}));
 
 describe("ChildrenService", () => {
   let service: ChildrenService;
@@ -96,6 +101,40 @@ describe("ChildrenService", () => {
 
   describe("create", () => {
     const dto: CreateChildDto = { name: "Alice", age: 8, gender: "female" };
+
+    describe("exception account", () => {
+      const mockedFind = findExceptionAccount as jest.Mock;
+
+      beforeEach(() => {
+        userRepo.findOne.mockResolvedValue({ id: userId, email: "e@x.com" });
+        mockedFind.mockReturnValue({
+          email: "e@x.com",
+          childAllowed: 5,
+          exceptionGiven: true,
+          billingDescription: "paid outside",
+        });
+      });
+
+      afterEach(() => mockedFind.mockReturnValue(null));
+
+      it("should allow a child without any plan while under childAllowed", async () => {
+        childRepo.countBy.mockResolvedValue(4);
+        const savedChild = { id: childId, userId, ...dto };
+        childRepo.create.mockReturnValue(savedChild);
+        childRepo.save.mockResolvedValue(savedChild);
+
+        await expect(service.create(userId, dto)).resolves.toEqual(savedChild);
+        expect(userPlanRepo.findOne).not.toHaveBeenCalled();
+      });
+
+      it("should reject once childAllowed is reached", async () => {
+        childRepo.countBy.mockResolvedValue(5);
+
+        await expect(service.create(userId, dto)).rejects.toThrow(
+          "Your plan allows a maximum of 5 children",
+        );
+      });
+    });
 
     it("should throw ForbiddenException when no active plan exists", async () => {
       userPlanRepo.findOne.mockResolvedValue(null);

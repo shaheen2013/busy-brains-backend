@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Injectable,
 } from "@nestjs/common";
+import { findExceptionAccount } from "../../constants/exception-accounts";
 import { InjectRepository } from "@nestjs/typeorm";
 import { In, Repository } from "typeorm";
 import { UserPlan } from "../subscriptions/entities/user-plan.entity";
@@ -95,11 +96,11 @@ export class ModulesService {
       order: { createdAt: "DESC" },
     });
 
-    const baseDate = FREE_ACCESS_EMAILS.has(userEmail)
+    const baseDate = this.hasFullAccess(userEmail)
       ? new Date(Date.now() - 100 * 24 * 60 * 60 * 1000)
       : this.resolveBaseDate(userPlan ?? null, weeklySubscription ?? null);
     const unlockDays = getModuleUnlockDays(userEmail);
-    const weeklyGate = FREE_ACCESS_EMAILS.has(userEmail)
+    const weeklyGate = this.hasFullAccess(userEmail)
       ? null
       : this.resolveWeeklyGate(userPlan ?? null, weeklySubscription ?? null);
 
@@ -244,6 +245,12 @@ export class ModulesService {
     return result;
   }
 
+  // Free-access and exception (paid outside the system) accounts bypass
+  // payment and time-based gates.
+  private hasFullAccess(email: string): boolean {
+    return FREE_ACCESS_EMAILS.has(email) || !!findExceptionAccount(email);
+  }
+
   private resolveBaseDate(
     userPlan: UserPlan | null,
     weeklySubscription: WeeklySubscription | null,
@@ -337,11 +344,11 @@ export class ModulesService {
       where: { userId },
       order: { createdAt: "DESC" },
     });
-    const baseDate = FREE_ACCESS_EMAILS.has(userEmail)
+    const baseDate = this.hasFullAccess(userEmail)
       ? new Date(Date.now() - 100 * 24 * 60 * 60 * 1000)
       : this.resolveBaseDate(userPlan ?? null, weeklySubscription ?? null);
     const unlockDays = getModuleUnlockDays(userEmail);
-    const weeklyGate = FREE_ACCESS_EMAILS.has(userEmail)
+    const weeklyGate = this.hasFullAccess(userEmail)
       ? null
       : this.resolveWeeklyGate(userPlan ?? null, weeklySubscription ?? null);
 

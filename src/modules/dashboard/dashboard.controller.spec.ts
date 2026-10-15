@@ -29,7 +29,7 @@ describe("DashboardController", () => {
 
   describe("getDashboard", () => {
     it("should call dashboardService.getDashboard with user id, childId, and empty include array", async () => {
-      const user = { id: "user-uuid-1" };
+      const user = { id: "user-uuid-1", email: "parent@example.com" };
       const childId = "child-uuid-1";
       const include: string[] = [];
       const expectedResult = {
@@ -51,12 +51,13 @@ describe("DashboardController", () => {
         "user-uuid-1",
         "child-uuid-1",
         [],
+        "parent@example.com",
       );
       expect(result).toEqual(expectedResult);
     });
 
     it("should pass include=['quest'] when quest include is requested", async () => {
-      const user = { id: "user-uuid-1" };
+      const user = { id: "user-uuid-1", email: "parent@example.com" };
       const childId = "child-uuid-1";
       const include = ["quest"];
 
@@ -68,11 +69,12 @@ describe("DashboardController", () => {
         "user-uuid-1",
         "child-uuid-1",
         ["quest"],
+        "parent@example.com",
       );
     });
 
     it("should pass include=['quest','screen'] when both are requested", async () => {
-      const user = { id: "user-uuid-1" };
+      const user = { id: "user-uuid-1", email: "parent@example.com" };
       const childId = "child-uuid-1";
       const include = ["quest", "screen"];
 
@@ -84,6 +86,7 @@ describe("DashboardController", () => {
         "user-uuid-1",
         "child-uuid-1",
         ["quest", "screen"],
+        "parent@example.com",
       );
     });
 
@@ -106,7 +109,7 @@ describe("DashboardController", () => {
     });
 
     it("should propagate service errors", async () => {
-      const user = { id: "user-uuid-1" };
+      const user = { id: "user-uuid-1", email: "parent@example.com" };
 
       mockDashboardService.getDashboard.mockRejectedValue(
         new Error("Child not found"),

@@ -7,6 +7,7 @@ import {
   NotFoundException,
   forwardRef,
 } from "@nestjs/common";
+import { findExceptionAccount } from "../../constants/exception-accounts";
 import { InjectRepository } from "@nestjs/typeorm";
 import { ConfigService } from "@nestjs/config";
 import { In, Repository } from "typeorm";
@@ -103,6 +104,12 @@ export class WeeklySubscriptionService {
     tier: WeeklyPlanTier,
     fromNdis?: boolean,
   ): Promise<{ sessionId: string; url: string }> {
+    if (findExceptionAccount(user.email)) {
+      throw new ConflictException(
+        "Your account is billed outside the system and cannot purchase a plan",
+      );
+    }
+
     const existing = await this.getActiveSubscription(user.id);
     if (existing) {
       throw new ConflictException(

@@ -6,6 +6,7 @@ import {
   Inject,
   forwardRef,
 } from "@nestjs/common";
+import { findExceptionAccount } from "../../constants/exception-accounts";
 import { InjectRepository } from "@nestjs/typeorm";
 import { ConfigService } from "@nestjs/config";
 import { Repository } from "typeorm";
@@ -82,6 +83,12 @@ export class PaymentService {
   }
 
   async startTrial(user: User): Promise<UserPlan> {
+    if (findExceptionAccount(user.email)) {
+      throw new ConflictException(
+        "Your account is billed outside the system and cannot purchase a plan",
+      );
+    }
+
     const existing = await this.userPlanRepository.findOne({
       where: { userId: user.id, isActive: true },
     });
@@ -111,6 +118,12 @@ export class PaymentService {
     planName: PlanName,
     fromNdis?: boolean,
   ): Promise<{ sessionId: string; url: string }> {
+    if (findExceptionAccount(user.email)) {
+      throw new ConflictException(
+        "Your account is billed outside the system and cannot purchase a plan",
+      );
+    }
+
     const existing = await this.userPlanRepository.findOne({
       where: { userId: user.id, isActive: true },
     });
@@ -167,6 +180,12 @@ export class PaymentService {
     user: User,
     fromNdis?: boolean,
   ): Promise<{ sessionId: string; url: string }> {
+    if (findExceptionAccount(user.email)) {
+      throw new ConflictException(
+        "Your account is billed outside the system and cannot purchase a plan",
+      );
+    }
+
     const existing = await this.userPlanRepository.findOne({
       where: { userId: user.id, isActive: true },
       relations: { plan: true },

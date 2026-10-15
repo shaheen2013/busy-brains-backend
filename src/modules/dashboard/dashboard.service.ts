@@ -11,6 +11,7 @@ import {
   WeeklySubscriptionStatus,
 } from "../subscriptions/entities/weekly-subscription.entity";
 import { moduleRegistry } from "../../constants/module-registry";
+import { findExceptionAccount } from "../../constants/exception-accounts";
 import {
   MAX_MODULES,
   MODULE_UNLOCK_DAYS,
@@ -59,7 +60,12 @@ export class DashboardService {
     private readonly weeklySubscriptionRepository: Repository<WeeklySubscription>,
   ) {}
 
-  async getDashboard(userId: string, childId: string, include: string[]) {
+  async getDashboard(
+    userId: string,
+    childId: string,
+    include: string[],
+    userEmail?: string,
+  ) {
     const child = await this.childRepository.findOne({
       where: { id: childId, userId },
     });
@@ -75,14 +81,15 @@ export class DashboardService {
       where: { userId },
       order: { createdAt: "DESC" },
     });
-    const baseDate = this.resolveBaseDate(
-      userPlan ?? null,
-      weeklySubscription ?? null,
-    );
-    const weeklyGate = this.resolveWeeklyGate(
-      userPlan ?? null,
-      weeklySubscription ?? null,
-    );
+    // Exception accounts (paid outside the system) bypass payment and
+    // time-based gates, same as in ModulesService.
+    const isException = !!findExceptionAccount(userEmail);
+    const baseDate = isException
+      ? new Date(Date.now() - 100 * 24 * 60 * 60 * 1000)
+      : this.resolveBaseDate(userPlan ?? null, weeklySubscription ?? null);
+    const weeklyGate = isException
+      ? null
+      : this.resolveWeeklyGate(userPlan ?? null, weeklySubscription ?? null);
 
     // Fetch all child progress records
     const childModules = await this.childModuleRepository.find({
