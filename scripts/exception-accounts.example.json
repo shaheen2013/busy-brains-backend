@@ -1,0 +1,11 @@
+[
+  {
+    "email": "enterprise@example.com",
+    "childAllowed": 9
+  },
+  {
+    "email": "another@example.com",
+    "childAllowed": 4,
+    "billingDescription": "Optional custom text shown on the billing page"
+  }
+]
