@@ -2,7 +2,7 @@
 FROM node:22.23.4-alpine AS builder
 WORKDIR /app
 
-RUN corepack enable
+RUN corepack enable && corepack prepare pnpm@12.13.0 --activate
 
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile --ignore-scripts && \
@@ -28,7 +28,7 @@ RUN apk add --no-cache \
     font-noto \
     font-noto-emoji
 
-RUN corepack enable
+RUN corepack enable && corepack prepare pnpm@12.13.0 --activate
 
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile --prod --ignore-scripts && \
