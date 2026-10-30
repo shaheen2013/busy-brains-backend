@@ -1,8 +1,8 @@
 # ── Stage 1: build ──────────────────────────────────────────────────────────
-FROM node:22-alpine AS builder
+FROM node:22.23.4-alpine AS builder
 WORKDIR /app
 
-RUN corepack enable
+RUN corepack enable && corepack prepare pnpm@10.34.7 --activate
 
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile --ignore-scripts && \
@@ -12,7 +12,7 @@ COPY . .
 RUN pnpm run build
 
 # ── Stage 2: production ──────────────────────────────────────────────────────
-FROM node:22-alpine AS production
+FROM node:22.23.4-alpine AS production
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -28,7 +28,7 @@ RUN apk add --no-cache \
     font-noto \
     font-noto-emoji
 
-RUN corepack enable
+RUN corepack enable && corepack prepare pnpm@10.34.7 --activate
 
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile --prod --ignore-scripts && \
